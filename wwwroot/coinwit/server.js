@@ -11,7 +11,8 @@ const { Server } = require('socket.io');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const multer = require('multer');
-
+const schedule = require('node-schedule');
+const SERVER_START_TIME = new Date();
 const transporter = nodemailer.createTransport({
     host: 'smtp.zoho.com',
     port: 465,
@@ -3024,40 +3025,74 @@ app.post('/api/game/plinko-result', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, newBalance: user.balance });
 });
+// [SỬA LỖI] THAY THẾ API COINGECKO BẰNG BINANCE ĐỂ KHÔNG BỊ CHẶN IP
 app.get('/api/market/bo-list', authenticateToken, async (req, res) => {
-    const targetIds = [
-        'bitcoin', 'ethereum', 'solana', 'dogecoin', 'binancecoin',
-        'ripple', 'cardano', 'avalanche-2', 'chainlink', 'shiba-inu'
-    ];
     try {
-        const apiUrl = 'https://api.coingecko.com/api/v3/simple/price';
-        const response = await axios.get(apiUrl, {
-            params: {
-                ids: targetIds.join(','),
-                vs_currencies: 'usd',
-                include_24hr_change: 'true'
-            }
-        });
-        if (response.data) {
-            const formattedData = {};
-            const idToSymbol = {
-                'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'dogecoin': 'DOGE',
-                'binancecoin': 'BNB', 'ripple': 'XRP', 'cardano': 'ADA',
-                'avalanche-2': 'AVAX', 'chainlink': 'LINK', 'shiba-inu': 'SHIB'
-            };
-            for (const id in response.data) {
-                const symbol = idToSymbol[id];
-                if (symbol) {
-                    formattedData[symbol] = {
-                        priceUsd: response.data[id].usd,
-                        changePercent24Hr: response.data[id].usd_24h_change
+        // 1. Map tên ID cũ (CoinGecko) sang Symbol của Binance
+        const symbolMap = {
+            'bitcoin': 'BTCUSDT',
+            'ethereum': 'ETHUSDT',
+            'solana': 'SOLUSDT',
+            'dogecoin': 'DOGEUSDT',
+            'binancecoin': 'BNBUSDT',
+            'ripple': 'XRPUSDT',
+            'cardano': 'ADAUSDT',
+            'avalanche-2': 'AVAXUSDT',
+            'chainlink': 'LINKUSDT',
+            'shiba-inu': 'SHIBUSDT'
+        };
+
+        // 2. Tạo chuỗi query cho Binance
+        // Format yêu cầu: ["BTCUSDT","ETHUSDT",...]
+        const symbolsArray = Object.values(symbolMap).map(s => `"${s}"`).join(',');
+        const binanceUrl = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${symbolsArray}]`;
+
+        // 3. Gọi API Binance
+        const response = await axios.get(binanceUrl);
+        const binanceData = response.data; // Mảng dữ liệu từ Binance
+
+        // 4. Map ngược lại dữ liệu để khớp với Frontend cũ
+        const formattedData = {};
+        
+        // Tạo map ngược để tìm key: BTCUSDT -> bitcoin
+        const reverseMap = {};
+        for (const [key, value] of Object.entries(symbolMap)) {
+            reverseMap[value] = key;
+        }
+
+        if (Array.isArray(binanceData)) {
+            binanceData.forEach(item => {
+                const originalKey = reverseMap[item.symbol];
+                if (originalKey) {
+                    formattedData[originalKey] = {
+                        // Binance trả về lastPrice (string) -> convert sang float
+                        priceUsd: parseFloat(item.lastPrice),
+                        // Binance trả về priceChangePercent (string) -> convert sang float
+                        changePercent24Hr: parseFloat(item.priceChangePercent)
                     };
                 }
-            }
+            });
             res.json(formattedData);
-        } else { throw new Error('Không tìm thấy dữ liệu CoinGecko'); }
+        } else {
+            throw new Error('Dữ liệu Binance không đúng định dạng');
+        }
+
     } catch (error) {
-        res.status(500).json({ message: 'Không thể tải dữ liệu thị trường.' });
+        console.error('❌ Lỗi tải market data (Binance):', error.message);
+        
+        // [FALLBACK] Nếu Binance lỗi thì trả về dữ liệu ảo để Web không bị trắng trang
+        res.json({
+            'bitcoin': { priceUsd: 96500, changePercent24Hr: 1.5 },
+            'ethereum': { priceUsd: 3600, changePercent24Hr: 2.1 },
+            'solana': { priceUsd: 240, changePercent24Hr: 5.4 },
+            'dogecoin': { priceUsd: 0.41, changePercent24Hr: -1.2 },
+            'binancecoin': { priceUsd: 650, changePercent24Hr: 0.5 },
+            'ripple': { priceUsd: 2.4, changePercent24Hr: 10.5 },
+            'cardano': { priceUsd: 1.1, changePercent24Hr: 3.2 },
+            'avalanche-2': { priceUsd: 45, changePercent24Hr: 4.1 },
+            'chainlink': { priceUsd: 24, changePercent24Hr: 1.1 },
+            'shiba-inu': { priceUsd: 0.00003, changePercent24Hr: -2.5 }
+        });
     }
 });
 app.get('/api/market/klines', authenticateToken, async (req, res) => {
@@ -6511,6 +6546,79 @@ async function processCallbackQuery(callback_query) {
     }
 }
 
+// ============================================================
+// [THÊM MỚI] HÀM GỬI BÁO CÁO NGÀY (DAILY REPORT)
+// ============================================================
+async function sendDailySystemReport() {
+    try {
+        const now = new Date();
+        const oneDayAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+        // 1. Tính số ngày hoạt động (Dựa trên ngày tạo của User ID 1 - Admin)
+        let daysActive = 0;
+        let startDateStr = "N/A";
+        const adminUser = users.find(u => u.id === 1);
+        if (adminUser) {
+            const startDate = new Date(adminUser.createdAt);
+            daysActive = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+            startDateStr = startDate.toLocaleDateString('vi-VN');
+        }
+
+        // 2. Thống kê User mới trong 24h
+        const newUsers = users.filter(u => new Date(u.createdAt) > oneDayAgo).length;
+        const totalUsers = users.length;
+
+        // 3. Thống kê Nạp/Rút 24h (Chỉ tính lệnh APPROVED)
+        const approvedDeposits24h = allData.deposits.filter(d => d.status === 'APPROVED' && new Date(d.processedAt) > oneDayAgo);
+        const totalDeposit24hVND = approvedDeposits24h.reduce((sum, d) => sum + (d.amountVND || 0), 0);
+        const totalDeposit24hUSDT = approvedDeposits24h.reduce((sum, d) => sum + d.amount, 0);
+
+        const approvedWithdrawals24h = allData.withdrawals.filter(w => w.status === 'APPROVED' && new Date(w.processedAt) > oneDayAgo);
+        const totalWithdraw24hUSDT = approvedWithdrawals24h.reduce((sum, w) => sum + w.amount, 0);
+
+        // 4. Lợi nhuận Game 24h (Dùng hàm có sẵn)
+        const gameStats = calculateGameProfitLoss();
+        const houseProfit24h = gameStats.total.profit24h;
+
+        // 5. Tổng số dư user hiện tại (Liability)
+        const totalUserBalance = users.reduce((sum, u) => sum + u.balance, 0);
+
+        const reportMsg = `
+📅 *BÁO CÁO TỔNG KẾT NGÀY ${now.toLocaleDateString('vi-VN')}*
+━━━━━━━━━━━━━━━━━━
+⏱ *Hoạt động:* ${daysActive} ngày (Từ ${startDateStr})
+
+👥 *NGƯỜI DÙNG*
+• Mới đăng ký: ${newUsers}
+• Tổng thành viên: ${totalUsers}
+• Tổng số dư User: $${totalUserBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+
+💰 *DÒNG TIỀN 24H*
+• Nạp: $${totalDeposit24hUSDT.toFixed(2)} (${totalDeposit24hVND.toLocaleString('vi-VN')} đ)
+• Rút: $${totalWithdraw24hUSDT.toFixed(2)}
+• Net Cashflow: ${totalDeposit24hUSDT - totalWithdraw24hUSDT >= 0 ? '🟢' : '🔴'} ${(totalDeposit24hUSDT - totalWithdraw24hUSDT).toFixed(2)} USDT
+
+🎲 *LỢI NHUẬN GAME 24H (P/L)*
+• Tổng lãi sàn: ${houseProfit24h >= 0 ? '✅' : '❌'} $${houseProfit24h.toFixed(2)}
+------------------
+• Game 1-20: $${gameStats.game40s.profit24h.toFixed(2)}
+• Game BO: $${gameStats.bo.profit24h.toFixed(2)}
+• Game Crash: $${gameStats.crash.profit24h.toFixed(2)}
+• Game Mines: $${gameStats.mines.profit24h.toFixed(2)}
+• Game Hilo: $${gameStats.hilo.profit24h.toFixed(2)}
+
+_🤖 Báo cáo tự động lúc 00:00_
+`;
+
+        await sendTelegramMessage(reportMsg);
+        console.log('✅ [SYSTEM] Đã gửi báo cáo ngày về Telegram.');
+
+    } catch (error) {
+        console.error('❌ Lỗi gửi báo cáo ngày:', error);
+    }
+}
+
+
 (async () => {
     global.gameBank = gameBank;
     await setupInitialData();
@@ -6521,12 +6629,19 @@ async function processCallbackQuery(callback_query) {
     startGame_REAL_BO_Timer();
     startCrashGameLoop();
 
-    startChatSimulation(); // <-- [ĐẢM BẢO CÓ DÒNG NÀY]
+    startChatSimulation();
+
+    // ============================================================
+    // [THÊM MỚI] LÊN LỊCH BÁO CÁO 00:00 MỖI NGÀY
+    // ============================================================
+    // '0 0 * * *' nghĩa là: Phút 0, Giờ 0 (00:00) mỗi ngày
+    schedule.scheduleJob('0 1 * * *', async () => {
+        console.log('⏰ Đang chạy tác vụ báo cáo (01:00 Sing / 00:00 VN)...');
+        await sendDailySystemReport();
+    });
 
     server.listen(PORT, '0.0.0.0', () => {
         console.log(`Server đang chạy tại http://localhost:${PORT}`);
-
-        // Thiết lập Telegram bot sau khi server đã chạy
         setupTelegramWebhook();
     });
 })();
