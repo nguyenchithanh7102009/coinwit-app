@@ -1,0 +1,7 @@
+# Ignore Node.js installed dependencies
+wwwroot/coinwit/node_modules/
+
+# Ignore configuration/temporary files
+SETUP/
+*.txt
+*.log

@@ -3025,62 +3025,60 @@ app.post('/api/game/plinko-result', authenticateToken, async (req, res) => {
     }
     res.json({ success: true, newBalance: user.balance });
 });
-// [SỬA LỖI] THAY THẾ API COINGECKO BẰNG BINANCE ĐỂ KHÔNG BỊ CHẶN IP
-app.get('/api/market/bo-list', authenticateToken, async (req, res) => {
+// [SỬA LỖI] API Market BO List - Lấy giá chuẩn từ Binance (Giống trade_detail)
+// [SỬA ĐỔI] API Market BO List - Sử dụng CoinCap API (Nhanh & Ổn định hơn Binance)
+app.get('/api/market/bo-list', async (req, res) => {
     try {
-        // 1. Map tên ID cũ (CoinGecko) sang Symbol của Binance
-        const symbolMap = {
-            'bitcoin': 'BTCUSDT',
-            'ethereum': 'ETHUSDT',
-            'solana': 'SOLUSDT',
-            'dogecoin': 'DOGEUSDT',
-            'binancecoin': 'BNBUSDT',
-            'ripple': 'XRPUSDT',
-            'cardano': 'ADAUSDT',
-            'avalanche-2': 'AVAXUSDT',
-            'chainlink': 'LINKUSDT',
-            'shiba-inu': 'SHIBUSDT'
+        // 1. Danh sách các ID theo chuẩn của CoinCap
+        const coinIds = [
+            'bitcoin',
+            'ethereum',
+            'solana',
+            'dogecoin',
+            'binance-coin', // CoinCap dùng 'binance-coin'
+            'xrp',
+            'cardano',
+            'avalanche', // CoinCap dùng 'avalanche'
+            'chainlink',
+            'shiba-inu'
+        ];
+
+        // 2. Gọi API CoinCap (Nhanh hơn, không cần key)
+        const url = `https://api.coincap.io/v2/assets?ids=${coinIds.join(',')}`;
+        const response = await axios.get(url, { timeout: 5000 });
+        const dataList = response.data.data;
+
+        // 3. Map dữ liệu để trả về đúng định dạng frontend cần
+        // Frontend đang cần object dạng: { 'bitcoin': { priceUsd: ..., change... }, ... }
+        const formattedData = {};
+
+        // Map đặc biệt để khớp với key cũ mà frontend đang dùng
+        const keyMapping = {
+            'binance-coin': 'binancecoin', // Map về key cũ nếu frontend dùng binancecoin
+            'avalanche': 'avalanche-2'     // Map về key cũ
         };
 
-        // 2. Tạo chuỗi query cho Binance
-        // Format yêu cầu: ["BTCUSDT","ETHUSDT",...]
-        const symbolsArray = Object.values(symbolMap).map(s => `"${s}"`).join(',');
-        const binanceUrl = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${symbolsArray}]`;
+        if (Array.isArray(dataList)) {
+            dataList.forEach(coin => {
+                // Xác định key để trả về (ưu tiên map về key cũ để không phải sửa frontend)
+                const key = keyMapping[coin.id] || coin.id;
 
-        // 3. Gọi API Binance
-        const response = await axios.get(binanceUrl);
-        const binanceData = response.data; // Mảng dữ liệu từ Binance
-
-        // 4. Map ngược lại dữ liệu để khớp với Frontend cũ
-        const formattedData = {};
-        
-        // Tạo map ngược để tìm key: BTCUSDT -> bitcoin
-        const reverseMap = {};
-        for (const [key, value] of Object.entries(symbolMap)) {
-            reverseMap[value] = key;
-        }
-
-        if (Array.isArray(binanceData)) {
-            binanceData.forEach(item => {
-                const originalKey = reverseMap[item.symbol];
-                if (originalKey) {
-                    formattedData[originalKey] = {
-                        // Binance trả về lastPrice (string) -> convert sang float
-                        priceUsd: parseFloat(item.lastPrice),
-                        // Binance trả về priceChangePercent (string) -> convert sang float
-                        changePercent24Hr: parseFloat(item.priceChangePercent)
-                    };
-                }
+                formattedData[key] = {
+                    priceUsd: parseFloat(coin.priceUsd),
+                    changePercent24Hr: parseFloat(coin.changePercent24Hr)
+                };
             });
+            
+            // Trả về dữ liệu
             res.json(formattedData);
         } else {
-            throw new Error('Dữ liệu Binance không đúng định dạng');
+            throw new Error('Dữ liệu CoinCap không đúng định dạng');
         }
 
     } catch (error) {
-        console.error('❌ Lỗi tải market data (Binance):', error.message);
+        console.error('⚠️ Lỗi tải CoinCap API:', error.message);
         
-        // [FALLBACK] Nếu Binance lỗi thì trả về dữ liệu ảo để Web không bị trắng trang
+        // [FALLBACK] Dữ liệu ảo dự phòng (Chỉ hiện khi mất mạng hoàn toàn)
         res.json({
             'bitcoin': { priceUsd: 96500, changePercent24Hr: 1.5 },
             'ethereum': { priceUsd: 3600, changePercent24Hr: 2.1 },
@@ -6635,8 +6633,8 @@ _🤖 Báo cáo tự động lúc 00:00_
     // [THÊM MỚI] LÊN LỊCH BÁO CÁO 00:00 MỖI NGÀY
     // ============================================================
     // '0 0 * * *' nghĩa là: Phút 0, Giờ 0 (00:00) mỗi ngày
-    schedule.scheduleJob('0 1 * * *', async () => {
-        console.log('⏰ Đang chạy tác vụ báo cáo (01:00 Sing / 00:00 VN)...');
+    schedule.scheduleJob('0 0 * * *', async () => {
+        console.log('⏰ Đang chạy tác vụ báo cáo (00:00 VN)...');
         await sendDailySystemReport();
     });
 

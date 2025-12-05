@@ -171,11 +171,9 @@
         </a>
     </footer>
     
-    <script src="main.js"></script>
+<script src="main.js"></script>
     <script>
         // Giả định các hàm này được định nghĩa trong main.js
-        // getToken, fetchAPI, formatCurrency, initCurrency, checkLogin
-        
         function guardPage(event, targetUrl) {
             const token = getToken();
             if (!token) {
@@ -188,7 +186,7 @@
         }
 
         async function checkLoginAndRedirect() {
-            await initCurrency(); // Quan trọng: Phải chạy initCurrency TRƯỚC
+            await initCurrency(); 
             const token = getToken();
             if (!token) {
                 window.location.href = 'login';
@@ -197,11 +195,7 @@
             return true;
         }
 
-        // Biến toàn cục để lưu trữ dữ liệu và trạng thái
-        let allCoinData = []; // Luôn lưu giá gốc USDT
-        let currentFilter = 'all';
-        let userBalanceUSDT = 0; 
-        
+        // Cấu hình danh sách coin
         const symbolsMap = { 
             'BTC': { name: 'Bitcoin', icon: 'fa-brands fa-bitcoin text-yellow-400' },
             'ETH': { name: 'Ethereum', icon: 'fa-brands fa-ethereum text-blue-400' },
@@ -215,65 +209,70 @@
             'SHIB': { name: 'Shiba Inu', icon: 'fa-solid fa-dog text-orange-300' }
         };
 
-        // [SỬA] Hàm vẽ danh sách coin (thêm logic đổi tiền)
+        // Khởi tạo khung dữ liệu
+        let allCoinData = Object.keys(symbolsMap).map(symbol => ({
+            symbol: symbol,
+            price: 0,
+            change: 0,
+            name: symbolsMap[symbol].name,
+            icon: symbolsMap[symbol].icon,
+            isLoading: true
+        }));
+
+        let currentFilter = 'all';
+        let userBalanceUSDT = 0; 
+        let ws = null;
+
         function renderCoinList() {
             const container = document.getElementById('coin-list-container');
             if (!container) return;
 
-            // Lấy tiền tệ và tỷ giá hiện tại (từ main.js)
             const currentCurrency = window.globalCurrency || 'USDT';
             const exchangeRate = window.globalExchangeRate || 27000;
 
             let filteredData = []; 
 
-            // Sắp xếp VẪN DỰA TRÊN GIÁ GỐC USDT
             if (currentFilter === 'gainers') {
-                filteredData = allCoinData
-                    .filter(a => a.change > 0)
-                    .sort((a, b) => b.change - a.change);
+                filteredData = allCoinData.filter(a => a.change > 0).sort((a, b) => b.change - a.change);
             } else if (currentFilter === 'losers') {
-                filteredData = allCoinData
-                    .filter(a => a.change < 0)
-                    .sort((a, b) => a.change - b.change);
+                filteredData = allCoinData.filter(a => a.change < 0).sort((a, b) => a.change - b.change);
             } else if (currentFilter === 'hot') {
-                filteredData = [...allCoinData]
-                    .sort((a, b) => b.price - a.price) // Sắp xếp theo giá USDT
-                    .slice(0, 3);
+                filteredData = [...allCoinData].sort((a, b) => b.price - a.price).slice(0, 3);
             } else { // 'all'
-                filteredData = [...allCoinData]
-                    .sort((a, b) => b.price - a.price); // Sắp xếp theo giá USDT
+                filteredData = [...allCoinData].sort((a, b) => b.price - a.price);
             }
 
             let html = '';
             
             if (filteredData.length === 0) {
-                if(allCoinData.length === 0) {
-                    html = '<p class="text-center text-gray-400 py-10">Đang tải dữ liệu thị trường...</p>';
-                } else {
-                    html = '<p class="text-center text-gray-400 py-10">Không có đồng nào phù hợp với bộ lọc.</p>';
-                }
+                html = '<p class="text-center text-gray-400 py-10">Đang tải dữ liệu...</p>';
             } else {
                 filteredData.forEach(coin => {
                     const info = symbolsMap[coin.symbol];
                     const changeColor = coin.change > 0 ? 'text-green-500' : (coin.change < 0 ? 'text-red-500' : 'text-gray-400');
-                    const changeText = `${coin.change >= 0 ? '+' : ''}${coin.change.toFixed(2)}%`;
                     
-                    // [SỬA] Logic định dạng giá
-                    let priceText = '';
-                    if (currentCurrency === 'VND') {
-                        const vndPrice = coin.price * exchangeRate;
-                        priceText = vndPrice.toLocaleString('vi-VN', {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                        }) + ' ₫';
-                    } else { // USDT
-                        priceText = coin.price.toLocaleString('en-US', {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: (coin.price < 0.01 ? 6 : (coin.price < 1 ? 4 : 2))
-                        });
-                        // Không thêm ' USDT' để giống ảnh chụp màn hình
+                    let changeText = '...';
+                    if (!coin.isLoading && !isNaN(coin.change)) {
+                        changeText = `${coin.change >= 0 ? '+' : ''}${coin.change.toFixed(2)}%`;
                     }
-                    // [KẾT THÚC SỬA]
+                    
+                    let priceText = '';
+                    if (coin.isLoading || coin.price === 0) {
+                        priceText = '<span class="text-gray-500 text-sm animate-pulse">Loading...</span>';
+                    } else {
+                        if (currentCurrency === 'VND') {
+                            const vndPrice = coin.price * exchangeRate;
+                            priceText = vndPrice.toLocaleString('vi-VN', {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0
+                            }) + ' ₫';
+                        } else { // USDT
+                            priceText = coin.price.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: (coin.price < 0.01 ? 6 : (coin.price < 1 ? 4 : 2))
+                            }) + ' USDT';
+                        }
+                    }
 
                     html += `
                     <a href="trade_detail.html?coin=${coin.symbol}" onclick="return guardPage(event, 'trade_detail.html?coin=${coin.symbol}')" class="guarded-link group block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-4 flex items-center justify-between mb-3 transition-all hover:border-yellow-400">
@@ -296,37 +295,46 @@
             container.innerHTML = html;
         }
 
-        // Hàm tải dữ liệu (Giữ nguyên)
-        async function loadMarketData() {
-            try {
-                const data = await fetchAPI('/market/bo-list'); 
-                const symbols = Object.keys(symbolsMap);
-                let newData = [];
+        // KẾT NỐI WEBSOCKET BINANCE
+        function startBinanceStream() {
+            const streams = Object.keys(symbolsMap)
+                .map(symbol => `${symbol.toLowerCase()}usdt@miniTicker`)
+                .join('/');
 
-                symbols.forEach(symbol => {
-                    const coinData = data[symbol];
-                    if (coinData) {
-                         newData.push({
-                            symbol: symbol,
-                            price: parseFloat(coinData.priceUsd), // Luôn lưu giá gốc USDT
-                            change: parseFloat(coinData.changePercent24Hr),
-                            name: symbolsMap[symbol].name,
-                            icon: symbolsMap[symbol].icon
-                        });
+            const wsUrl = `wss://stream.binance.com:9443/stream?streams=${streams}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    if (message.data) {
+                        const ticker = message.data;
+                        const symbolRaw = ticker.s.replace('USDT', ''); 
+                        
+                        const coinIndex = allCoinData.findIndex(c => c.symbol === symbolRaw);
+                        if (coinIndex !== -1) {
+                            const currentPrice = parseFloat(ticker.c);
+                            const openPrice = parseFloat(ticker.o);
+                            
+                            let changePercent = 0;
+                            if (openPrice > 0) {
+                                changePercent = ((currentPrice - openPrice) / openPrice) * 100;
+                            }
+
+                            // Cập nhật ngầm vào biến data
+                            allCoinData[coinIndex].price = currentPrice;
+                            allCoinData[coinIndex].change = changePercent;
+                            allCoinData[coinIndex].isLoading = false;
+                        }
                     }
-                });
-                
-                allCoinData = newData; 
-                renderCoinList(); // Vẽ lại với giá trị mới
+                } catch (e) { }
+            };
 
-            } catch (error)
-            {
-                const container = document.getElementById('coin-list-container');
-                if (container) container.innerHTML = '<p class="text-center text-red-500 py-10">Lỗi tải dữ liệu. Vui lòng thử lại.</p>';
-            }
+            ws.onerror = (error) => { }; 
+            ws.onclose = () => { setTimeout(startBinanceStream, 3000); };
         }
         
-        // Hàm cập nhật hiển thị tiền tệ (Giữ nguyên)
         function updateDisplayCurrency() {
             const currentCurrency = localStorage.getItem('selectedCurrency') || 'USDT';
             const btn = document.getElementById('toggle-currency-btn');
@@ -348,6 +356,14 @@
         }
         
         document.addEventListener('DOMContentLoaded', async (event) => {
+            renderCoinList(); // Vẽ lần đầu
+            startBinanceStream(); // Kết nối ngầm
+
+            // [SỬA] Cài đặt bộ đếm giờ: 5000ms = 5 giây mới vẽ lại 1 lần
+            setInterval(() => {
+                renderCoinList();
+            }, 3000);
+
             const hasToken = await checkLoginAndRedirect(); 
             if (!hasToken) return;
 
@@ -356,13 +372,10 @@
                 userBalanceUSDT = data.balance; 
                 updateDisplayCurrency(); 
             } catch (error) {
-                document.getElementById('trade-balance').textContent = 'Lỗi tải số dư';
+                const balEl = document.getElementById('trade-balance');
+                if(balEl) balEl.textContent = '...';
             }
             
-            loadMarketData();
-            
-            setInterval(loadMarketData, 30000);
-
             const filterContainer = document.getElementById('filter-buttons');
             if (filterContainer) {
                 filterContainer.addEventListener('click', (e) => {
@@ -385,7 +398,6 @@
                 });
             }
             
-            // [SỬA] Logic nút đổi tiền (thêm renderCoinList)
             const toggleBtn = document.getElementById('toggle-currency-btn');
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', () => {
@@ -395,9 +407,8 @@
                     } else {
                         localStorage.setItem('selectedCurrency', 'USDT');
                     }
-                    // Cập nhật lại hiển thị
                     updateDisplayCurrency();
-                    renderCoinList(); // <-- [THÊM] Vẽ lại danh sách coin
+                    renderCoinList(); 
                 });
             }
         });
