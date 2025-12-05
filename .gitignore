@@ -1,4 +1,7 @@
-# Bỏ qua các thư mục cài đặt và file rác
+# Ignore Node.js installed dependencies
+wwwroot/coinwit/node_modules/
+
+# Ignore configuration/temporary files
 SETUP/
-pm2 restart coinwit-app.txt
-# Có thể thêm các file khác nếu cần
+*.txt
+*.log

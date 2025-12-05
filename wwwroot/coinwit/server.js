@@ -80,6 +80,11 @@ const DEPOSIT_LIMIT = 5;
 const DEPOSIT_TIME_WINDOW_MS = 10 * 60 * 60 * 1000;
 // const WHALE_BET_THRESHOLD = 0; // [SỬA] Đã chuyển thành biến toàn cục
 
+//auto gửi lệnh về web 
+app.get('/healthz', (req, res) => {
+    // Chỉ cần trả về mã 200 OK
+    res.status(200).send('OK');
+});
 
 app.use(cors());
 app.use(bodyParser.json());
