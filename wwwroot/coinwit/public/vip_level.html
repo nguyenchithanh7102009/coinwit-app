@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cấp độ VIP | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="main.js" defer></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+            padding-bottom: 24px; 
+            padding-top: 120px; /* Chỗ trống cho 2 header */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f0c960; }
+        
+        .yellow-accent { color: #d4af37; }
+        .yellow-accent-bg { background-color: #d4af37; }
+        
+        /* [SỬA LỖI] Bảng VIP vừa màn hình, tự xuống dòng */
+        .vip-table {
+            width: 100%; /* Bắt buộc vừa màn hình */
+            table-layout: fixed; /* Cột tuân theo chiều rộng đã định */
+            word-wrap: break-word; /* Cho phép chữ tự vỡ dòng */
+        }
+        /* Xóa CSS .table-wrapper cũ */
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="fixed top-0 z-50 w-full bg-[#1a1b20] shadow-lg border-b border-gray-800">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                        <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+                    </div>
+                    <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+                </a>
+                <div class="flex items-center gap-2">
+                    <button class="p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </button>
+                    <button class="relative p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="absolute top-1 right-1 h-3 w-3 bg-red-600 rounded-full border-2 border-gray-800"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="fixed top-[61px] z-40 w-full bg-[#18191d] border-b border-[#2c2d32] shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center">
+            <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Cấp độ VIP</h1>
+            <div class="w-10 h-10"></div>
+        </div>
+    </div>
+
+    <main class="container mx-auto px-4 py-4 space-y-4">
+        
+        <div class="bg-gradient-to-br from-yellow-400 to-yellow-600 p-6 rounded-2xl shadow-lg text-black">
+            <h1 id="current-vip" class="text-4xl font-bold">VIP 1</h1>
+            <p class="text-sm text-gray-800 mt-1">Tích lũy nạp: <span id="current-deposit" class="font-medium text-black">---</span></p>
+            
+            <div class="mt-4">
+                <p id="target-text" class="text-xs font-bold text-black mb-1">Đang tải...</p>
+                <div class="w-full h-2 bg-black/20 rounded-full overflow-hidden">
+                    <div id="progress-fill" class="h-full bg-white rounded-full transition-all duration-500" style="width: 0%;"></div>
+                </div>
+                <p id="progress-percent" class="text-xs text-gray-800 text-right mt-1">0.00%</p>
+            </div>
+        </div>
+
+        <div class="bg-[#18191d] rounded-lg shadow border border-[#2c2d32] overflow-hidden">
+            <table class="vip-table" id="vip-table">
+                <thead>
+                    <tr class="bg-[#1a1b20]">
+                        <th class="p-3 text-left text-xs font-semibold text-gray-400" style="width: 25%;">Cấp bậc</th>
+                        <th class="p-3 text-left text-xs font-semibold text-gray-400" style="width: 30%;">Tiêu chuẩn thăng cấp</th>
+                        <th class="p-3 text-left text-xs font-semibold text-gray-400" style="width: 45%;">Quyền lợi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#2c2d32]" id="vip-table-body">
+                    <tr>
+                        <td colspan="3" class="p-4 text-center text-gray-400">Đang tải dữ liệu VIP...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = window.checkLogin(); 
+        if (!token) return;
+        
+        await window.initCurrency(); 
+
+        // 1. Định nghĩa các mốc VIP (phải khớp với server.js)
+        const vipThresholds = {
+            1: 0,
+            2: 2,
+            3: 100,
+            4: 800,
+            5: 5000,
+            6: 15000,
+            7: 100000,
+            8: 300000,
+            9: 800000,
+            10: 10000000
+        };
+
+        try {
+            // 2. Lấy dữ liệu profile và thông tin VIP (bao gồm phí và quyền lợi)
+            const [profileData, vipInfo] = await Promise.all([
+                window.fetchAPI('/user/profile'),
+                window.fetchAPI('/user/vip-info')
+            ]);
+
+            const user = profileData;
+            const vipBenefits = vipInfo.vipBenefits;
+            const vipFeeList = vipInfo.vipFeeList;
+
+            // 3. Cập nhật thẻ VIP
+            document.getElementById('current-vip').textContent = `VIP ${user.vipLevel}`;
+            document.getElementById('current-deposit').textContent = window.formatCurrency(user.lifetimeDeposit);
+
+            // 4. Cập nhật thanh tiến độ
+            const nextVipTargetUSDT = user.nextVipTarget; // Mốc USDT của VIP tiếp theo
+            const currentVipThresholdUSDT = vipThresholds[user.vipLevel] || 0; // Mốc USDT của VIP hiện tại
+
+            let progressPercentage = 0;
+            let targetText = "";
+            
+            if (user.vipLevel < 10) {
+                if (nextVipTargetUSDT > currentVipThresholdUSDT) {
+                     progressPercentage = Math.max(0, Math.min(100,
+                        ((user.lifetimeDeposit - currentVipThresholdUSDT) / (nextVipTargetUSDT - currentVipThresholdUSDT)) * 100
+                    ));
+                } else if (user.lifetimeDeposit >= currentVipThresholdUSDT) {
+                    progressPercentage = 100; // Đã đạt mốc tối thiểu
+                }
+                targetText = `VIP ${user.vipLevel + 1} Mục tiêu : ${window.formatCurrency(nextVipTargetUSDT)}`;
+            } else {
+                progressPercentage = 100;
+                targetText = "Bạn đã đạt cấp VIP cao nhất!";
+            }
+            
+            document.getElementById('target-text').textContent = targetText;
+            document.getElementById('progress-fill').style.width = `${progressPercentage.toFixed(2)}%`;
+            document.getElementById('progress-percent').textContent = `${progressPercentage.toFixed(2)}%`;
+
+            // 5. Tạo bảng VIP
+            const tbody = document.getElementById('vip-table-body');
+            tbody.innerHTML = ''; // Xóa nội dung cũ
+
+            // Lặp qua tất cả các cấp độ VIP
+            for (let level = 1; level <= 10; level++) {
+                const isCurrent = (level == user.vipLevel);
+                const targetUSDT = vipThresholds[level];
+                const benefits = vipBenefits[level] || [];
+                const withdrawFee = (vipFeeList[level] * 100).toFixed(1);
+                
+                // Hiển thị mốc thăng cấp
+                let targetDisplay = 'Nạp tích lũy không giới hạn';
+                if (level < 10) {
+                    targetDisplay = `Nạp ${window.formatCurrency(targetUSDT)}`;
+                } else if (level === 1) {
+                    targetDisplay = 'Cấp độ khởi điểm';
+                }
+
+                // [SỬA LỖI] Đảm bảo không có class `ml-4` trong <li>
+                const benefitList = benefits.map(b => `<li>${b}</li>`).join('');
+                
+                // Tô màu cấp VIP hiện tại
+                const levelClass = isCurrent ? 'font-bold yellow-accent' : 'font-medium';
+
+                tbody.innerHTML += `
+                    <tr class="${isCurrent ? 'bg-[#1f2025]' : 'text-gray-400'} hover:bg-[#2c2d32] transition">
+                        <td class="p-3 ${levelClass}">
+                            <i class="fas fa-gem mr-2 text-yellow-400"></i> VIP ${level}
+                        </td>
+                        <td class="p-3 text-white text-sm">${targetDisplay}</td>
+                        <td class="p-3 text-sm text-gray-300">
+                            <ul class="list-disc list-inside space-y-1">
+                                ${benefitList}
+                            </ul>
+                        </td>
+                    </tr>
+                `;
+            }
+
+        } catch (error) {
+            document.getElementById('current-vip').textContent = "Lỗi Tải Dữ Liệu";
+            document.getElementById('current-deposit').textContent = error.message;
+        }
+    });
+    </script>
+</body>
+</html>

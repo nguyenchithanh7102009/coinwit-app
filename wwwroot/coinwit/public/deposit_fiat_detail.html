@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết Nạp Fiat | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            /* Thêm padding để nội dung không bị che bởi fixed header */
+            padding-top: 122px; /* 61px header + 61px sub-header */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        /* Header cố định */
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0; 
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        /* Sub-Header cố định */
+        .sub-header-sticky {
+            position: fixed;
+            top: 61px; /* Ngay dưới header chính */
+            left: 0;
+            right: 0;
+            z-index: 30;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        .btn-yellow {
+            background-color: var(--yellow-accent);
+            color: #111827; /* gray-900 */
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .btn-yellow:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+        .btn-yellow:disabled {
+            background-color: #4b5563; /* gray-600 */
+            color: #9ca3af; /* gray-400 */
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .form-input {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+        .form-input:focus-within {
+            border-color: var(--yellow-accent);
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.3);
+        }
+        /* Tắt mũi tên tăng giảm của input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* CẢI THIỆN VÙNG BẤM CHO NÚT QUAY LẠI */
+        .back-button-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px; /* Tăng chiều rộng vùng bấm */
+            height: 44px; /* Tăng chiều cao vùng bấm */
+            padding: 8px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .back-button-area:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="h-[61px] flex items-center px-4 py-3 sub-header-sticky">
+        <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2" id="channel-title">Nạp Tiền Nhanh</h1>
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <main class="flex-grow py-4 space-y-6">
+        
+        <div class="space-y-2 mx-4">
+            <label class="text-sm font-medium text-gray-400 block px-1">Kênh nạp tiền</label>
+            <div class="form-input flex items-center justify-between p-4 cursor-default bg-gray-800/50">
+                <input type="text" id="channel-name-display" value="Đang tải..." readonly
+                        class="w-full bg-transparent border-none font-semibold text-white cursor-default focus:outline-none p-0">
+                </div>
+            
+            <div class="flex justify-between text-xs text-gray-400 px-1">
+                <span>Hạn mức:</span>
+                <span id="limit-range">...</span>
+            </div>
+        </div>
+
+        <div class="space-y-2 mx-4">
+            <label for="deposit-amount" class="text-sm font-medium text-gray-400 block px-1">Số tiền nạp (VND)</label>
+            <div class="form-input flex items-center p-4">
+                <input type="number" id="deposit-amount" placeholder="Nhập số tiền bạn muốn nạp"
+                        class="w-full bg-transparent border-none text-white placeholder-gray-500 focus:outline-none text-lg">
+            </div>
+        </div>
+        
+        <div class="card p-4 space-y-3 mx-4">
+             <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Đơn giá:</span>
+                <span id="exchange-rate" class="font-medium" style="color: var(--yellow-accent);">Đang tải...</span>
+            </div>
+            <div class="flex justify-between text-sm">
+                <span class="text-gray-400">Số lượng vào tài khoản (USDT):</span>
+                <span id="usdt-amount" class="font-medium text-white text-base">0.00</span>
+            </div>
+        </div>
+        
+        <div class="text-xs text-yellow-500 text-center mx-4">
+            Tỷ giá có thể thay đổi, dựa trên số tiền thực tế
+        </div>
+        
+        <p id="error-message" class="text-center text-red-400 text-sm h-4 mx-4"></p>
+
+        <button id="deposit-confirm-btn" class="w-full py-4 btn-yellow text-lg mx-4" style="width: calc(100% - 2rem);">
+            Nạp
+        </button>
+
+    </main>
+
+    <script src="main.js"></script>
+
+    <script>
+        // --- API HELPERS ---
+        
+        function formatCurrency(amount) {
+            const numberAmount = parseFloat(amount);
+            if (isNaN(numberAmount)) { return '0'; }
+            return numberAmount.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+        
+        function getRawVNDAmount() {
+            const inputElement = document.getElementById('deposit-amount');
+            const value = inputElement.value;
+            return parseFloat(value) || 0;
+        }
+        
+        // --- CÁC BIẾN CÀI ĐẶT ---
+        let currentExchangeRate = 0; 
+        let minLimit = 50000;
+        let maxLimit = 3000000000;
+        let channelName = '';
+        const DEFAULT_CHANNEL = 'V8pay - QR Bank'; // Kênh mặc định
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!window.checkLogin()) { return; } 
+
+            await initializeChannelAndLimits();
+            await fetchAndUpdateExchangeRate();
+            
+            // Cập nhật tỷ giá mỗi 30 giây
+            setInterval(fetchAndUpdateExchangeRate, 30000); 
+
+            document.getElementById('deposit-amount').addEventListener('input', calculateUSDT);
+            document.getElementById('deposit-confirm-btn').addEventListener('click', processDeposit);
+            
+            calculateUSDT();
+        });
+
+        // HÀM: Khởi tạo Kênh nạp tiền
+        async function initializeChannelAndLimits() {
+             const urlParams = new URLSearchParams(window.location.search);
+             channelName = urlParams.get('channel') || DEFAULT_CHANNEL; 
+             minLimit = parseInt(urlParams.get('min')) || minLimit;
+             maxLimit = parseInt(urlParams.get('max')) || maxLimit;
+            
+             if(isNaN(minLimit)) minLimit = 50000;
+             if(isNaN(maxLimit)) maxLimit = 3000000000;
+
+             document.getElementById('channel-title').textContent = `Nạp qua ${channelName}`;
+             document.getElementById('channel-name-display').value = channelName; 
+            
+             const formatter = formatCurrency;
+             document.getElementById('limit-range').textContent = `${formatter(minLimit)} - ${formatter(maxLimit)} VND`;
+        }
+
+        async function fetchAndUpdateExchangeRate() {
+            const rateEl = document.getElementById('exchange-rate');
+            const confirmBtn = document.getElementById('deposit-confirm-btn');
+            
+            if (currentExchangeRate === 0) { rateEl.textContent = 'Đang tải tỉ giá...'; }
+            confirmBtn.disabled = true; 
+            
+            try {
+                // [SỬA LỖI] Gọi API /api/wallet/exchange-rate (giá GỐC, không còn +800đ)
+                const data = await window.fetchAPI('/wallet/exchange-rate'); 
+                
+                if (data && data.rate) {
+                    currentExchangeRate = parseFloat(data.rate); 
+                    
+                    const roundedRate = Math.round(currentExchangeRate);
+                    const formattedRate = roundedRate.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    
+                    // Hiển thị chỉ tỷ giá gốc
+                    rateEl.textContent = `${formattedRate} VND / USDT`; 
+                    
+                    if(currentExchangeRate > 0) { confirmBtn.disabled = false; }
+                    calculateUSDT(); 
+                } else {
+                    throw new Error('Không nhận được tỉ giá từ server');
+                }
+            } catch (error) {
+                
+                if(currentExchangeRate === 0) {
+                    // Fallback (giá gốc)
+                    const FALLBACK_RATE = 27000; 
+                    currentExchangeRate = FALLBACK_RATE;
+                    const roundedRate = Math.round(currentExchangeRate);
+                    rateEl.textContent = `${roundedRate.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} VND / USDT (Giá tạm thời)`; 
+                    confirmBtn.disabled = false;
+                }
+            }
+        }
+
+        // HÀM calculateUSDT (Giữ nguyên logic)
+        function calculateUSDT() {
+            const amount = getRawVNDAmount(); 
+            const usdtElement = document.getElementById('usdt-amount');
+            const errorEl = document.getElementById('error-message');
+            const confirmBtn = document.getElementById('deposit-confirm-btn');
+            
+            errorEl.textContent = ''; 
+            confirmBtn.disabled = currentExchangeRate <= 0; 
+
+            if (amount > 0 && currentExchangeRate > 0) {
+                const usdtAmount = (amount / currentExchangeRate);
+                usdtElement.textContent = usdtAmount.toFixed(4); 
+                
+                if (amount < minLimit) {
+                    errorEl.textContent = `Tối thiểu ${formatCurrency(minLimit)} VND.`;
+                    confirmBtn.disabled = true;
+                } else if (amount > maxLimit) {
+                    errorEl.textContent = `Tối đa ${formatCurrency(maxLimit)} VND.`;
+                    confirmBtn.disabled = true;
+                } else {
+                    confirmBtn.disabled = false;
+                }
+            } else {
+                usdtElement.textContent = '0.00';
+                confirmBtn.disabled = true;
+            }
+        }
+        
+        async function processDeposit() {
+            const amountVND = getRawVNDAmount(); 
+            const errorEl = document.getElementById('error-message');
+            const confirmBtn = document.getElementById('deposit-confirm-btn');
+            errorEl.textContent = ''; 
+
+            if (amountVND < minLimit || amountVND > maxLimit || currentExchangeRate <= 0) {
+                 errorEl.textContent = `Vui lòng kiểm tra lại số tiền nạp và tỷ giá.`;
+                 return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Đang tạo lệnh...';
+
+            try {
+                // API này (create-deposit-order) đã được cập nhật logic trên server (KHÔNG CÒN CỘNG 800đ)
+                const data = await window.fetchAPI('/wallet/create-deposit-order', {
+                    method: 'POST',
+                    body: JSON.stringify({ amountVND, channelName })
+                });
+
+                if (data && data.depositId && data.paymentInfo) {
+                    localStorage.setItem('paymentOrder', JSON.stringify({
+                        depositId: data.depositId,
+                        amountVND: data.amountVND,
+                        bank: data.paymentInfo.bank,
+                        account: data.paymentInfo.account,
+                        name: data.paymentInfo.accountName,
+                        transferCode: data.paymentInfo.content, 
+                        createdAt: data.createdAt 
+                    }));
+                    
+                    window.location.href = `fiat_payment_qrcode.html?orderId=${data.depositId}`;
+
+                } else {
+                    throw new Error(data.message || 'Lỗi không xác định từ server');
+                }
+
+            } catch (error) {
+                errorEl.textContent = `Lỗi: ${error.message}. Vui lòng thử lại.`;
+                errorEl.classList.remove('text-green-400');
+                errorEl.classList.add('text-red-400');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Nạp';
+            }
+        }
+    </script>
+</body>
+</html>

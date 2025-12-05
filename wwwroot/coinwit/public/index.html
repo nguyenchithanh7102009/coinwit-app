@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <title>CoinWit - Nền Tảng Giải Trí & Đầu Tư</title>
+    <meta name="description" content="CoinWit là nền tảng giải trí và đầu tư. Tham gia các mini-game hấp dẫn như Chẵn Lẻ, Tên lửa, Quét Mìn và cơ hội giao dịch đột phá. Bắt đầu ngay!">
+    <script src="https://cdn.tailwindcss.com"></script>
+	<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e; /* Màu nền đen tuyền sang trọng */
+            color: #e0e0e0;
+            padding-bottom: 80px; /* Chỗ trống cho footer */
+            padding-top: 61px; /* SỬA: Thêm đệm cho header cố định */
+        }
+        
+        /* Định nghĩa các biến màu CSS */
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        /* --- SỬA LỖI LỘ VIỀN (HEADER) --- */
+        .header-sticky {
+            position: fixed; /* ĐÃ SỬA */
+            top: 0;
+            left: 0; /* THÊM */
+            right: 0; /* THÊM */
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color); /* SỬA LẠI: border-bottom */
+        }
+
+        /* --- SỬA LỖI LỘ VIỀN (FOOTER) --- */
+        .footer-sticky {
+            position: fixed; /* ĐÃ SỬA */
+            bottom: 0;
+            left: 0; /* THÊM */
+            right: 0; /* THÊM */
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Hiệu ứng fade-in khi tải trang */
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Tùy chỉnh thanh cuộn (cho đẹp) */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        /* Thanh lọc game */
+        .filter-scroll::-webkit-scrollbar {
+            display: none; /* Ẩn thanh cuộn cho khu vực filter */
+        }
+        
+        /* Ghi đè màu của Font Awesome */
+        .nav-item .fa-solid {
+            color: var(--text-secondary);
+        }
+        .nav-item.active .fa-solid,
+        .nav-item.highlight .fa-solid {
+            color: var(--yellow-accent);
+        }
+        .nav-item.active span,
+        .nav-item.highlight span {
+            color: var(--yellow-accent);
+        }
+        /* (SỬA) Thêm màu cho nav-item chung */
+        .nav-item {
+             color: var(--text-secondary);
+        }
+        /* Class mới cho các nút cần bảo vệ */
+        .guarded-link {
+            cursor: pointer;
+        }
+
+        /* [THÊM MỚI] CSS Cho Banner */
+        .shadow-text {
+            text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* [THÊM MỚI] CSS cho Nút Filter Game */
+        .btn-filter {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.875rem; /* 14px */
+            font-weight: 600; /* semibold */
+            white-space: nowrap;
+            transition: all 0.2s;
+            background-color: #374151; /* gray-700/50 */
+            color: #d1d5db; /* gray-300 */
+        }
+        .btn-filter:hover {
+            background-color: #4b5563; /* gray-600 */
+            color: #ffffff;
+        }
+        .btn-filter.active {
+            background-color: var(--yellow-accent);
+            color: #111827; /* black */
+            box-shadow: 0 4px 14px 0 rgba(250, 204, 21, 0.3);
+        }
+        
+        /* [THÊM MỚI] CSS cho Tag Game */
+        .game-tag {
+            position: absolute;
+            top: 0.5rem; /* 8px */
+            left: 0.5rem; /* 8px */
+            font-size: 0.75rem; /* 12px */
+            font-weight: 700; /* bold */
+            padding: 0.25rem 0.75rem; /* py-1 px-3 */
+            border-radius: 9999px; /* rounded-full */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            text-transform: uppercase;
+        }
+        .tag-hot {
+            background-color: #dc2626; /* red-600 */
+            color: #ffffff;
+        }
+        .tag-mini {
+            background-color: #2563eb; /* blue-600 */
+            color: #ffffff;
+        }
+        .game-item[data-category*="casino"] .game-tag {
+             background-color: #16a34a; /* green-600 */
+             color: #ffffff;
+        }
+        .game-item[data-category*="sport"] .game-tag {
+             background-color: #ea580c; /* orange-600 */
+             color: #ffffff;
+        }
+        
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+		<a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+			<div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+				<img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+			</div>
+			<span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+		</a>
+
+		<div class="flex items-center space-x-4">
+			
+			<a href="/coinwit.apk" download class="flex items-center gap-1.5 text-sm bg-gray-700/80 px-3 py-1.5 rounded-full text-white hover:bg-gray-600 transition-colors">
+				<i class="fa-solid fa-download text-xs"></i>
+				<span class="font-medium">Tải App</span>
+			</a>
+			
+			<a href="notifications" class="relative text-gray-400 hover:text-white">
+				<i class="fas fa-bell text-xl"></i>
+				<span id="notification-badge" 
+					  class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+					  style="display: none;">
+					0
+				</span>
+			</a>
+		</div>
+	</header>
+
+    <main class="container mx-auto px-4 py-4">
+        
+        <div id="profile-section" class="fade-in bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-lg p-4 flex items-center justify-between mb-4">
+            <!-- Khi chưa đăng nhập -->
+            <div id="not-logged-in" class="w-full flex items-center justify-between" style="display: none;">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full border-2 flex items-center justify-center" style="border-color: var(--yellow-accent); background: linear-gradient(135deg, #1a1b20 0%, #2a2b35 100%);">
+                        <i class="fas fa-user text-2xl" style="color: var(--yellow-accent);"></i>
+                    </div>
+                    <div>
+                        <p class="text-md font-bold text-white">Chào mừng!</p>
+                        <p class="text-xs font-medium text-gray-400">Đăng nhập để bắt đầu</p>
+                    </div>
+                </div>
+                <a href="login" class="bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold px-6 py-2 rounded-full hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 shadow-xl hover:shadow-yellow-500/50">
+                    Đăng nhập ngay
+                </a>
+            </div>
+            
+            <!-- Khi đã đăng nhập -->
+            <a href="profile" id="logged-in" class="w-full flex items-center justify-between" style="display: none;">
+                <div class="flex items-center gap-3">
+                    <img src="https://api.dicebear.com/8.x/bottts/svg?seed=coinwit-user" alt="Avatar" id="home-avatar"
+                         class="w-12 h-12 rounded-full border-2" style="border-color: var(--yellow-accent);">
+                    <div>
+                        <p id="home-username" class="text-md font-bold text-white">Đang tải...</p>
+                        <p class="text-xs font-medium text-gray-400">Số dư:</p>
+                        <p id="home-balance" class="text-lg font-bold" style="color: var(--yellow-accent);">
+                            ...
+                        </p>
+                    </div>
+                </div>
+                <button class="p-2 text-gray-400 hover:text-white" onclick="toggleBalance(event)">
+                    <i id="balance-eye" class="fa-solid fa-eye"></i>
+                </button>
+            </a>
+        </div>
+
+        <div class="fade-in w-full h-auto md:h-64 rounded-xl overflow-hidden mb-4 shadow-lg p-5 md:p-8 flex items-center relative" 
+             style="animation-delay: 100ms; 
+                    border: 1px solid var(--border-color);
+                    background-color: var(--dark-bg);
+                    background-image: 
+                        radial-gradient(at 80% 20%, hsla(214, 80%, 30%, 0.25) 0px, transparent 50%),
+                        radial-gradient(at 20% 70%, hsla(50, 100%, 40%, 0.15) 0px, transparent 50%);
+             ">
+            
+            <div class="absolute -right-1/4 top-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96" 
+                 style="
+                   background: radial-gradient(circle, hsla(50, 100%, 50%, 0.1) 0%, transparent 60%); 
+                   filter: blur(20px); 
+                   z-index: 1;
+                 ">
+            </div>
+
+            <div class="relative z-10 max-w-2xl h-full flex flex-col justify-center items-start">
+                
+                <h2 class="text-2xl md:text-5xl font-extrabold mb-2 md:mb-3 shadow-text leading-tight flex items-center gap-2 md:gap-3 whitespace-nowrap">
+                    <span>Đầu Tư & Giải Trí</span>
+                    <i class="fa-solid fa-gamepad text-yellow-400 text-2xl md:text-4xl"></i>
+                </h2>
+                
+                <p class="text-sm md:text-lg mb-5 md:mb-7 shadow-text font-normal text-gray-300">
+                    Khám phá kỷ nguyên mới đỉnh cao và cơ hội giao dịch đột phá.
+                </p>
+                
+                <a href="trade" onclick="return guardPage(event, 'trade')" class="guarded-link inline-flex items-center gap-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold px-5 py-2 md:px-7 md:py-3 rounded-full hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 shadow-xl hover:shadow-yellow-500/50 text-base md:text-lg">
+                    Bắt Đầu Ngay <i class="fa-solid fa-arrow-right ml-1 text-sm"></i>
+                </a>
+            </div>
+        </div>
+        <div class="fade-in w-full bg-gray-800/50 border border-gray-700 rounded-lg overflow-hidden mb-5 shadow-md" style="animation-delay: 200ms;">
+            <div class="flex items-center">
+                <span class="bg-yellow-500 text-black text-xs font-bold px-3 py-2 uppercase">
+                    <i class="fa-solid fa-bullhorn text-sm"></i>
+                </span>
+                <div class="relative flex-1 h-8 overflow-hidden min-w-0">
+                    <p id="marquee-text" class="absolute whitespace-nowrap text-sm text-gray-300" style="animation: marquee 20s linear infinite; left: 100%;">
+                        Chào mừng đến với CoinWit! Nền Tảng đầu tư và giải trí hàng đầu.  *** Sự kiện thưởng hoa hồng cao khi mời thành viên mới!
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            @keyframes marquee {
+                0% { transform: translateX(0%); }
+                100% { transform: translateX(-200%); }
+            }
+        </style>
+
+        <div class="fade-in" style="animation-delay: 300ms;">
+            <div class="grid grid-cols-4 gap-3 md:gap-4 mb-8">
+                
+                <a href="deposit" onclick="return guardPage(event, 'deposit')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full flex items-center justify-center text-black shadow-lg group-hover:scale-105 transition-transform">
+                        <i class="fa-solid fa-wallet text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-yellow-400 transition-colors">Nạp Tiền</p>
+                </a>
+                
+                <a href="withdraw" onclick="return guardPage(event, 'withdraw')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-blue-400 group-hover:border-blue-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-money-bill-transfer text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-blue-400 transition-colors">Rút Tiền</p>
+                </a>
+
+                <a href="activity" onclick="return guardPage(event, 'activity')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-red-400 group-hover:border-red-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-gift text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-red-400 transition-colors">Hoạt động</p>
+                </a>
+
+                <a href="service" class="group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-green-400 group-hover:border-green-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-headset text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-green-400 transition-colors">Hỗ Trợ</p>
+                </a>
+                
+                <a href="invite" onclick="return guardPage(event, 'invite')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-purple-400 group-hover:border-purple-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-users text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-purple-400 transition-colors">Mời Bạn</p>
+                </a>
+
+                <a href="vip_level" onclick="return guardPage(event, 'vip_level')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-pink-400 group-hover:border-pink-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-gem text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-pink-400 transition-colors">Cấp Bậc VIP</p>
+                </a>
+                
+                <a href="history" onclick="return guardPage(event, 'history')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-indigo-400 group-hover:border-indigo-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-receipt text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">Lịch Sử Giao Dịch</p>
+                </a>
+
+                <a href="trade" onclick="return guardPage(event, 'trade')" class="guarded-link group text-center p-2 rounded-lg hover:bg-gray-800/60 transition-colors">
+                    <div class="w-12 h-12 md:w-16 md:h-16 mx-auto bg-gray-700/50 border-2 border-gray-600 rounded-full flex items-center justify-center text-cyan-400 group-hover:border-cyan-400 group-hover:scale-105 transition-all">
+                        <i class="fa-solid fa-chart-line text-2xl md:text-3xl"></i>
+                    </div>
+                    <p class="mt-2 text-xs md:text-sm font-semibold text-white group-hover:text-cyan-400 transition-colors">Thị Trường</p>
+                </a>
+
+            </div>
+        </div>
+
+
+        <div class="fade-in" style="animation-delay: 400ms;">
+            <div class="flex overflow-x-auto space-x-2 pb-2 mb-5 filter-scroll" id="game-filter-bar">
+                <button class="btn-filter active" data-filter="all">Tất cả</button>
+                <button class="btn-filter" data-filter="hot">Hot</button>
+                <button class="btn-filter" data-filter="mini">Mini Game</button>
+                <button class="btn-filter" data-filter="casino">Bốc số trúng thưởng</button>
+                <button class="btn-filter" data-filter="sport">Thể Thao</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 md:gap-6" id="game-list">
+                
+                <a href="game" onclick="return guardPage(event, 'game')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-yellow-500/30" data-category="hot mini">
+                    <div class="w-full h-48 bg-gradient-to-br from-yellow-500/30 via-orange-500/20 to-yellow-600/30 flex items-center justify-center relative">
+                        <div class="relative w-32 h-32">
+                            <i class="fas fa-dice text-5xl text-yellow-300 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 drop-shadow-lg"></i>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Chẵn Lẻ</h3>
+                        <p class="text-yellow-400 text-xs font-medium">Đúng số trúng thưởng</p>
+                    </div>
+                    <span class="game-tag tag-hot">HOT</span>
+                </a>
+                
+                <a href="game_reactor" onclick="return guardPage(event, 'game_reactor')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-cyan-500/30" data-category="hot mini">
+                    <div class="w-full h-48 bg-gradient-to-br from-cyan-500/30 via-blue-500/20 to-indigo-600/30 flex items-center justify-center relative">
+                        <div class="relative w-32 h-32">
+                            <i class="fas fa-rocket text-8xl text-cyan-400/90 absolute inset-0 transform group-hover:translate-y-[-10px] transition-transform" style="filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.6));"></i>
+                            <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-16 h-8 bg-orange-500/60 rounded-full blur-md"></div>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Tên lửa vũ trụ</h3>
+                        <p class="text-cyan-300 text-xs font-medium">Bay cao thắng lớn</p>
+                    </div>
+                    <span class="game-tag tag-hot">HOT</span>
+                </a>
+
+                <a href="mines" onclick="return guardPage(event, 'mines')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-purple-500/30" data-category="mini">
+                    <div class="w-full h-48 bg-gradient-to-br from-purple-500/30 via-pink-500/20 to-red-600/30 flex items-center justify-center relative">
+                        <div class="relative w-32 h-32">
+                            <i class="fas fa-bomb text-8xl text-purple-400/90 absolute inset-0 transform group-hover:scale-110 transition-transform" style="filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.5));"></i>
+                            <div class="absolute top-2 left-2 w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div class="absolute top-4 right-3 w-2 h-2 bg-red-400 rounded-full animate-pulse" style="animation-delay: 0.2s;"></div>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Quét Mìn</h3>
+                        <p class="text-purple-300 text-xs font-medium">Quét càng rộng ăn càng lớn</p>
+                    </div>
+                    <span class="game-tag tag-mini">MINI</span>
+                </a>
+
+                <a href="hilo" onclick="return guardPage(event, 'hilo')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-pink-500/30" data-category="mini">
+                    <div class="w-full h-48 bg-gradient-to-br from-pink-500/30 via-red-500/20 to-rose-600/30 flex items-center justify-center relative">
+                        <div class="relative w-32 h-32 flex items-center justify-center">
+                            <div class="relative">
+                                <i class="fas fa-spade text-6xl text-white absolute transform -rotate-12 -translate-x-4" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));"></i>
+                                <i class="fas fa-heart text-6xl text-red-500 absolute transform rotate-12 translate-x-4" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));"></i>
+                                <i class="fas fa-diamond text-5xl text-pink-300 absolute top-8 left-1/2 transform -translate-x-1/2" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));"></i>
+                            </div>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Hi-Lo Royale</h3>
+                        <p class="text-pink-300 text-xs font-medium">Cao hay Thấp?</p>
+                    </div>
+                    <span class="game-tag tag-mini">MINI</span>
+                </a>
+                
+                <a href="placeholder" onclick="return guardPage(event, 'placeholder')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-green-500/30" data-category="casino">
+                    <div class="w-full h-48 bg-gradient-to-br from-green-500/20 to-emerald-600/20 flex items-center justify-center relative">
+                        <img src="https://api.dicebear.com/8.x/shapes/svg?seed=casino&backgroundColor=16a34a&shapeColor=ffffff" alt="Casino Game" class="w-24 h-24 opacity-80">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Bốc số trúng...</h3>
+                        <p class="text-green-300 text-xs font-medium">Trải nghiệm chân thực</p>
+                    </div>
+                    <span class="game-tag" style="background-color: #16a34a;">Casino</span>
+                </a>
+
+                <a href="placeholder" onclick="return guardPage(event, 'placeholder')" class="guarded-link game-item group relative rounded-xl overflow-hidden shadow-2xl border border-[var(--border-color)] transition-all duration-300 transform hover:scale-105 hover:shadow-orange-500/30" data-category="sport">
+                    <div class="w-full h-48 bg-gradient-to-br from-orange-500/20 to-amber-600/20 flex items-center justify-center relative">
+                        <img src="https://api.dicebear.com/8.x/shapes/svg?seed=sport&backgroundColor=ea580c&shapeColor=ffffff" alt="Sport Game" class="w-24 h-24 opacity-80">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/90 to-transparent"></div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 class="text-white text-lg font-bold truncate">Thể Thao</h3>
+                        <p class="text-orange-300 text-xs font-medium">Đỉnh cao sân cỏ</p>
+                    </div>
+                    <span class="game-tag" style="background-color: #ea580c;">Sport</span>
+                </a>
+                
+            </div>
+            
+            <p id="no-games-message" class="text-center text-gray-500 py-10" style="display: none;">
+                <i class="fa-solid fa-ghost text-3xl"></i>
+                <span class="block mt-2">Không tìm thấy game phù hợp.</span>
+            </p>
+        </div>
+    </main>
+
+    <footer class="h-[70px] flex justify-around items-center footer-sticky">
+        <a href="index" class="nav-item active flex flex-col items-center gap-1 text-center" style="color: var(--yellow-accent);">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-xs font-medium">Trang Chủ</span>
+        </a>
+        <a href="activity" onclick="return guardPage(event, 'activity')" class="guarded-link nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-rectangle-ad text-xl"></i>
+            <span class="text-xs font-medium">Hoạt động</span>
+        </a>
+        <a href="trade" onclick="return guardPage(event, 'trade')" class="guarded-link nav-item highlight flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-arrow-right-arrow-left text-xl"></i>
+            <span class="text-xs font-medium">Giao dịch</span>
+        </a>
+        <a href="community-chat" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-comments text-xl"></i>
+            <span class="text-xs font-medium">Cộng đồng</span>
+        </a>
+        <a href="profile" onclick="return guardPage(event, 'profile')" class="guarded-link nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs font-medium">Của tôi</span>
+        </a>
+    </footer>
+    
+    <script src="main.js"></script>
+    <script>
+        let balanceHidden = false;
+        let userBalance = 0;
+        
+        // --- API HELPERS (Bắt buộc phải có để dùng fetchAPI và formatCurrency) ---
+        // Giả định các hàm này được định nghĩa trong main.js
+        function getToken() { return localStorage.getItem('authToken'); }
+        // Giả định fetchAPI và formatCurrency tồn tại toàn cục từ main.js
+        
+        function guardPage(event, targetUrl) {
+            const token = getToken();
+            if (!token) {
+                event.preventDefault(); // Ngăn chặn chuyển hướng mặc định của thẻ <a>
+                window.location.href = 'login'; // Chuyển đến trang đăng nhập
+                return false;
+            }
+            // Nếu có token, cho phép chuyển hướng
+            window.location.href = targetUrl;
+            return false; // Ngăn chặn hành vi mặc định để kiểm soát việc chuyển hướng bằng JS
+        }
+
+        async function checkLoginStatus() {
+            // Khởi tạo tiền tệ (tải tỷ giá VÀ lấy lựa chọn từ localStorage)
+            await initCurrency();
+            
+            const token = getToken();
+            return !!token; // Trả về true nếu có token, false nếu không
+        }
+
+        document.addEventListener('DOMContentLoaded', async (event) => {
+            // KIỂM TRA TRẠNG THÁI ĐĂNG NHẬP
+            const isLoggedIn = await checkLoginStatus();
+            
+            // Hiển thị UI tương ứng
+            if (isLoggedIn) {
+                // Hiển thị phần đã đăng nhập
+                document.getElementById('logged-in').style.display = 'flex';
+                document.getElementById('not-logged-in').style.display = 'none';
+                
+                // [THÊM MỚI] Kích hoạt Socket
+                if (typeof initializeUserSession === 'function') {
+                    initializeUserSession();
+                }
+                
+                // Tải thông tin người dùng
+                try {
+                    const data = await fetchAPI('/user/profile'); 
+                    userBalance = data.balance;
+                    document.getElementById('home-username').textContent = data.username;
+                    updateBalanceDisplay();
+                    
+                    // Cập nhật avatar
+                    const savedAvatar = localStorage.getItem('userAvatarUrl');
+                    const defaultAvatar = `https://api.dicebear.com/8.x/bottts/svg?seed=${data.username}`;
+                    document.getElementById('home-avatar').src = savedAvatar || defaultAvatar;
+                } catch (error) {
+                    // Nếu lỗi (token hết hạn), xóa token và reload trang
+                    localStorage.removeItem('authToken');
+                    location.reload();
+                }
+            } else {
+                // Hiển thị phần chưa đăng nhập
+                document.getElementById('logged-in').style.display = 'none';
+                document.getElementById('not-logged-in').style.display = 'flex';
+            }
+
+            // Nhân đôi text cho marquee
+            const marqueeText = document.getElementById('marquee-text');
+            if(marqueeText) {
+                const textContent = marqueeText.innerText;
+                marqueeText.innerText += '  *** ' + textContent;
+            }
+            
+            // [THÊM MỚI] LOGIC FILTER GAME
+            const filterButtons = document.querySelectorAll('#game-filter-bar .btn-filter');
+            const gameList = document.getElementById('game-list');
+            const gameItems = gameList.querySelectorAll('.game-item');
+            const noGamesMessage = document.getElementById('no-games-message');
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Cập nhật trạng thái active
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+
+                    const filter = button.dataset.filter;
+                    let gamesFound = 0;
+
+                    gameItems.forEach(item => {
+                        const categories = item.dataset.category.split(' ');
+                        
+                        if (filter === 'all' || categories.includes(filter)) {
+                            item.style.display = 'block';
+                            gamesFound++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+
+                    // Hiển thị/ẩn thông báo "không tìm thấy game"
+                    if (gamesFound > 0) {
+                        noGamesMessage.style.display = 'none';
+                    } else {
+                        noGamesMessage.style.display = 'block';
+                    }
+                });
+            });
+        });
+
+        function updateBalanceDisplay() {
+            const balanceEl = document.getElementById('home-balance');
+            const eyeIcon = document.getElementById('balance-eye');
+            
+            // Lấy hàm formatCurrency toàn cục (từ main.js)
+            const formatter = typeof formatCurrency !== 'undefined' ? formatCurrency : (amount) => amount.toLocaleString('en-US', { minimumFractionDigits: 2 });
+            
+            if (balanceHidden) {
+                balanceEl.textContent = "***"; // Sửa: Chỉ hiển thị ***
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                // [SỬA LỖI] Xóa " USDT" ở cuối. Hàm formatter đã tự thêm đơn vị.
+                balanceEl.textContent = formatter(userBalance);
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
+
+        // SỬA LỖI: Thêm 'event' và event.stopPropagation()
+        function toggleBalance(event) {
+            if (event) {
+                event.preventDefault(); // Ngăn hành vi mặc định (nếu có)
+                event.stopPropagation(); // Ngăn sự kiện click lan lên thẻ <a> cha
+            }
+            balanceHidden = !balanceHidden;
+            updateBalanceDisplay();
+        }
+    </script>
+
+</body>
+</html>

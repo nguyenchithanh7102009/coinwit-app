@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Sử Nạp Rút | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15;
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-top: 61px; /* Cho header */
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+        
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0; 
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .tab-btn.active {
+            color: var(--yellow-accent);
+            border-color: var(--yellow-accent);
+        }
+        /* [THÊM] CSS cho loader */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--yellow-accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 4rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <button onclick="window.history.back();" class="w-10 h-10 flex items-center justify-center">
+             <i class="fas fa-chevron-left text-lg text-white"></i>
+        </button>
+        <h1 class="text-lg font-semibold text-white">Lịch sử Nạp/Rút</h1>
+        <div class="w-10"></div> </header>
+
+    <main>
+        <div class="flex sticky top-[61px] bg-[var(--card-bg)] z-10 border-b border-[var(--border-color)]">
+            <button id="tab-deposit" class="tab-btn flex-1 py-3 text-center font-medium border-b-2">
+                Nạp
+            </button>
+            <button id="tab-withdrawal" class="tab-btn flex-1 py-3 text-center font-medium border-b-2">
+                Rút
+            </button>
+        </div>
+        
+        <div id="deposit-content" class="space-y-3 p-4">
+            
+            <div id="deposit-empty" class="text-center text-[var(--text-secondary)] pt-20 hidden">
+                <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
+                <p>Chưa có lịch sử nạp.</p>
+            </div>
+        </div>
+        
+        <div id="withdrawal-content" class="space-y-3 p-4 hidden">
+            
+             <div id="withdrawal-empty" class="text-center text-[var(--text-secondary)] pt-20 hidden">
+                <i class="fas fa-file-invoice-dollar fa-3x mb-3"></i>
+                <p>Chưa có lịch sử rút.</p>
+            </div>
+
+        </div>
+
+    </main>
+    
+    <script src="main.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Kiểm tra đăng nhập
+            if (!window.checkLogin()) return;
+
+            // 2. Lấy các phần tử DOM
+            const tabDeposit = document.getElementById('tab-deposit');
+            const tabWithdrawal = document.getElementById('tab-withdrawal');
+            const contentDeposit = document.getElementById('deposit-content');
+            const contentWithdrawal = document.getElementById('withdrawal-content');
+            const depositEmpty = document.getElementById('deposit-empty');
+            const withdrawalEmpty = document.getElementById('withdrawal-empty');
+
+            let dataLoaded = { deposit: false, withdrawal: false }; // Cờ để tránh tải lại
+
+            const activeClasses = ['active', 'text-[var(--yellow-accent)]', 'border-[var(--yellow-accent)]'];
+            const inactiveClasses = ['text-[var(--text-secondary)]', 'border-transparent'];
+
+            // 3. Hàm chuyển tab (CÓ SỬA)
+            function setTab(tabName) {
+                if (tabName === 'deposit') {
+                    contentDeposit.classList.remove('hidden');
+                    contentWithdrawal.classList.add('hidden');
+                    
+                    tabDeposit.classList.add(...activeClasses);
+                    tabDeposit.classList.remove(...inactiveClasses);
+                    tabWithdrawal.classList.add(...inactiveClasses);
+                    tabWithdrawal.classList.remove(...activeClasses);
+
+                    // Chỉ tải nếu chưa tải
+                    if (!dataLoaded.deposit) {
+                        loadHistory('deposit');
+                    }
+                } else {
+                    contentDeposit.classList.add('hidden');
+                    contentWithdrawal.classList.remove('hidden');
+                    
+                    tabDeposit.classList.add(...inactiveClasses);
+                    tabDeposit.classList.remove(...activeClasses);
+                    tabWithdrawal.classList.add(...activeClasses);
+                    tabWithdrawal.classList.remove(...inactiveClasses);
+
+                    // Chỉ tải nếu chưa tải
+                    if (!dataLoaded.withdrawal) {
+                        loadHistory('withdrawal');
+                    }
+                }
+            }
+
+            // 4. [MỚI] Hàm tải lịch sử
+            async function loadHistory(type) {
+                const contentEl = (type === 'deposit') ? contentDeposit : contentWithdrawal;
+                const emptyEl = (type === 'deposit') ? depositEmpty : withdrawalEmpty;
+                const endpoint = (type === 'deposit') ? '/api/wallet/deposits' : '/api/wallet/withdrawals';
+
+                contentEl.innerHTML = ''; // Xóa nội dung cũ
+                emptyEl.classList.add('hidden'); // Ẩn thông báo trống
+                
+                // Hiển thị loader
+                const loader = document.createElement('div');
+                loader.className = 'loader';
+                contentEl.appendChild(loader);
+
+                try {
+                    const data = await window.fetchAPI(endpoint);
+                    contentEl.removeChild(loader); // Xóa loader
+
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const itemEl = (type === 'deposit') 
+                                ? createDepositItem(item) 
+                                : createWithdrawalItem(item);
+                            contentEl.appendChild(itemEl);
+                        });
+                        dataLoaded[type] = true; // Đánh dấu đã tải
+                    } else {
+                        emptyEl.classList.remove('hidden'); // Hiển thị thông báo trống
+                    }
+                } catch (error) {
+                    contentEl.removeChild(loader);
+                    contentEl.innerHTML = `<p class="text-center text-red-400 p-8">Lỗi tải dữ liệu. Vui lòng thử lại.</p>`;
+                }
+            }
+
+            // 5. [MỚI] Các hàm Helper để render
+            function getStatusInfo(status) {
+                switch (status) {
+                    case 'APPROVED': return { text: 'Hoàn thành', color: 'text-green-400', iconColor: 'bg-green-500/20' };
+                    case 'REJECTED': return { text: 'Thất bại', color: 'text-red-400', iconColor: 'bg-red-500/20' };
+                    case 'PENDING': return { text: 'Đang xử lý', color: 'text-yellow-400', iconColor: 'bg-yellow-500/20' };
+                    default: return { text: status, color: 'text-gray-400', iconColor: 'bg-gray-500/20' };
+                }
+            }
+            
+            function formatDate(isoString) {
+                const date = new Date(isoString);
+                return date.toLocaleString('vi-VN', { 
+                    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' 
+                });
+            }
+
+            function createDepositItem(item) {
+                const status = getStatusInfo(item.status);
+                const title = item.channelName ? (item.channelName.includes('QR') ? 'Nạp QR' : item.channelName) : 'Nạp Crypto';
+                
+                const el = document.createElement('div');
+                el.className = 'flex items-center p-3 bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)]';
+                el.innerHTML = `
+                    <div class="w-10 h-10 rounded-full ${status.iconColor} flex items-center justify-center mr-3">
+                        <i class="fas fa-arrow-down ${status.color}"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-white">${title}</p>
+                        <p class="text-xs text-[var(--text-secondary)]">${formatDate(item.createdAt)}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${status.color}">+${item.amount.toFixed(2)} USDT</p>
+                        <p class="text-xs ${status.color} font-medium">${status.text}</p>
+                    </div>
+                `;
+                return el;
+            }
+
+            function createWithdrawalItem(item) {
+                const status = getStatusInfo(item.status);
+                const title = `Rút ${item.type === 'CRYPTO' ? 'Crypto' : 'Fiat'}`;
+                
+                const el = document.createElement('div');
+                el.className = 'flex items-center p-3 bg-[var(--card-bg)] rounded-lg border border-[var(--border-color)]';
+                el.innerHTML = `
+                    <div class="w-10 h-10 rounded-full ${status.iconColor} flex items-center justify-center mr-3">
+                        <i class="fas fa-arrow-up ${status.color}"></i>
+                    </div>
+                    <div class="flex-grow">
+                        <p class="font-semibold text-white">${title}</p>
+                        <p class="text-xs text-[var(--text-secondary)]">${formatDate(item.createdAt)}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${status.color}">-${item.amount.toFixed(2)} USDT</p>
+                        <p class="text-xs ${status.color} font-medium">${status.text}</p>
+                    </div>
+                `;
+                return el;
+            }
+
+            // 6. Gắn sự kiện click
+            tabDeposit.addEventListener('click', () => setTab('deposit'));
+            tabWithdrawal.addEventListener('click', () => setTab('withdrawal'));
+            
+            // 7. Tải tab 'Nạp' làm tab mặc định
+            setTab('deposit');
+        });
+    </script>
+</body>
+</html>

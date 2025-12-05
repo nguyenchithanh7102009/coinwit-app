@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Của tôi | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-top: 61px; 
+            padding-bottom: 70px;
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+        
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0; 
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .footer-sticky {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        .nav-item .fa-solid {
+            color: var(--text-secondary);
+        }
+        .nav-item.active .fa-solid,
+        .nav-item.highlight .fa-solid {
+            color: var(--yellow-accent);
+        }
+        .nav-item.active span,
+        .nav-item.highlight span {
+            color: var(--yellow-accent);
+        }
+        .nav-item span {
+            color: var(--text-secondary);
+        }
+
+        /* [THÊM MỚI] CSS cho Modal Ngôn ngữ */
+        #language-modal.flex {
+            display: flex;
+        }
+        #language-modal-content {
+            transition: transform 0.3s ease-out;
+            transform: translateY(100%); /* Bắt đầu ẩn ở dưới */
+        }
+        .lang-option-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #2b2d35; /* var(--border-color) */
+            color: var(--text-primary);
+            border-radius: 8px;
+            text-align: left;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .lang-option-btn:hover {
+            background-color: #3a3c44;
+        }
+        .lang-option-btn.active {
+            background-color: var(--yellow-accent);
+            color: var(--dark-bg);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="py-4 space-y-4">
+        
+        <a href="personal_center" class="flex items-center space-x-4 p-4 bg-[var(--card-bg)] mx-4 rounded-2xl shadow-lg border border-[var(--border-color)]"> 
+            <div class="flex-shrink-0">
+                 <img src="https://api.dicebear.com/8.x/bottts/svg?seed=coinwit-user" alt="Avatar" id="profile-avatar"
+                      class="w-14 h-14 rounded-full border-2" style="border-color: var(--yellow-accent);">
+            </div>
+            <div class="flex-grow min-w-0">
+                <h3 class="text-lg font-bold text-white truncate">
+                    <span id="profile-username">Đang tải...</span> 
+                    <span id="profile-vip" class="ml-2 text-sm font-semibold px-2 py-0.5 rounded" style="color: var(--yellow-accent); border: 1px solid var(--yellow-accent);">VIP 1</span>
+                </h3>
+                <p id="profile-level-description" class="text-xs text-gray-400 truncate">Xem thông tin cá nhân</p>
+            </div>
+            <i class="fas fa-chevron-right text-gray-500"></i> 
+        </a>
+
+        <div class="bg-[var(--card-bg)] mx-4 rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)]">
+            <a href="my_assets" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60 rounded-t-lg">
+                <i class="fas fa-wallet w-6 text-center mr-3" style="color: var(--yellow-accent);"></i>
+                <span class="flex-grow font-medium text-white">Tài sản của tôi</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            
+            <a href="history_dw" onclick="return guardPage(event, 'history_dw')" class="guarded-link flex items-center p-4 cursor-pointer hover:bg-gray-800/60 rounded-b-lg">
+                <i class="fas fa-receipt w-6 text-center text-blue-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Lịch sử Nạp/Rút</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] mx-4 rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)]">
+            <a href="invite" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60 rounded-t-lg">
+                <i class="fas fa-envelope-open-text w-6 text-center text-orange-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Mời</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            <a href="activity" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60 rounded-b-lg">
+                <i class="fas fa-gift w-6 text-center text-red-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Hoạt động</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] mx-4 rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)]">
+            
+            <button type="button" id="language-btn" class="flex items-center w-full p-4 cursor-pointer hover:bg-gray-800/60 rounded-t-lg">
+                <i class="fas fa-globe w-6 text-center text-cyan-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white text-left">Ngôn ngữ</span>
+                <span id="language-display" class="text-sm text-gray-400 mr-2">Tiếng Việt</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </button>
+
+            <a href="service" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-headset w-6 text-center text-purple-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Service</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            <a href="settings" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60 rounded-b-lg">
+                <i class="fas fa-cog w-6 text-center text-gray-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Cài đặt</span>
+                <span class="text-sm text-gray-400 mr-2">v3.0.0</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+        </div>
+        
+    </main>
+
+    <div id="language-modal" class="fixed inset-0 z-50 items-end justify-center bg-black/60 backdrop-blur-sm hidden" onclick="closeLanguageModal(event)">
+        <div id="language-modal-content" class="w-full max-w-lg bg-[var(--card-bg)] rounded-t-2xl shadow-lg border-t border-[var(--border-color)] p-4">
+            <h3 class="text-lg font-semibold text-center text-white mb-4">Chọn Ngôn ngữ</h3>
+            <div class="space-y-2">
+                <button onclick="selectLanguage('vi')" class="lang-option-btn active">Tiếng Việt</button>
+                
+                </div>
+            <button onclick="closeLanguageModal(event)" class="w-full mt-4 p-3 bg-gray-700/80 text-white rounded-lg font-medium">Hủy</button>
+        </div>
+    </div>
+
+
+    <footer class="h-[70px] flex justify-around items-center footer-sticky">
+        <a href="index" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-xs font-medium">Trang Chủ</span>
+        </a>
+        <a href="activity" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-rectangle-ad text-xl"></i>
+            <span class="text-xs font-medium">Hoạt động</span>
+        </a>
+        <a href="placeholder" class="nav-item highlight flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-arrow-right-arrow-left text-xl"></i>
+            <span class="text-xs font-medium">Giao dịch</span>
+        </a>
+        <a href="service" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-headset text-xl"></i>
+            <span class="text-xs font-medium">Trò chuyện</span>
+        </a>
+        <a href="profile" class="nav-item active flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs font-medium">Của tôi</span>
+        </a>
+    </footer>
+    
+    <script src="main.js"></script>
+    <script>
+        // [SỬA] Hàm bảo vệ trang (để mở trong tab hiện tại)
+        function guardPage(event, targetUrl) {
+            // Luôn ngăn hành vi mặc định của thẻ <a> trước
+            event.preventDefault(); 
+            
+            const token = getToken(); // Hàm này từ main.js
+            
+            if (!token) {
+                // Nếu không có token, chuyển đến trang login
+                window.location.href = 'login';
+                return false;
+            }
+            
+            // THAY ĐỔI: Mở trang đích trong tab hiện tại
+            window.location.href = targetUrl;
+            
+            return false; // Ngăn hành vi mặc định
+        }
+        // Gắn vào window để HTML onclick thấy
+        window.guardPage = guardPage;
+
+        // [THÊM MỚI] Logic Modal Ngôn Ngữ
+        const languageModal = document.getElementById('language-modal');
+        const languageModalContent = document.getElementById('language-modal-content');
+        const languageDisplay = document.getElementById('language-display');
+
+        function openLanguageModal() {
+            if (languageModal) {
+                languageModal.classList.remove('hidden');
+                languageModal.classList.add('flex'); // Bật flex
+                setTimeout(() => {
+                    languageModalContent.style.transform = 'translateY(0)';
+                }, 10);
+            }
+        }
+
+        function closeLanguageModal(event) {
+            // Chỉ đóng nếu click vào nền (language-modal) hoặc nút Hủy
+            if (event && (event.target.id === 'language-modal' || event.target.closest('button') && event.target.textContent === 'Hủy')) {
+                if (languageModal) {
+                    languageModalContent.style.transform = 'translateY(100%)';
+                    setTimeout(() => {
+                        languageModal.classList.add('hidden');
+                        languageModal.classList.remove('flex');
+                    }, 300);
+                }
+            }
+        }
+
+        function selectLanguage(langCode) {
+            // Cập nhật text hiển thị
+            let langText = 'Tiếng Việt';
+            if (langCode === 'en') langText = 'English';
+            if (langCode === 'zh') langText = '中文 (简体)';
+            if (langCode === 'ko') langText = '한국어';
+            languageDisplay.textContent = langText;
+            
+            // Cập nhật trạng thái active
+            document.querySelectorAll('.lang-option-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeBtn = document.querySelector(`.lang-option-btn[onclick="selectLanguage('${langCode}')"]`);
+            if(activeBtn) activeBtn.classList.add('active');
+
+            // Tự động đóng modal sau khi chọn
+            closeLanguageModal({ target: languageModal }); // Giả lập event click nền
+        }
+        // Gắn vào window
+        window.openLanguageModal = openLanguageModal;
+        window.closeLanguageModal = closeLanguageModal;
+        window.selectLanguage = selectLanguage;
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
+             const token = checkLogin(true); 
+             if (!token) return;
+
+             // [THÊM MỚI] Gắn sự kiện click cho nút Ngôn ngữ
+             const languageBtn = document.getElementById('language-btn');
+             if (languageBtn) {
+                languageBtn.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+                    openLanguageModal();
+                });
+             }
+
+             // Tải thông tin user (giữ nguyên)
+             try {
+                const data = await fetchAPI('/user/profile');
+                if(data) {
+                    document.getElementById('profile-username').textContent = data.username || 'N/A';
+                    document.getElementById('profile-vip').textContent = `VIP ${data.vipLevel || 1}`;
+                    
+                    const savedAvatar = localStorage.getItem('userAvatarUrl');
+                    const defaultAvatar = `https://api.dicebear.com/8.x/bottts/svg?seed=${data.username}`;
+                    
+                    document.getElementById('profile-avatar').src = savedAvatar || defaultAvatar;
+                }
+             } catch (error) {
+                 document.getElementById('profile-username').textContent = 'Lỗi tải thông tin';
+             }
+        });
+    </script>
+</body>
+</html>

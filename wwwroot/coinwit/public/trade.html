@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thị Trường - CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+            padding-bottom: 80px; 
+            padding-top: 61px;
+        }
+        
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0e0;
+        }
+
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .footer-sticky {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        .filter-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .nav-item .fa-solid { color: var(--text-secondary); }
+        .nav-item.active .fa-solid,
+        .nav-item.highlight .fa-solid { color: var(--yellow-accent); }
+        .nav-item.active span,
+        .nav-item.highlight span { color: var(--yellow-accent); }
+        .nav-item { color: var(--text-secondary); }
+        .guarded-link { cursor: pointer; }
+
+        .btn-yellow {
+            background-color: var(--yellow-accent);
+            color: var(--dark-bg);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .btn-yellow:hover {
+            background-color: #fde047; /* yellow-300 */
+        }
+        
+        .btn-gray {
+             background-color: #3f3f46; /* bg-gray-700/50 */
+             color: #d1d5db; /* text-gray-300 */
+             transition: background-color 0.3s;
+        }
+        .btn-gray:hover {
+             background-color: #4b5563; /* hover:bg-gray-600 */
+        }
+
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="text-2xl font-bold" style="color: var(--yellow-accent);">
+            CoinWit
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1.5 text-sm bg-gray-700/80 px-3 py-1.5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-4">
+        
+        <h1 class="text-2xl font-bold text-white mb-4 fade-in">
+            Thị Trường (BO)
+        </h1>
+
+        <div class="fade-in bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-4 flex items-center justify-between mb-4">
+            <div>
+                <p class="text-sm font-medium text-gray-400">Số dư khả dụng:</p>
+                <p id="trade-balance" class="text-xl font-bold" style="color: var(--yellow-accent);">
+                    Đang tải...
+                </p>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <a href="deposit" onclick="return guardPage(event, 'deposit')" class="guarded-link btn-yellow text-sm font-semibold px-4 py-2 rounded-full">
+                    Nạp Tiền
+                </a>
+                <button id="toggle-currency-btn" class="flex items-center gap-1.5 text-sm bg-gray-700/80 px-3 py-1.5 rounded-full text-gray-300">
+                    <i class="fa-solid fa-repeat text-xs"></i>
+                    <span class="font-medium">Đổi (VND)</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="filter-buttons" class="fade-in flex overflow-x-auto space-x-2 pb-2 mb-5 filter-scroll" style="animation-delay: 100ms;">
+            <button data-filter="all" class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap btn-yellow">Tất Cả</button>
+            <button data-filter="hot" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap btn-gray">Hot</button>
+            <button data-filter="gainers" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap btn-gray">Tăng Nhiều</button>
+            <button data-filter="losers" class="px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap btn-gray">Giảm Nhiều</button>
+        </div>
+
+        <div id="coin-list-container" class="fade-in" style="animation-delay: 200ms;">
+            <p class="text-center text-gray-400 py-10">Đang tải dữ liệu thị trường...</p>
+        </div>
+
+    </main>
+
+    <footer class="h-[70px] flex justify-around items-center footer-sticky">
+        <a href="index" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-xs font-medium">Trang Chủ</span>
+        </a>
+        <a href="activity" onclick="return guardPage(event, 'activity')" class="guarded-link nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-rectangle-ad text-xl"></i>
+            <span class="text-xs font-medium">Hoạt động</span>
+        </a>
+        
+        <a href="trade" onclick="return guardPage(event, 'trade')" class="guarded-link nav-item active flex flex-col items-center gap-1 text-center" style="color: var(--yellow-accent);">
+            <i class="fa-solid fa-arrow-right-arrow-left text-xl"></i>
+            <span class="text-xs font-medium">Giao dịch</span>
+        </a>
+        
+        <a href="service" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-headset text-xl"></i>
+            <span class="text-xs font-medium">Trò chuyện</span>
+        </a>
+        <a href="profile" onclick="return guardPage(event, 'profile')" class="guarded-link nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs font-medium">Của tôi</span>
+        </a>
+    </footer>
+    
+    <script src="main.js"></script>
+    <script>
+        // Giả định các hàm này được định nghĩa trong main.js
+        // getToken, fetchAPI, formatCurrency, initCurrency, checkLogin
+        
+        function guardPage(event, targetUrl) {
+            const token = getToken();
+            if (!token) {
+                event.preventDefault();
+                window.location.href = 'login';
+                return false;
+            }
+            window.location.href = targetUrl;
+            return false;
+        }
+
+        async function checkLoginAndRedirect() {
+            await initCurrency(); // Quan trọng: Phải chạy initCurrency TRƯỚC
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'login';
+                return false;
+            }
+            return true;
+        }
+
+        // Biến toàn cục để lưu trữ dữ liệu và trạng thái
+        let allCoinData = []; // Luôn lưu giá gốc USDT
+        let currentFilter = 'all';
+        let userBalanceUSDT = 0; 
+        
+        const symbolsMap = { 
+            'BTC': { name: 'Bitcoin', icon: 'fa-brands fa-bitcoin text-yellow-400' },
+            'ETH': { name: 'Ethereum', icon: 'fa-brands fa-ethereum text-blue-400' },
+            'SOL': { name: 'Solana', icon: 'fa-solid fa-sun text-purple-400' },
+            'DOGE': { name: 'Dogecoin', icon: 'fa-solid fa-circle-dollar-to-slot text-orange-400' },
+            'BNB': { name: 'Binance Coin', icon: 'fa-solid fa-cubes text-yellow-500' },
+            'XRP': { name: 'Ripple', icon: 'fa-solid fa-water text-blue-300' },
+            'ADA': { name: 'Cardano', icon: 'fa-solid fa-layer-group text-sky-400' },
+            'AVAX': { name: 'Avalanche', icon: 'fa-solid fa-mountain-sun text-red-400' },
+            'LINK': { name: 'Chainlink', icon: 'fa-solid fa-link text-blue-500' },
+            'SHIB': { name: 'Shiba Inu', icon: 'fa-solid fa-dog text-orange-300' }
+        };
+
+        // [SỬA] Hàm vẽ danh sách coin (thêm logic đổi tiền)
+        function renderCoinList() {
+            const container = document.getElementById('coin-list-container');
+            if (!container) return;
+
+            // Lấy tiền tệ và tỷ giá hiện tại (từ main.js)
+            const currentCurrency = window.globalCurrency || 'USDT';
+            const exchangeRate = window.globalExchangeRate || 27000;
+
+            let filteredData = []; 
+
+            // Sắp xếp VẪN DỰA TRÊN GIÁ GỐC USDT
+            if (currentFilter === 'gainers') {
+                filteredData = allCoinData
+                    .filter(a => a.change > 0)
+                    .sort((a, b) => b.change - a.change);
+            } else if (currentFilter === 'losers') {
+                filteredData = allCoinData
+                    .filter(a => a.change < 0)
+                    .sort((a, b) => a.change - b.change);
+            } else if (currentFilter === 'hot') {
+                filteredData = [...allCoinData]
+                    .sort((a, b) => b.price - a.price) // Sắp xếp theo giá USDT
+                    .slice(0, 3);
+            } else { // 'all'
+                filteredData = [...allCoinData]
+                    .sort((a, b) => b.price - a.price); // Sắp xếp theo giá USDT
+            }
+
+            let html = '';
+            
+            if (filteredData.length === 0) {
+                if(allCoinData.length === 0) {
+                    html = '<p class="text-center text-gray-400 py-10">Đang tải dữ liệu thị trường...</p>';
+                } else {
+                    html = '<p class="text-center text-gray-400 py-10">Không có đồng nào phù hợp với bộ lọc.</p>';
+                }
+            } else {
+                filteredData.forEach(coin => {
+                    const info = symbolsMap[coin.symbol];
+                    const changeColor = coin.change > 0 ? 'text-green-500' : (coin.change < 0 ? 'text-red-500' : 'text-gray-400');
+                    const changeText = `${coin.change >= 0 ? '+' : ''}${coin.change.toFixed(2)}%`;
+                    
+                    // [SỬA] Logic định dạng giá
+                    let priceText = '';
+                    if (currentCurrency === 'VND') {
+                        const vndPrice = coin.price * exchangeRate;
+                        priceText = vndPrice.toLocaleString('vi-VN', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                        }) + ' ₫';
+                    } else { // USDT
+                        priceText = coin.price.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: (coin.price < 0.01 ? 6 : (coin.price < 1 ? 4 : 2))
+                        });
+                        // Không thêm ' USDT' để giống ảnh chụp màn hình
+                    }
+                    // [KẾT THÚC SỬA]
+
+                    html += `
+                    <a href="trade_detail.html?coin=${coin.symbol}" onclick="return guardPage(event, 'trade_detail.html?coin=${coin.symbol}')" class="guarded-link group block bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl p-4 flex items-center justify-between mb-3 transition-all hover:border-yellow-400">
+                        <div class="flex items-center gap-4">
+                            <i class="${info.icon} text-4xl"></i>
+                            <div>
+                                <p class="text-lg font-bold text-white">${coin.symbol}/USDT</p>
+                                <p class="text-sm text-gray-400">${info.name}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-lg font-semibold text-white">${priceText}</p>
+                            <p class="text-md font-medium ${changeColor}">${changeText}</p>
+                        </div>
+                    </a>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Hàm tải dữ liệu (Giữ nguyên)
+        async function loadMarketData() {
+            try {
+                const data = await fetchAPI('/market/bo-list'); 
+                const symbols = Object.keys(symbolsMap);
+                let newData = [];
+
+                symbols.forEach(symbol => {
+                    const coinData = data[symbol];
+                    if (coinData) {
+                         newData.push({
+                            symbol: symbol,
+                            price: parseFloat(coinData.priceUsd), // Luôn lưu giá gốc USDT
+                            change: parseFloat(coinData.changePercent24Hr),
+                            name: symbolsMap[symbol].name,
+                            icon: symbolsMap[symbol].icon
+                        });
+                    }
+                });
+                
+                allCoinData = newData; 
+                renderCoinList(); // Vẽ lại với giá trị mới
+
+            } catch (error)
+            {
+                const container = document.getElementById('coin-list-container');
+                if (container) container.innerHTML = '<p class="text-center text-red-500 py-10">Lỗi tải dữ liệu. Vui lòng thử lại.</p>';
+            }
+        }
+        
+        // Hàm cập nhật hiển thị tiền tệ (Giữ nguyên)
+        function updateDisplayCurrency() {
+            const currentCurrency = localStorage.getItem('selectedCurrency') || 'USDT';
+            const btn = document.getElementById('toggle-currency-btn');
+            const balanceEl = document.getElementById('trade-balance');
+            
+            if (btn) {
+                const span = btn.querySelector('span');
+                if (currentCurrency === 'USDT') {
+                    span.textContent = 'Đổi (VND)';
+                } else {
+                    span.textContent = 'Đổi (USDT)';
+                }
+            }
+            
+            if (balanceEl) {
+                window.globalCurrency = currentCurrency; 
+                balanceEl.textContent = formatCurrency(userBalanceUSDT);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', async (event) => {
+            const hasToken = await checkLoginAndRedirect(); 
+            if (!hasToken) return;
+
+            try {
+                const data = await fetchAPI('/user/profile'); 
+                userBalanceUSDT = data.balance; 
+                updateDisplayCurrency(); 
+            } catch (error) {
+                document.getElementById('trade-balance').textContent = 'Lỗi tải số dư';
+            }
+            
+            loadMarketData();
+            
+            setInterval(loadMarketData, 30000);
+
+            const filterContainer = document.getElementById('filter-buttons');
+            if (filterContainer) {
+                filterContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('button');
+                    if (!button) return; 
+
+                    const filter = button.dataset.filter;
+                    if (!filter || filter === currentFilter) return; 
+
+                    currentFilter = filter; 
+
+                    filterContainer.querySelectorAll('button').forEach(btn => {
+                        btn.classList.remove('btn-yellow', 'font-semibold');
+                        btn.classList.add('btn-gray', 'font-medium');
+                    });
+                    button.classList.add('btn-yellow', 'font-semibold');
+                    button.classList.remove('btn-gray', 'font-medium');
+
+                    renderCoinList();
+                });
+            }
+            
+            // [SỬA] Logic nút đổi tiền (thêm renderCoinList)
+            const toggleBtn = document.getElementById('toggle-currency-btn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    let currentCurrency = localStorage.getItem('selectedCurrency') || 'USDT';
+                    if (currentCurrency === 'USDT') {
+                        localStorage.setItem('selectedCurrency', 'VND');
+                    } else {
+                        localStorage.setItem('selectedCurrency', 'USDT');
+                    }
+                    // Cập nhật lại hiển thị
+                    updateDisplayCurrency();
+                    renderCoinList(); // <-- [THÊM] Vẽ lại danh sách coin
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

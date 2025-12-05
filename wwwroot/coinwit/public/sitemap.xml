@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    
+    <url>
+        <loc>https://coinwit.net/</loc>
+        <priority>1.0</priority>
+        <changefreq>daily</changefreq>
+    </url>
+    
+    <url>
+        <loc>https://coinwit.net/game.html</loc>
+        <priority>0.9</priority>
+        <changefreq>daily</changefreq>
+    </url>
+    <url>
+        <loc>https://coinwit.net/game_reactor.html</loc>
+        <priority>0.9</priority>
+        <changefreq>daily</changefreq>
+    </url>
+    <url>
+        <loc>https://coinwit.net/mines.html</loc>
+        <priority>0.9</priority>
+        <changefreq>daily</changefreq>
+    </url>
+    <url>
+        <loc>https://coinwit.net/hilo.html</loc>
+        <priority>0.9</priority>
+        <changefreq>daily</changefreq>
+    </url>
+
+</urlset>

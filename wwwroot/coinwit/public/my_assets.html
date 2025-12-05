@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tài sản của tôi | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <script src="main.js" defer></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+            padding-bottom: 80px; /* Chỗ trống cho footer */
+            padding-top: 120px; /* Chỗ trống cho 2 header */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f0c960; }
+        
+        .yellow-accent { color: #d4af37; }
+        .yellow-accent-bg { background-color: #d4af37; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="fixed top-0 z-50 w-full bg-[#1a1b20] shadow-lg border-b border-gray-800">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                        <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+                    </div>
+                    <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="fixed top-[61px] z-40 w-full bg-[#18191d] border-b border-[#2c2d32] shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center">
+            <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+            <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Tài sản của tôi</h1>
+            <div class="w-10 h-10"></div>
+        </div>
+    </div>
+
+    <main class="container mx-auto p-4 space-y-4">
+
+        <div class="bg-[#18191d] p-6 rounded-2xl shadow-lg border border-[#2c2d32] text-center">
+            <h3 class="text-sm font-medium text-gray-400 mb-2" id="total-assets-title">Tổng tài sản (USDT)</h3>
+            <div class="text-4xl font-bold yellow-accent">
+                ≈ <span id="total-assets">---</span>
+            </div>
+        </div>
+
+        <div class="bg-[#18191d] p-6 rounded-2xl shadow-lg border border-[#2c2d32] space-y-4">
+            <div>
+                <h3 class="text-lg font-semibold text-white" id="main-account-title">Tài khoản Chính (USDT)</h3>
+                <div class="text-2xl font-bold text-white mt-1"><span id="usdt-total-balance">---</span></div>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-[#2c2d32]">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="flex items-center text-gray-400">
+                        <i class="fas fa-coins mr-2 yellow-accent"></i> Khả dụng
+                    </span>
+                    <span class="font-medium text-white" id="available-balance">---</span>
+                </div>
+                
+                <div class="flex justify-between items-center text-sm">
+                    <span class="flex items-center text-gray-400">
+                        <i class="fas fa-lock-open mr-2 text-green-500"></i> Số dư có thể rút
+                    </span>
+                    <span class="font-medium text-white" id="withdrawable-balance">---</span>
+                </div>
+                </div>
+            
+            <div class="grid grid-cols-2 gap-4 pt-4">
+                <button id="deposit-btn" onclick="redirectTo('deposit.html')"
+                        class="w-full py-3 rounded-lg font-bold text-black text-base bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 transition duration-200 shadow-lg shadow-yellow-500/30">
+                    Nạp
+                </button>
+                <button id="withdraw-btn" onclick="redirectTo('withdraw.html')"
+                        class="w-full py-3 rounded-lg font-bold text-white bg-[#2c2d32] hover:bg-gray-700 transition duration-200">
+                    Rút
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-[#18191d] p-6 rounded-2xl shadow-lg border border-[#2c2d32]">
+            <h3 class="text-lg font-semibold text-white" id="other-assets-title">Ước tính các tài sản khác (USDT)</h3>
+            <div class="text-2xl font-bold text-white mt-1"><span id="other-assets-total">0.00</span></div>
+            
+            <div class="text-center mt-4 text-sm text-gray-400 cursor-pointer" onclick="redirectTo('placeholder.html')">
+                Danh sách tài sản <i class="fas fa-chevron-down ml-1"></i>
+            </div>
+        </div>
+
+    </main>
+    
+    
+    <script>
+        // SỬA LỖI: Xóa các hàm (getToken, fetchAPI, formatBalance)
+        // vì chúng đã được tải từ main.js (được thêm ở <head>)
+        // Giờ đây chúng ta sẽ dùng window.fetchAPI và window.formatCurrency
+
+        function redirectTo(page) {
+             window.location.href = page;
+        }
+        
+        async function loadAssets() {
+            try {
+                // Đã SỬA: Đảm bảo initCurrency() đã chạy xong (trong DOMContentLoaded)
+                
+                const data = await window.fetchAPI('/user/profile');
+                
+                // [SỬA] Lấy dữ liệu mới từ API
+                const balance = data.balance || 0;
+                // Lấy `withdrawableBalance` từ API (đã được server tính toán)
+                const withdrawableBalance = data.withdrawableBalance || 0; 
+                
+                // SỬA LỖI: Dùng hàm formatCurrency global thay vì formatBalance cục bộ
+                const formattedBalance = window.formatCurrency(balance);
+                // Định dạng số dư có thể rút
+                const formattedWithdrawable = window.formatCurrency(withdrawableBalance);
+
+                document.getElementById('total-assets').textContent = formattedBalance;
+                document.getElementById('usdt-total-balance').textContent = formattedBalance;
+                document.getElementById('available-balance').textContent = formattedBalance;
+                
+                // [SỬA] Gán dữ liệu vào đúng ID mới
+                document.getElementById('withdrawable-balance').textContent = formattedWithdrawable;
+                
+                // SỬA LỖI: Cập nhật các tiêu đề dựa trên tiền tệ đã chọn
+                const currencySuffix = window.globalCurrency === 'VND' ? '(VND)' : '(USDT)';
+                document.getElementById('total-assets-title').textContent = `Tổng tài sản ${currencySuffix}`;
+                document.getElementById('main-account-title').textContent = `Tài khoản Chính ${currencySuffix}`;
+                document.getElementById('other-assets-title').textContent = `Ước tính các tài sản khác ${currencySuffix}`;
+
+
+            } catch (error) {
+                document.getElementById('total-assets').textContent = 'API LỖI';
+                document.getElementById('usdt-total-balance').textContent = 'API LỖI';
+                document.getElementById('available-balance').textContent = 'API LỖI';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // SỬA LỖI: Phải đợi checkLogin và initCurrency chạy XONG
+            const token = window.checkLogin(); // Đảm bảo đã đăng nhập
+            if (!token) return;
+            
+            await window.initCurrency(); // Tải lựa chọn tiền tệ (VND/USDT)
+            
+            // Bây giờ mới chạy loadAssets
+            loadAssets();
+        });
+    </script>
+</body>
+</html>

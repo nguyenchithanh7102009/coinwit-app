@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mời Bạn Bè | CoinWit</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e; 
+            color: #e0e0e0;
+            padding-top: 61px;
+        }
+        
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        .header-sticky {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(8px);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        .nav-item { color: var(--text-secondary); }
+        .nav-item.active, .nav-item:hover { color: var(--yellow-accent); }
+        .guarded-link { cursor: pointer; }
+
+        .modal {
+            opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
+            background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+            position: fixed; inset: 0; z-index: 50;
+            display: flex; 
+            align-items: center;
+            justify-content: center; 
+            padding: 1rem;
+        }
+        .modal.show { opacity: 1; visibility: visible; }
+        .modal .modal-content {
+            transform: scale(0.95) translateY(10px); opacity: 0;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            background-color: var(--card-bg);
+            max-width: 90%;
+            border-radius: 0.75rem; /* rounded-xl */
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .modal-general .modal-content {
+            width: auto; 
+            max-width: 20rem; /* 320px */
+            padding: 1.5rem; /* p-6 */
+        }
+
+        .modal-report .modal-content {
+            width: 100%; 
+            max-width: 32rem; /* 512px (max-w-lg) */
+            max-height: 90vh; 
+            display: flex; 
+            flex-direction: column;
+        }
+        .modal.show .modal-content { transform: scale(1) translateY(0); opacity: 1; }
+        .table-container {
+            overflow-y: auto; flex-grow: 1;
+        }
+        
+        .modal-team-content {
+             width: 100%;
+             max-width: 50rem; /* max-w-5xl */
+             background-color: var(--card-bg);
+             border-radius: 1rem;
+             border: 1px solid var(--border-color);
+             color: var(--text-primary);
+             display: flex;
+             flex-direction: column;
+             max-height: 90vh; 
+        }
+        .modal-team-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .modal-team-body {
+            padding: 1.25rem;
+            flex-grow: 1; 
+            overflow-y: auto; 
+        }
+        .modal-team-footer {
+            padding: 1.25rem;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .team-tab-button {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem; 
+            font-weight: 600;
+            color: var(--text-secondary);
+            background-color: var(--border-color); 
+            border: 2px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        .team-tab-button.active {
+            color: var(--dark-bg);
+            background-color: var(--yellow-accent);
+            border-color: var(--yellow-accent);
+        }
+        .team-table {
+            width: 100%;
+            margin-top: 1.5rem;
+            border-collapse: collapse;
+        }
+        .team-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--yellow-accent);
+            background-color: var(--card-bg);
+            position: sticky;
+            top: 0;
+        }
+        .team-table td {
+            padding: 1rem 1rem;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+
+        .user-detail-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.9rem 1.25rem; 
+            border-bottom: 1px solid var(--border-color);
+        }
+        .user-detail-list li:last-child {
+            border-bottom: none;
+        }
+        .user-detail-list span:first-child {
+            color: var(--text-secondary);
+            font-size: 0.875rem; 
+        }
+        .user-detail-list span:last-child {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* MỚI: CSS cho bảng hướng dẫn */
+        .guide-table {
+            width: 100%;
+            border-collapse: collapse; /* Gộp viền */
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .guide-table th, .guide-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .guide-table th {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .guide-table td {
+            color: var(--text-secondary);
+        }
+        /* Căn phải cho các cột số liệu */
+        .guide-table th:not(:first-child),
+        .guide-table td:not(:first-child) {
+            text-align: right;
+        }
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="#" onclick="window.history.back(); return false;" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--border-color)] transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-xl font-bold text-[var(--text-primary)]">Mời Bạn Bè</h1>
+        <div class="w-10 h-10"></div> 
+    </header>
+
+    <main class="max-w-3xl mx-auto p-4 space-y-6">
+        
+        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-5">
+            <div class="flex justify-between items-center">
+                <span id="currentLevel" class="text-3xl font-extrabold text-[var(--text-primary)]">LV1</span>
+                <span id="nextTargetText" class="text-sm font-semibold text-[var(--text-secondary)]">LV2 Mục tiêu: 10</span>
+            </div>
+            <div class="mt-4">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-sm font-medium text-[var(--text-secondary)]">Tiến độ Hoạt động</span>
+                    <span id="progressCountText" class="text-lg font-bold text-[var(--yellow-accent)]">0 / 10</span>
+                </div>
+                <div class="w-full bg-[var(--border-color)] rounded-full h-2.5">
+                    <div id="progressBarFill" class="bg-[var(--yellow-accent)] h-2.5 rounded-full" style="width: 0%; box-shadow: 0 0 10px var(--yellow-accent);"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-coins text-3xl text-[var(--yellow-accent)]"></i>
+                    <div>
+                        <p class="text-sm text-[var(--text-secondary)]">Tổng hoàn trả</p>
+                        <p id="totalRebate" class="text-lg font-bold text-[var(--text-primary)]">0.000</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-shield-halved text-3xl text-gray-400"></i>
+                    <div>
+                        <p class="text-sm text-[var(--text-secondary)]">Cấp dưới cấp 1</p>
+                        <p id="subLevel1TotalDisplay" class="text-lg font-bold text-[var(--text-primary)]">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-star text-3xl text-yellow-500"></i>
+                    <div>
+                        <p class="text-sm text-[var(--text-secondary)]">Cấp dưới cấp 2</p>
+                        <p id="subLevel2" class="text-lg font-bold text-[var(--text-primary)]">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-4">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-gem text-3xl text-blue-500"></i>
+                    <div>
+                        <p class="text-sm text-[var(--text-secondary)]">Cấp dưới cấp 3</p>
+                        <p id="subLevel3" class="text-lg font-bold text-[var(--text-primary)]">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg p-5 space-y-4">
+            <div>
+                <label class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">Liên kết lời mời</label>
+                <div class="flex">
+                    <input type="text" id="inviteLink" value="Đang tải..." readonly class="flex-grow bg-[var(--dark-bg)] border border-[var(--border-color)] rounded-l-lg p-3 text-sm text-[var(--text-primary)] focus:outline-none truncate">
+                    <button onclick="copyToClipboard('inviteLink', true)" class="bg-[var(--yellow-accent)] text-[var(--dark-bg)] px-4 rounded-r-lg font-bold hover:bg-yellow-300 transition-colors"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+            <div>
+                <label class="text-sm font-medium text-[var(--text-secondary)] mb-2 block">Mã mời</label>
+                <div class="flex">
+                    <input type="text" id="inviteCode" value="..." readonly class="flex-grow bg-[var(--dark-bg)] border border-[var(--border-color)] rounded-l-lg p-3 text-xl font-bold font-mono text-[var(--yellow-accent)] tracking-wider focus:outline-none">
+                    <button onclick="copyToClipboard('inviteCode', true)" class="bg-[var(--yellow-accent)] text-[var(--dark-bg)] px-4 rounded-r-lg font-bold hover:bg-yellow-300 transition-colors"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] border border-[var(--border-color)] rounded-2xl shadow-lg divide-y divide-[var(--border-color)]">
+            <a href="#" onclick="showModal('guideModal'); return false;" class="flex items-center p-4 hover:bg-gray-800/60 transition-colors duration-200 rounded-t-xl">
+                <i class="fas fa-book-open w-8 text-center text-[var(--yellow-accent)] text-xl"></i>
+                <span class="flex-grow text-base font-medium text-[var(--text-primary)] ml-3">Hướng dẫn lời mời</span>
+                <i class="fas fa-chevron-right text-[var(--text-secondary)]"></i>
+            </a>
+            <a href="#" onclick="showTeamModal(); return false;" class="flex items-center p-4 hover:bg-gray-800/60 transition-colors duration-200">
+                <i class="fas fa-users w-8 text-center text-blue-500 text-xl"></i>
+                <span class="flex-grow text-base font-medium text-[var(--text-primary)] ml-3">Nhóm của tôi</span>
+                <i class="fas fa-chevron-right text-[var(--text-secondary)]"></i>
+            </a>
+            <a href="#" onclick="showReportModal(); return false;" class="flex items-center p-4 hover:bg-gray-800/60 transition-colors duration-200 rounded-b-xl">
+                <i class="fas fa-chart-bar w-8 text-center text-red-500 text-xl"></i>
+                <span class="flex-grow text-base font-medium text-[var(--text-primary)] ml-3">Báo cáo nhóm</span>
+                <i class="fas fa-chevron-right text-[var(--text-secondary)]"></i>
+            </a>
+        </div>
+
+    </main>
+
+    <div id="generalModal" class="modal modal-general hidden">
+        <div class="modal-content p-6 max-w-sm relative">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-[var(--yellow-accent)]" id="modal-title">Thông báo</h3>
+                <span class="close-btn text-3xl text-[var(--text-secondary)] cursor-pointer hover:text-white" onclick="hideModal('generalModal')">&times;</span>
+            </div>
+            <div class="text-base text-[var(--text-primary)] mb-6" id="modal-message"></div>
+            <button class="w-full py-3 rounded-lg font-bold text-[var(--dark-bg)] bg-[var(--yellow-accent)] hover:bg-yellow-300 transition" onclick="hideModal('generalModal')">Đã hiểu</button>
+        </div>
+    </div>
+    
+    <div id="teamModal" class="modal hidden">
+        <div class="absolute inset-0" onclick="hideModal('teamModal')"></div>
+        <div class="modal-content modal-team-content relative">
+            <div class="modal-team-header flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-[var(--text-primary)]">Quản lý đội nhóm chi tiết</h3>
+                <span class="close-btn text-3xl text-[var(--text-secondary)] cursor-pointer hover:text-white" onclick="hideModal('teamModal')">&times;</span>
+            </div>
+            <div class="modal-team-body">
+                <div class="flex space-x-3 p-1 rounded-lg bg-[var(--dark-bg)] w-full sm:w-auto flex-shrink-0">
+                    <button class="team-tab-button" data-tab="F1" onclick="renderTeamTable('F1')">Cấp 1 (<span id="tab-count-f1">0</span>)</button>
+                    <button class="team-tab-button" data-tab="F2" onclick="renderTeamTable('F2')">Cấp 2 (<span id="tab-count-f2">0</span>)</button>
+                </div>
+                <div id="team-content" class="table-container min-h-[300px] mt-4">
+                    </div>
+            </div>
+            <div class="modal-team-footer">
+                <button class="w-full py-3 rounded-lg font-bold text-[var(--dark-bg)] bg-[var(--yellow-accent)] hover:bg-yellow-300 transition" onclick="hideModal('teamModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal modal-report hidden">
+        <div class="absolute inset-0" onclick="hideModal('reportModal')"></div>
+        <div class="modal-content p-0 relative">
+            <div class="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
+                <h3 class="text-xl font-semibold text-red-500">Báo cáo Hoàn trả 7 ngày gần nhất</h3>
+                <span class="close-btn text-3xl text-[var(--text-secondary)] cursor-pointer hover:text-white" onclick="hideModal('reportModal')">&times;</span>
+            </div>
+             <div class="p-6 flex-grow flex flex-col overflow-hidden">
+                <div id="report-content" class="table-container min-h-[300px]"></div>
+            </div>
+            <div class="p-6 border-t border-[var(--border-color)] flex-shrink-0">
+                <button class="w-full py-3 rounded-lg font-bold text-[var(--dark-bg)] bg-[var(--yellow-accent)] hover:bg-yellow-300 transition" onclick="hideModal('reportModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="guideModal" class="modal modal-report hidden"> 
+        <div class="absolute inset-0" onclick="hideModal('guideModal')"></div>
+        <div class="modal-content p-0 relative"> 
+            <div class="flex justify-between items-center p-6 border-b border-[var(--border-color)]">
+                <h3 class="text-xl font-semibold text-[var(--yellow-accent)]">Hướng dẫn lời mời</h3>
+                <span class="close-btn text-3xl text-[var(--text-secondary)] cursor-pointer hover:text-white" onclick="hideModal('guideModal')">&times;</span>
+            </div>
+            <div class="p-6 text-base text-[var(--text-secondary)] leading-relaxed space-y-4 table-container">
+                
+                <h4 class="text-lg font-semibold text-white">Mời bạn bè</h4>
+                <p>Vào "Trung tâm Lời mời", sao chép liên kết hoặc mã lời mời và chia sẻ với bạn bè của bạn. Bạn bè có thể trở thành cấp dưới của bạn bằng cách đăng ký bằng mã mời của bạn.</p>
+                
+                <h4 class="text-lg font-semibold text-white">Kiếm chiết khấu</h4>
+                <p>Khi cấp dưới giao dịch, bạn có thể nhận được các khoản giảm giá tương ứng, tối đa ba cấp dưới được hỗ trợ. Ví dụ: nếu bạn mời người bạn A, A mời B và B mời C, sau đó A, B và C tiến hành trò chơi, hợp đồng và các giao dịch khác trên nền tảng và bạn có thể nhận được các khoản giảm giá tương ứng.</p>
+
+                <h4 class="text-lg font-semibold text-white">Cấp bậc nhóm</h4>
+                <p>Càng thăng cấp nhiều cấp dưới, cấp bậc nhóm càng cao và bạn có thể được hưởng khoản chiết khấu càng cao. Các cấp bậc nhóm của nhóm được chia thành LV1-LV6 và quy tắc nâng cấp được hiển thị trong bảng sau, trong đó N là số cấp dưới cấp một đã nạp tiền.</p>
+                
+                <table class="guide-table">
+                    <thead>
+                        <tr><th>Cấp đội</th><th>Cấp dưới cấp 1</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>LV1</td><td>0 &le; N &lt; 10</td></tr>
+                        <tr><td>LV2</td><td>10 &le; N &lt; 20</td></tr>
+                        <tr><td>LV3</td><td>20 &le; N &lt; 30</td></tr>
+                        <tr><td>LV4</td><td>30 &le; N &lt; 45</td></tr>
+                        <tr><td>LV5</td><td>45 &le; N &lt; 60</td></tr>
+                        <tr><td>LV6</td><td>60 &le; N</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 class="text-lg font-semibold text-white">Trò chơi, Tùy chọn nhị phân, second contracts, tỷ lệ hoàn trả thể thao</h4>
+                <p>Cấp dưới cược trò chơi, cược tùy chọn nhị phân, cược second contracts, cược thể thao, bạn có thể nhận được tỷ lệ hoàn trả số tiền cá cược tương ứng.</p>
+
+                <table class="guide-table">
+                    <thead>
+                        <tr><th>Cấp đội</th><th>Cấp dưới cấp 1</th><th>Cấp dưới cấp 2</th><th>Cấp dưới cấp 3</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>LV1</td><td>0.6%</td><td>0.18%</td><td>0.05%</td></tr>
+                        <tr><td>LV2</td><td>0.7%</td><td>0.21%</td><td>0.06%</td></tr>
+                        <tr><td>LV3</td><td>0.8%</td><td>0.24%</td><td>0.07%</td></tr>
+                        <tr><td>LV4</td><td>0.9%</td><td>0.27%</td><td>0.08%</td></tr>
+                        <tr><td>LV5</td><td>0.95%</td><td>0.29%</td><td>0.09%</td></tr>
+                        <tr><td>LV6</td><td>1%</td><td>0.3%</td><td>0.09%</td></tr>
+                    </tbody>
+                </table>
+
+                <h4 class="text-lg font-semibold text-white">Tỷ lệ hoàn trả giao ngay và hợp đồng</h4>
+                <p>Đối với giao dịch giao ngay và giao dịch hợp đồng, bạn có thể nhận được khoản hoàn trả tương ứng với phí giao dịch. Nếu phí xử lý bằng đơn vị tiền tệ không phải USDT, khoản hoàn phí sẽ được chuyển đổi thành USDT theo tỷ giá hối đoái thời gian thực và được cấp vào tài khoản USDT của bạn.</p>
+
+                <table class="guide-table">
+                    <thead>
+                        <tr><th>Cấp đội</th><th>Cấp dưới cấp 1</th><th>Cấp dưới cấp 2</th><th>Cấp dưới cấp 3</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>LV1</td><td>10%</td><td>5%</td><td>0%</td></tr>
+                        <tr><td>LV2</td><td>15%</td><td>10%</td><td>5%</td></tr>
+                        <tr><td>LV3</td><td>20%</td><td>15%</td><td>10%</td></tr>
+                        <tr><td>LV4</td><td>25%</td><td>20%</td><td>15%</td></tr>
+                        <tr><td>LV5</td><td>30%</td><td>25%</td><td>20%</td></tr>
+                        <tr><td>LV6</td><td>35%</td><td>30%</td><td>25%</td></tr>
+                    </tbody>
+                </table>
+
+             </div>
+            <div class="p-6 border-t border-[var(--border-color)] flex-shrink-0">
+                <button class="w-full py-3 rounded-lg font-bold text-[var(--dark-bg)] bg-[var(--yellow-accent)] hover:bg-yellow-300 transition" onclick="hideModal('guideModal')">Đã hiểu</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="userDetailModal" class="modal hidden">
+        <div class="absolute inset-0" onclick="hideModal('userDetailModal')"></div>
+        <div class="modal-content relative" style="max-width: 28rem;">
+            <div class="modal-team-header">
+                <h3 class="text-xl font-semibold text-white" id="detail-username">Chi tiết Thành viên</h3>
+                <span class="close-btn text-3xl text-[var(--text-secondary)] cursor-pointer hover:text-white" onclick="hideModal('userDetailModal')">&times;</span>
+            </div>
+            <div class="modal-team-body p-0">
+                <ul class="user-detail-list">
+                    <li><span>Cấp độ VIP</span><span id="detail-vip">...</span></li>
+                    <li><span>Cấp đội</span><span id="detail-level">...</span></li>
+                    <li><span>Thuộc cấp trên</span><span id="detail-upline">...</span></li>
+                    <li><span>USDT Số tiền</span><span class="text-[var(--yellow-accent)]" id="detail-balance">...</span></li>
+                    <li><span>Số tiền nạp</span><span id="detail-deposit">...</span></li>
+                    <li><span>Số tiền rút</span><span id="detail-withdraw">...</span></li>
+                    <li><span>Cược trò chơi</span><span id="detail-bet">...</span></li>
+                    <li><span>Trò chơi trúng thưởng</span><span id="detail-win">...</span></li>
+                    <li><span>Hoàn trả</span><span id="detail-rebate">...</span></li>
+                    <li><span>Số người cấp 1</span><span id="detail-f1-count">...</span></li>
+                    <li><span>Thời gian đăng ký</span><span id="detail-register-time">...</span></li>
+                    <li><span>Thời gian đăng nhập</span><span id="detail-login-time">...</span></li>
+                </ul>
+            </div>
+            <div class="modal-team-footer">
+                <button class="w-full py-3 rounded-lg font-bold text-[var(--dark-bg)] bg-[var(--yellow-accent)] hover:bg-yellow-300 transition" onclick="hideModal('userDetailModal')">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    
+    <script src="main.js"></script>
+    
+    <script>
+        // ... (JavaScript không thay đổi logic, chỉ có thay đổi text trong renderTeamTable) ...
+        const baseDomain = `${window.location.protocol}//${window.location.host}/register.html?code=`;
+        let globalInviteData = {}; 
+        let currentTeamTab = 'F1'; 
+
+        function customAlert(message) {
+            const modalTitleEl = document.getElementById('modal-title');
+            const modalMessageEl = document.getElementById('modal-message');
+            if (modalTitleEl) modalTitleEl.textContent = 'Thông báo';
+            if (modalMessageEl) modalMessageEl.textContent = message;
+            showModal('generalModal');
+        }
+        window.alert = customAlert;
+
+        function showModal(modalId) {
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) {
+                modalEl.classList.remove('hidden');
+                setTimeout(() => { modalEl.classList.add('show'); }, 10); 
+            }
+        }
+        function hideModal(modalId) {
+            const modalEl = document.getElementById(modalId);
+            if (modalEl) {
+                modalEl.classList.remove('show');
+                setTimeout(() => { modalEl.classList.add('hidden'); }, 300);
+            }
+        }
+        
+        function copyToClipboard(elementId, isInput = false) {
+            let textToCopy = '';
+            const element = document.getElementById(elementId);
+            if (!element) { customAlert('Lỗi: Không tìm thấy nội dung.'); return; }
+            if (isInput) { textToCopy = element.value; } 
+            else { textToCopy = element.getAttribute('data-full-link'); }
+            if (!textToCopy || textToCopy.includes('Đang tải...') || textToCopy === '...') {
+                 customAlert('Vui lòng đợi tải dữ liệu mời xong.'); return;
+            }
+            
+            const tempInput = document.createElement('input');
+            tempInput.value = textToCopy;
+            tempInput.style.position = 'absolute'; tempInput.style.left = '-9999px';
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            let success = false;
+            try { success = document.execCommand('copy'); } 
+            catch (err) { }
+            document.body.removeChild(tempInput);
+
+            if (success) {
+                const displayText = (elementId === 'inviteLink') ? 'Link lời mời' : 'Mã mời';
+                customAlert(`Đã sao chép ${displayText} thành công!`);
+            } else { customAlert('Lỗi: Không thể sao chép.'); }
+        }
+        
+        function updateElementText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+        
+        function updateElementValue(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.value = value;
+        }
+        
+        function updateElementStyle(id, property, value) {
+            const el = document.getElementById(id);
+            if (el) el.style[property] = value;
+        }
+        
+        async function fetchInviteData() {
+            if (typeof window.checkLogin !== 'function' || 
+                typeof window.fetchAPI !== 'function' ||
+                typeof window.formatCurrency !== 'function') {
+                customAlert("Lỗi tải dữ liệu. Vui lòng tải lại trang.");
+                return;
+            }
+
+            const token = window.checkLogin(true); 
+            if (!token) return; 
+            
+            try {
+                const data = await window.fetchAPI('/user/invite-data');
+                globalInviteData = data; 
+                
+                const currentLevel = data.currentLevel || 1;
+                const nextTargetCount = data.nextTargetCount || 10;
+                const currentProgressCount = data.currentProgressCount || 0;
+                const progressPercent = (currentProgressCount / nextTargetCount) * 100;
+                
+                updateElementText('currentLevel', `LV${currentLevel}`);
+                updateElementText('progressCountText', `${currentProgressCount} / ${nextTargetCount}`);
+                updateElementText('nextTargetText', `LV${currentLevel + 1} Mục tiêu: ${nextTargetCount}`);
+                updateElementStyle('progressBarFill', 'width', `${Math.min(100, progressPercent)}%`);
+                
+                const formatter = window.formatCurrency;
+                updateElementText('totalRebate', formatter(data.totalRebate || 0.000));
+                updateElementText('subLevel1TotalDisplay', data.subLevel1Total || 0); 
+                updateElementText('subLevel2', data.subLevel2Total || 0); 
+                updateElementText('subLevel3', data.subLevel3Total || 0); 
+
+                const inviteCode = data.inviteCode || 'CODE_ERROR';  
+                const fullLink = baseDomain + inviteCode;
+                
+                updateElementValue('inviteCode', inviteCode); 
+                updateElementValue('inviteLink', fullLink);
+                
+                updateElementText('tab-count-f1', data.subLevel1Total || 0);  
+                updateElementText('tab-count-f2', data.subLevel2Total || 0);  
+
+            } catch (error) {
+                customAlert('Lỗi tải dữ liệu mời: ' + (error.message || 'Không thể kết nối đến server.'));
+            }
+        }
+
+        function showTeamModal() {
+            if (!globalInviteData.teamData) {
+                customAlert('Không có dữ liệu nhóm để hiển thị.');
+                return;
+            }
+            showModal('teamModal');
+            setTimeout(() => { renderTeamTable(currentTeamTab); }, 50);
+        }
+
+        function renderTeamTable(level) {
+            currentTeamTab = level;
+            const data = globalInviteData.teamData[level];
+            const contentEl = document.getElementById('team-content');
+            
+            document.querySelectorAll('#teamModal .team-tab-button').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-tab') === level);
+            });
+
+            if (!contentEl) return;
+            if (!data || data.length === 0) {
+                // SỬA: Hiển thị "Cấp 1" hoặc "Cấp 2"
+                contentEl.innerHTML = `<p class="text-center text-[var(--text-secondary)] mt-10 p-4">Chưa có thành viên ${level.replace('F', 'Cấp ')} nào.</p>`;
+                return;
+            }
+            
+            let tableHTML = `
+                <table class="team-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th class="text-right">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+            
+            data.forEach(item => {
+                const itemJson = encodeURIComponent(JSON.stringify(item));
+                tableHTML += `
+                    <tr class="hover:bg-gray-800/60 transition-colors">
+                        <td class="truncate" style="max-width: 150px;">${item.username}</td>
+                        <td class="text-right">
+                            <button onclick="showUserDetail('${itemJson}')" class="bg-[var(--yellow-accent)] text-[var(--dark-bg)] px-3 py-1 text-xs font-bold rounded-full hover:bg-yellow-300 transition-colors">
+                                Thông tin
+                            </button>
+                        </td>
+                    </tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            contentEl.innerHTML = tableHTML;
+        }
+
+        function showUserDetail(encodedItemJson) {
+            try {
+                const item = JSON.parse(decodeURIComponent(encodedItemJson));
+                const formatter = window.formatCurrency;
+
+                updateElementText('detail-username', item.username || 'Chi tiết Thành viên');
+                updateElementText('detail-deposit', formatter(parseFloat(item.deposit || 0)));
+                updateElementText('detail-login-time', item.lastLogin || 'N/A');
+                updateElementText('detail-vip', item.vipLevel || 'VIP1');
+                updateElementText('detail-level', item.teamLevel || 'LV1');
+                updateElementText('detail-upline', globalInviteData.inviteCode || 'N/A'); 
+                updateElementText('detail-balance', formatter(item.balance || 0));
+                updateElementText('detail-withdraw', formatter(item.withdraw || 0));
+                updateElementText('detail-bet', formatter(item.bet || 0));
+                updateElementText('detail-win', formatter(item.win || 0));
+                updateElementText('detail-rebate', formatter(item.rebate || 0));
+                updateElementText('detail-f1-count', item.f1Count || 0);
+                updateElementText('detail-register-time', item.registerTime || '2024-01-01 12:00:00');
+
+                showModal('userDetailModal');
+
+            } catch (e) {
+                customAlert("Không thể hiển thị chi tiết thành viên.");
+            }
+        }
+
+        function showReportModal() {
+             if (!globalInviteData.reportData) {
+                customAlert('Không có dữ liệu báo cáo để hiển thị.');
+                return;
+            }
+            showModal('reportModal');
+            setTimeout(() => { renderReportTable(); }, 50);
+        }
+
+        function renderReportTable() {
+            let data = globalInviteData.reportData;
+            const contentEl = document.getElementById('report-content');
+            if (!contentEl) return;
+            if (!data || data.length === 0) {
+                 contentEl.innerHTML = `<p class="text-center text-[var(--text-secondary)] mt-10 p-4">Chưa có dữ liệu hoàn trả.</p>`;
+                return;
+            }
+
+            // Sắp xếp theo ngày mới nhất và giới hạn 7 ngày gần nhất (nếu backend trả nhiều hơn)
+            data = data
+                .slice()
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .slice(0, 7);
+
+            const formatter = window.formatCurrency;
+            
+            let tableHTML = `
+                <table class="w-full divide-y divide-[var(--border-color)]">
+                    <thead class="bg-[var(--dark-bg)] sticky top-0 z-10">
+                        <tr>
+                            <th style="padding: 0.75rem 1rem; text-align: left; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color);">Ngày</th>
+                            <th style="padding: 0.75rem 1rem; text-align: right; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color);">Hoàn trả</th>
+                            <th style="padding: 0.75rem 1rem; text-align: right; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border-color);">F1 Nạp</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[var(--border-color)]">`;
+            
+            data.forEach(item => {
+                tableHTML += `<tr class="hover:bg-gray-800/60 transition-colors">
+                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-[var(--text-primary)]">${item.date}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-right text-white font-semibold">${formatter(parseFloat(item.rebate))}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-right text-[var(--yellow-accent)]">${formatter(parseFloat(item.deposit_f1))}</td>
+                              </tr>`;
+            });
+            tableHTML += `</tbody></table>`;
+            contentEl.innerHTML = tableHTML;
+        }
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+             window.copyToClipboard = copyToClipboard;
+             window.showModal = showModal;
+             window.hideModal = hideModal;
+             window.renderTeamTable = renderTeamTable;
+             window.showTeamModal = showTeamModal;
+             window.showReportModal = showReportModal;
+             window.showUserDetail = showUserDetail; 
+             
+             currentTeamTab = 'F1';
+             document.querySelector('#teamModal .team-tab-button[data-tab="F1"]')?.classList.add('active');
+             
+             if (typeof window.initCurrency === 'function') {
+                await window.initCurrency();
+             } else {
+                window.location.href = 'login'; 
+                return;
+             }
+             
+             fetchInviteData();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hoạt động | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+	<!-- [THÊM] Socket.io để cập nhật chuông thông báo -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+	<!-- [SỬA] Đổi Font Awesome sang 6.5.2 để khớp index -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <!-- [SỬA LỖI] Khôi phục đầy đủ CSS -->
+    <style>
+        /* [THÊM] Biến màu CSS giống index.html */
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+    
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg); /* Sửa sang #0a0a0e */
+            color: #e0e0e0;
+            padding-bottom: 80px; /* Thêm padding cho footer (nếu bạn muốn thêm sau) */
+            padding-top: 61px; /* SỬA: Chỉ 1 header 61px */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        /* [THÊM] Style cho header mới */
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* [SỬA] Cập nhật màu cho card hoạt động */
+        .activity-card {
+             background-color: var(--card-bg);
+             border: 1px solid var(--border-color);
+        }
+        .activity-card:hover {
+            background-color: #2b2d35; /* Sáng hơn một chút khi hover */
+        }
+
+        /* [SỬA] Style cho banner (dùng chung) */
+        .custom-banner {
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        .custom-banner:hover {
+            border-color: var(--yellow-accent);
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.2);
+        }
+        .icon-bg {
+            background-color: rgba(250, 204, 21, 0.1); /* var(--yellow-accent) with 10% opacity */
+            border: 1px solid var(--yellow-accent);
+        }
+
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Header giống hệt index.html -->
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1.5 text-sm bg-gray-700/80 px-3 py-1.5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            
+            <a href="notifications" class="relative text-gray-400 hover:text-white">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="notification-badge" 
+                      class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                      style="display: none;">
+                    0
+                </span>
+            </a>
+        </div>
+    </header>
+
+
+    <main class="container mx-auto px-4 py-4 space-y-4">
+		
+		<!-- Tiêu đề trang -->
+        <div class="flex items-center gap-3 mb-4">
+            <a href="index" class="text-gray-400 hover:text-white">
+                <i class="fa-solid fa-chevron-left"></i>
+            </a>
+            <h1 class="text-xl font-bold text-white">Trung tâm Hoạt động</h1>
+        </div>
+
+        <!-- [THIẾT KẾ LẠI] Banner Sự Kiện Tên Lửa (Game Reactor) -->
+        <div onclick="window.location.href = 'login'" 
+             class="custom-banner rounded-xl p-5 flex items-center gap-4 shadow-lg cursor-pointer"
+             style="background: linear-gradient(110deg, #1f2937 40%, #0891b2 70%, #0a0a0e 100%);"> <!-- Gradient Cyan (màu game tên lửa) -->
+            <div class="icon-bg w-16 h-16 rounded-full flex-shrink-0 flex items-center justify-center">
+                <i class="fa-solid fa-rocket fa-2x" style="color: var(--yellow-accent);"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="text-lg font-bold text-white">Sự Kiện Tên Lửa</h3>
+                <p class="text-sm text-gray-300">Bay cao thắng lớn, cược tiền hấp dẫn.</p>
+            </div>
+            <i class="fa-solid fa-chevron-right text-gray-500"></i>
+        </div>
+        
+        <!-- [GIỮ NGUYÊN] Thiết kế "như cũ" cho banner "Mời bạn", nhưng link tới vip_level.html -->
+        <div onclick="window.location.href = 'login'"
+             class="activity-card rounded-lg p-4 flex items-center gap-4 shadow-lg transition-colors cursor-pointer">
+            <div class="p-3 bg-yellow-400/20 rounded-lg">
+                <i class="fas fa-gift fa-2x text-yellow-400"></i>
+            </div>
+            <div class="flex-grow">
+                <h3 class="font-semibold text-white">Thưởng hoa hồng mời bạn</h3>
+                <p class="text-sm text-gray-400">Mời bạn bè tham gia và nhận hoa hồng hấp dẫn.</p>
+            </div>
+            <i class="fa-solid fa-chevron-right text-gray-500 ml-auto"></i>
+        </div>
+        <!-- [KẾT THÚC] -->
+
+        
+    </main>
+    
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+             // Yêu cầu đăng nhập để xem trang này
+             if (typeof checkLogin === 'function') {
+                 if(checkLogin(true)) {
+					// [THÊM] Khởi tạo chuông thông báo
+					if (typeof initializeUserSession === 'function') {
+						initializeUserSession();
+					}
+				 }
+             }
+        });
+    </script>
+</body>
+</html>

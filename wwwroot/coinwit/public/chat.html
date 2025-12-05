@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chat - CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0e 0%, #1a1b20 50%, #0a0a0e 100%);
+            color: #e0e0e0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        :root {
+            --yellow-accent: #facc15;
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --message-sent: linear-gradient(135deg, #facc15 0%, #f59e0b 100%);
+            --message-received: #2a2b35;
+        }
+        
+        /* Header */
+        .chat-header {
+            background: linear-gradient(135deg, #1a1b20 0%, #2a2b35 100%);
+            border-bottom: 2px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+        
+        .chat-header .back-btn {
+            color: var(--yellow-accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .chat-header .back-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .chat-header .bot-info {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .bot-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: var(--message-sent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.5); }
+            50% { box-shadow: 0 0 25px rgba(250, 204, 21, 0.8); }
+        }
+        
+        .bot-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--yellow-accent);
+        }
+        
+        .bot-status {
+            font-size: 0.75rem;
+            color: #90ee90;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #90ee90;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        /* Messages Area */
+        .messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="50" font-size="50" opacity="0.02" fill="%23facc15">💬</text></svg>');
+            background-size: 100px 100px;
+        }
+        
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-container::-webkit-scrollbar-thumb {
+            background: var(--yellow-accent);
+            border-radius: 10px;
+        }
+        
+        /* Message Bubble */
+        .message {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            animation: messageSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+        
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .message.sent .message-avatar {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .message.received .message-avatar {
+            background: var(--message-sent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .message.sent .message-bubble {
+            background: var(--message-sent);
+            color: #111827;
+            border-bottom-right-radius: 4px;
+            font-weight: 500;
+        }
+        
+        .message.received .message-bubble {
+            background: var(--message-received);
+            color: #ffffff;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message-image {
+            max-width: 250px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+        
+        .message-image:hover {
+            transform: scale(1.02);
+        }
+        
+        .message-time {
+            font-size: 0.7rem;
+            color: #a0a0a0;
+            padding: 0 5px;
+        }
+        
+        .message.sent .message-time {
+            text-align: right;
+        }
+        
+        /* Typing Indicator */
+        .typing-indicator {
+            display: none;
+            padding: 15px 20px;
+            background: var(--message-received);
+            border-radius: 18px;
+            width: fit-content;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .typing-indicator.active {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #a0a0a0;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+        
+        /* Input Area */
+        .input-container {
+            background: linear-gradient(135deg, #1a1b20 0%, #2a2b35 100%);
+            border-top: 2px solid var(--border-color);
+            padding: 15px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            bottom: 0;
+        }
+        
+        .attach-btn, .emoji-btn {
+            background: transparent;
+            border: none;
+            color: var(--yellow-accent);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .attach-btn:hover, .emoji-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .message-input {
+            flex-grow: 1;
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        .message-input:focus {
+            border-color: var(--yellow-accent);
+        }
+        
+        .message-input::placeholder {
+            color: #6a737d;
+        }
+        
+        .send-btn {
+            background: var(--message-sent);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #111827;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);
+        }
+        
+        .send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(250, 204, 21, 0.6);
+        }
+        
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        /* Welcome Message */
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6a737d;
+        }
+        
+        .welcome-message i {
+            font-size: 4rem;
+            color: var(--yellow-accent);
+            margin-bottom: 20px;
+            display: block;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .welcome-message h3 {
+            color: var(--yellow-accent);
+            margin-bottom: 10px;
+            font-size: 1.5rem;
+        }
+        
+        /* Quick Replies */
+        .quick-replies {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 0 20px 10px 20px;
+        }
+        
+        .quick-reply-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--yellow-accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .quick-reply-btn:hover {
+            background: var(--yellow-accent);
+            color: #111827;
+            border-color: var(--yellow-accent);
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Header -->
+    <div class="chat-header">
+        <i class="fas fa-arrow-left back-btn" onclick="window.history.back()"></i>
+        <div class="bot-info">
+            <div class="bot-avatar">🤖</div>
+            <div>
+                <div class="bot-name">CoinWit Bot</div>
+                <div class="bot-status">
+                    <span class="status-dot"></span>
+                    Đang hoạt động
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Messages Container -->
+    <div class="messages-container" id="messagesContainer">
+        <div class="welcome-message" id="welcomeMessage">
+            <i class="fas fa-comments"></i>
+            <h3>Chào bạn! 👋</h3>
+            <p>Mình là bot của CoinWit đây<br>Cần hỗ trợ gì cứ nhắn thoải mái nha!</p>
+        </div>
+    </div>
+    
+    <!-- Typing Indicator -->
+    <div class="quick-replies">
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+    </div>
+    
+    <!-- Input Area -->
+    <div class="input-container">
+        <button class="attach-btn" onclick="document.getElementById('file-input').click()">
+            <i class="fas fa-paperclip"></i>
+        </button>
+        <input type="file" id="file-input" accept="image/*">
+        <input type="text" class="message-input" id="messageInput" placeholder="Nhắn tin..." />
+        <button class="send-btn" id="sendBtn">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://coinwit.net/api';
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const fileInput = document.getElementById('file-input');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        
+        let messageHistory = [];
+        let token = localStorage.getItem('authToken');
+        
+        // Phản hồi bot chi tiết và đa dạng
+        const botResponses = {
+            greetings: [
+                "Xin chào bạn! Mình là trợ lý ảo của CoinWit đây. Rất vui được hỗ trợ bạn hôm nay. Bạn cần tư vấn về vấn đề gì ạ? 😊",
+                "Chào bạn thân mến! Cảm ơn bạn đã liên hệ với CoinWit. Mình sẵn sàng hỗ trợ bạn mọi thắc mắc về nạp rút tiền, chơi game hay các hoạt động khác trên nền tảng. Bạn muốn hỏi gì nhé? 👋",
+                "Hello bạn! Mình là bot tư vấn của CoinWit. Rất hân hạnh được đồng hành cùng bạn. Bạn có câu hỏi nào cần giải đáp không? Cứ thoải mái chia sẻ nhé! 🙌",
+                "Chào mừng bạn đến với hệ thống hỗ trợ CoinWit! Mình ở đây để giúp bạn giải quyết mọi vấn đề một cách nhanh chóng và hiệu quả nhất. Bạn cần tư vấn điều gì ạ? 💪"
+            ],
+            help: [
+                "Mình có thể hỗ trợ bạn về nhiều vấn đề như:\n\n💰 Nạp tiền và rút tiền\n🎮 Hướng dẫn chơi game\n👤 Xác minh tài khoản (KYC)\n🎁 Các chương trình khuyến mãi\n🔒 Bảo mật và đổi mật khẩu\n📊 Lịch sử giao dịch\n\nBạn muốn được tư vấn về mục nào nhỉ? Cứ nói cho mình biết nhé! 👂",
+                "Đội ngũ CoinWit luôn sẵn sàng hỗ trợ bạn 24/7! Mình có thể giúp bạn:\n\n✅ Hướng dẫn nạp/rút tiền chi tiết\n✅ Giải đáp thắc mắc về trò chơi\n✅ Xử lý các vấn đề kỹ thuật\n✅ Tư vấn về chương trình VIP\n✅ Hướng dẫn bảo mật tài khoản\n\nBạn đang gặp khó khăn ở phần nào? Hãy chia sẻ để mình có thể hỗ trợ tốt nhất! 💯",
+                "Rất vui được hỗ trợ bạn! CoinWit cam kết mang đến trải nghiệm tốt nhất. Mình có thể giúp bạn về:\n\n🏦 Giao dịch tài chính\n🎯 Chiến thuật chơi game\n📱 Sử dụng ứng dụng\n🎊 Chương trình ưu đãi\n👥 Chương trình giới thiệu bạn bè\n\nBạn quan tâm đến vấn đề nào nhất? Hãy cho mình biết để mình tư vấn chi tiết nhé! 🤝"
+            ],
+            deposit: [
+                "Để nạp tiền vào tài khoản CoinWit, bạn thực hiện theo các bước sau:\n\n1️⃣ Vào trang chủ, nhấn nút \"Nạp Tiền\" màu vàng\n2️⃣ Chọn phương thức nạp (Ngân hàng, Ví điện tử, hoặc Crypto)\n3️⃣ Nhập số tiền muốn nạp\n4️⃣ Làm theo hướng dẫn chuyển khoản\n5️⃣ Tiền sẽ được cộng vào tài khoản sau 1-5 phút\n\n💡 Lưu ý: Vui lòng giữ lại mã giao dịch để đối chiếu nếu cần hỗ trợ. Bạn có thắc mắc gì về nạp tiền không? 💰",
+                "Quy trình nạp tiền tại CoinWit rất đơn giản và an toàn:\n\n✨ Bước 1: Truy cập mục \"Nạp Tiền\" trên trang chủ\n✨ Bước 2: Lựa chọn hình thức nạp phù hợp với bạn (Chuyển khoản ngân hàng, MoMo, ZaloPay, USDT...)\n✨ Bước 3: Điền chính xác số tiền cần nạp\n✨ Bước 4: Thực hiện chuyển khoản theo thông tin được cung cấp\n✨ Bước 5: Xác nhận giao dịch và chờ hệ thống xử lý\n\n⏱️ Thời gian xử lý: 1-5 phút\n🔒 Bảo mật: Mã hóa SSL 256-bit\n\nBạn cần hỗ trợ thêm về phương thức nào không? 😊",
+                "Nạp tiền vào CoinWit nhanh chóng và tiện lợi! Đây là hướng dẫn chi tiết:\n\n📍 Truy cập: Trang chủ → Nút \"Nạp Tiền\"\n📍 Chọn phương thức:\n   • Ngân hàng: ACB, VCB, TCB, MB...\n   • Ví điện tử: MoMo, ZaloPay, VNPay\n   • Tiền mã hóa: USDT (TRC20/ERC20)\n📍 Nhập số tiền: Tối thiểu 50,000 VNĐ\n📍 Thực hiện thanh toán theo hướng dẫn\n📍 Kiểm tra số dư sau 1-5 phút\n\n💎 Ưu đãi: Nạp lần đầu được tặng thêm 10% bonus!\n\nBạn muốn biết chi tiết về phương thức nào không? 💸"
+            ],
+            withdraw: [
+                "Hướng dẫn rút tiền từ CoinWit về tài khoản của bạn:\n\n1️⃣ Nhấn vào mục \"Rút Tiền\" trên trang chủ\n2️⃣ Chọn phương thức rút tiền (Ngân hàng/Ví điện tử/Crypto)\n3️⃣ Nhập thông tin tài khoản nhận tiền (Tên, STK, Ngân hàng)\n4️⃣ Nhập số tiền cần rút (Tối thiểu 100,000 VNĐ)\n5️⃣ Xác nhận mật khẩu giao dịch\n6️⃣ Gửi yêu cầu và chờ xét duyệt\n\n⏱️ Thời gian xử lý: 5-30 phút trong giờ hành chính\n📝 Lưu ý: Cần xác minh KYC để rút tiền lần đầu\n\nBạn có câu hỏi gì về quy trình rút tiền không? 🏦",
+                "Quy trình rút tiền tại CoinWit minh bạch và bảo mật:\n\n✅ Bước 1: Vào phần \"Rút Tiền\" từ menu chính\n✅ Bước 2: Lựa chọn kênh rút tiền ưa thích\n✅ Bước 3: Điền đầy đủ thông tin tài khoản nhận:\n   - Họ tên chủ tài khoản (phải trùng với KYC)\n   - Số tài khoản/số điện thoại ví\n   - Tên ngân hàng/ví điện tử\n✅ Bước 4: Nhập số tiền muốn rút\n✅ Bước 5: Xác thực bằng mật khẩu giao dịch\n✅ Bước 6: Kiểm tra thông tin và xác nhận\n\n💼 Giới hạn rút: 100,000 - 50,000,000 VNĐ/lần\n🕐 Thời gian: 5-30 phút (giờ hành chính)\n🔐 Bảo mật: Xác thực 2 lớp\n\nBạn cần hỗ trợ thêm về việc rút tiền không? 💳",
+                "Rút tiền tại CoinWit đơn giản và an toàn! Hãy làm theo hướng dẫn:\n\n🔹 Truy cập mục \"Rút Tiền\" trên giao diện chính\n🔹 Chọn hình thức rút phù hợp:\n   • Chuyển khoản ngân hàng (phổ biến nhất)\n   • Ví điện tử (MoMo, ZaloPay...)\n   • USDT (nhanh nhất)\n🔹 Điền thông tin chính xác:\n   • Họ tên khớp với CMND/CCCD đã xác minh\n   • Số tài khoản/ví đúng định dạng\n   • Chi nhánh ngân hàng (nếu cần)\n🔹 Nhập số tiền và mật khẩu giao dịch\n🔹 Xác nhận và chờ xử lý\n\n⚡ Xử lý: Tự động trong 5-30 phút\n📌 Điều kiện: Đã hoàn thành KYC\n💰 Phí: 0% (miễn phí)\n\nNếu gặp khó khăn trong việc rút tiền, hãy cho mình biết nhé! ✅"
+            ],
+            game: [
+                "CoinWit cung cấp đa dạng trò chơi giải trí hấp dẫn:\n\n🎲 Chẵn Lẻ: Dự đoán kết quả xúc xắc, tỷ lệ thắng cao, dễ chơi\n🚀 Tên Lửa Vũ Trụ: Thoát hiểm đúng lúc để nhân tiền, hệ số lên đến x100\n💣 Quét Mìn: Mở ô an toàn để thắng, càng mạo hiểm càng nhiều tiền\n🃏 Hi-Lo Royale: Đoán bài cao thấp, chiến thuật đơn giản\n🎰 Bốc Số Trúng Thưởng: Thử vận may với jackpot khủng\n⚽ Thể Thao: Cá cược các trận đấu hấp dẫn\n\n💡 Mẹo: Bắt đầu với mức cược nhỏ để làm quen, sau đó tăng dần khi đã nắm rõ luật chơi!\n\nBạn muốn mình hướng dẫn chi tiết trò chơi nào không? 🎮",
+                "Hệ thống game tại CoinWit được thiết kế công bằng và minh bạch:\n\n🎯 MINI GAMES:\n• Chẵn Lẻ: RTP 97% - Phù hợp người mới\n• Tên Lửa: Hệ số x1.1 đến x100 - Kịch tính cao\n• Quét Mìn: 3x3 hoặc 5x5 - Chiến thuật\n• Hi-Lo: 52 lá bài - Dễ theo dõi\n\n🏆 CASINO:\n• Bốc số trúng thưởng\n• Xổ số may mắn\n• Vòng quay tài lộc\n\n⚽ THỂ THAO:\n• Bóng đá, Bóng rổ, Tennis\n• Esports: DOTA 2, LOL, CS:GO\n\n📊 Tất cả game đều có:\n✓ Lịch sử minh bạch\n✓ Kết quả công khai\n✓ Tỷ lệ cược rõ ràng\n\nBạn quan tâm đến loại game nào? Mình sẽ hướng dẫn chi tiết! 🎯",
+                "Khám phá thế giới game đỉnh cao tại CoinWit:\n\n🌟 HOT GAMES:\n\n1. Chẵn Lẻ (Dice)\n   - Luật chơi: Đoán tổng 3 xúc xắc chẵn/lẻ\n   - Tỷ lệ: 1:1.98\n   - Thời gian: 60 giây/phiên\n   - Phù hợp: Người mới bắt đầu\n\n2. Tên Lửa Vũ Trụ (Crash)\n   - Luật chơi: Thoát trước khi tên lửa nổ\n   - Hệ số: x1.01 → x100+\n   - Rủi ro: Cao\n   - Phù hợp: Người thích cảm giác mạnh\n\n3. Quét Mìn (Mines)\n   - Luật chơi: Mở ô không có bom\n   - Độ khó: Chọn được (1-24 bom)\n   - Phần thưởng: Tăng theo số ô mở\n   - Phù hợp: Người thích chiến thuật\n\n📈 Mỗi game đều có demo để bạn thử miễn phí!\n\nBạn muốn thử game nào trước? Mình sẽ chia sẻ chiến thuật chơi! 🚀"
+            ],
+            luck: [
+                "Chúc bạn may mắn và gặp nhiều điều tốt lành! 🍀\n\nMột vài lời khuyên để tăng cơ hội thắng:\n✨ Quản lý vốn thông minh, không all-in\n✨ Chơi có chiến thuật, không chạy theo cảm xúc\n✨ Biết dừng khi thắng đủ\n✨ Tìm hiểu kỹ luật chơi trước khi tham gia\n\nChúc bạn chiến thắng và kiếm được nhiều phần thưởng! 💰💎",
+                "Chúc bạn vượng khí đầy tài lộc, phát tài phát lộc! 🙏✨\n\nĐể may mắn đến với bạn:\n🎯 Chơi có kế hoạch rõ ràng\n🎯 Đặt mục tiêu thắng/thua hợp lý\n🎯 Nghỉ ngơi khi cần thiết\n🎯 Tham gia các chương trình khuyến mãi\n🎯 Nâng cấp VIP để nhận thêm ưu đãi\n\nCầu mong bạn luôn gặp may mắn và thành công! 🏆💵",
+                "Nam mô a di đà phật! Chúc bạn thịnh vượng và giàu có! 🙏💎\n\nMột số bí quyết để chiến thắng:\n📌 Bắt đầu với cược nhỏ, tăng dần khi thắng\n📌 Học hỏi từ người chơi giỏi\n📌 Tham gia cộng đồng để chia sẻ kinh nghiệm\n📌 Tận dụng các event có tỷ lệ thưởng cao\n📌 Luôn giữ tâm lý thoải mái\n\nChúc bạn thắng lớn và về bờ với bao điền đầy tiền! 🎰🔥💰"
+            ],
+            account: [
+                "Về quản lý tài khoản CoinWit:\n\n👤 Xác minh tài khoản (KYC):\n   - Bước 1: Vào \"Cá nhân\" → \"Xác minh KYC\"\n   - Bước 2: Chụp CMND/CCCD mặt trước + sau\n   - Bước 3: Chụp ảnh selfie cầm CMND\n   - Bước 4: Gửi và chờ duyệt (5-15 phút)\n\n🔐 Bảo mật tài khoản:\n   - Đổi mật khẩu định kỳ\n   - Bật xác thực 2 yếu tố (2FA)\n   - Không chia sẻ mật khẩu\n   - Đăng xuất sau khi sử dụng\n\n📧 Liên kết: Email, Số điện thoại để khôi phục\n\nBạn cần hỗ trợ vấn đề gì về tài khoản? 🔒",
+                "Quản lý tài khoản CoinWit an toàn và hiệu quả:\n\n💼 THÔNG TIN CÁ NHÂN:\n✓ Cập nhật đầy đủ: Họ tên, SĐT, Email\n✓ Xác minh danh tính (KYC) để mở khóa đầy đủ tính năng\n✓ Thêm avatar cá nhân\n\n🛡️ BẢO MẬT CAO CẤP:\n✓ Mật khẩu đăng nhập (8-20 ký tự, có chữ hoa, số, ký tự đặc biệt)\n✓ Mật khẩu giao dịch (6 số, riêng cho nạp/rút tiền)\n✓ Google Authenticator hoặc SMS OTP\n✓ Quét sinh trắc học (nếu ứng dụng hỗ trợ)\n\n🎖️ NÂNG CẤP VIP:\n✓ VIP 1-10: Ưu đãi tăng dần\n✓ Hoàn trả lên đến 1.8%\n✓ Quà tặng sinh nhật\n✓ Chuyên viên hỗ trợ riêng\n\nBạn muốn biết thêm về điều gì? 👑"
+            ],
+            vip: [
+                "Chương trình VIP tại CoinWit mang lại nhiều ưu đãi:\n\n💎 CẤP ĐỘ VIP (1-10):\n• VIP 1: Cược tích lũy 1 triệu → Hoàn 0.3%\n• VIP 3: Cược tích lũy 10 triệu → Hoàn 0.6%\n• VIP 5: Cược tích lũy 50 triệu → Hoàn 1.0%\n• VIP 7: Cược tích lũy 200 triệu → Hoàn 1.4%\n• VIP 10: Cược tích lũy 1 tỷ → Hoàn 1.8%\n\n🎁 ĐẶC QUYỀN VIP:\n✨ Hoàn trả không giới hạn\n✨ Rút tiền ưu tiên (5 phút)\n✨ Quà tặng sinh nhật giá trị\n✨ Tham gia giải đấu VIP\n✨ Hỗ trợ 24/7 từ chuyên viên riêng\n\n📊 Bạn hiện tại đang ở cấp độ nào? Mình có thể tư vấn cách nâng cấp nhanh! 👑",
+                "Hệ thống VIP CoinWit - Đẳng cấp và đặc quyền:\n\n🌟 QUYỀN LỢI THEO CẤP:\n\nVIP 1-2: Khởi đầu\n→ Hoàn 0.3-0.4% mỗi ngày\n→ Rút tiền 3 lần/ngày\n\nVIP 3-5: Thành viên\n→ Hoàn 0.6-1.0% mỗi ngày\n→ Rút tiền 5 lần/ngày\n→ Tặng 500k sinh nhật\n\nVIP 6-8: Cao cấp\n→ Hoàn 1.2-1.5% mỗi ngày\n→ Rút tiền không giới hạn\n→ Tặng 2 triệu sinh nhật\n→ Ưu tiên xử lý giao dịch\n\nVIP 9-10: Đặc biệt\n→ Hoàn 1.6-1.8% mỗi ngày\n→ Host riêng phục vụ 24/7\n→ Tặng 5-10 triệu sinh nhật\n→ Tham gia event VIP độc quyền\n→ Du lịch nghỉ dưỡng hàng năm\n\n💫 Cách nâng cấp: Tích lũy doanh số cược\n\nBạn muốn biết thêm chi tiết không? 🏅"
+            ],
+            problem: [
+                "Mình rất tiếc khi bạn gặp sự cố. Hãy mô tả chi tiết vấn đề để mình hỗ trợ:\n\n❓ CÁC VẤN ĐỀ THƯỜNG GẶP:\n\n1. Không đăng nhập được:\n   → Kiểm tra kết nối mạng\n   → Xóa cache/cookie trình duyệt\n   → Thử đổi trình duyệt khác\n   → Reset mật khẩu nếu quên\n\n2. Tiền không về:\n   → Kiểm tra lịch sử giao dịch\n   → Chờ 5-10 phút\n   → Gửi mã giao dịch cho mình kiểm tra\n\n3. Lỗi khi chơi game:\n   → Tải lại trang\n   → Cập nhật trình duyệt\n   → Kiểm tra kết nối internet\n\n4. Không rút được tiền:\n   → Kiểm tra KYC đã xác minh chưa\n   → Xem điều kiện rút tiền tối thiểu\n   → Kiểm tra thông tin tài khoản nhận\n\nBạn đang gặp vấn đề gì? Hãy nói cụ thể để mình giúp nhé! 🆘",
+                "Đội ngũ kỹ thuật CoinWit sẵn sàng hỗ trợ bạn giải quyết mọi sự cố:\n\n🔧 XỬ LÝ SỰ CỐ NHANH CHÓNG:\n\n⚠️ Lỗi đăng nhập/đăng ký:\n• Quên mật khẩu → Nhấn \"Quên mật khẩu\" để reset qua email/SĐT\n• Tài khoản bị khóa → Liên hệ hotline để mở khóa\n• Mã OTP không về → Kiểm tra spam, đợi 60s gửi lại\n\n💸 Vấn đề giao dịch:\n• Nạp tiền không vào → Gửi mã GD + screenshot\n• Rút tiền bị từ chối → Kiểm tra KYC, thông tin tài khoản\n• Số dư bị sai → Xem lại lịch sử giao dịch\n\n🎮 Lỗi khi chơi:\n• Game không tải → Xóa cache, đổi trình duyệt\n• Mất kết nối giữa chừng → Kết quả vẫn được lưu, kiểm tra lịch sử\n• Kết quả không hiển thị → Reload trang\n\n📱 Liên hệ khẩn cấp:\n• Hotline: 1900xxxx (24/7)\n• Email: support@coinwit.net\n• Live chat: Góc dưới phải màn hình\n\nBạn cần mình hỗ trợ ngay vấn đề gì không? 🚨"
+            ],
+            promo: [
+                "Các chương trình khuyến mãi hấp dẫn tại CoinWit:\n\n🎉 ƯU ĐÃI ĐANG DIỄN RA:\n\n💰 Nạp lần đầu +10% bonus:\n   → Nạp 500k nhận 550k\n   → Nạp 1 triệu nhận 1.1 triệu\n   → Tối đa +10 triệu\n\n👥 Giới thiệu bạn bè:\n   → Bạn bè nạp, bạn nhận 5% hoa hồng\n   → Không giới hạn số người giới thiệu\n   → Hoa hồng trả hàng tuần\n\n🎁 Nhiệm vụ hàng ngày:\n   → Đăng nhập mỗi ngày: +10k\n   → Chơi 5 ván game: +20k\n   → Nạp tiền: +50k\n\n🏆 Giải đấu cuối tuần:\n   → Top 1: 10 triệu\n   → Top 10: 1-5 triệu\n   → Top 100: 100k-500k\n\n📅 Kiểm tra mục \"Hoạt động\" để xem chi tiết!\n\nBạn muốn tham gia chương trình nào? 🎊",
+                "Săn quà liền tay với các chương trình ưu đãi CoinWit:\n\n🔥 EVENT THÁNG NÀY:\n\n1️⃣ Thưởng nạp lũy tiến:\n   • Nạp 1-5 triệu: +8%\n   • Nạp 5-10 triệu: +12%\n   • Nạp 10-50 triệu: +15%\n   • Nạp trên 50 triệu: +20%\n\n2️⃣ Hoàn trả không giới hạn:\n   • Chơi thua → Hoàn lại 0.3-1.8%\n   • Tính theo cấp VIP\n   • Nhận tiền mỗi ngày lúc 12h\n\n3️⃣ Vòng quay may mắn:\n   • Nạp 200k = 1 lượt quay\n   • Giải thưởng: 10k - 10 triệu\n   • iPhone 15, vàng SJC, du lịch\n\n4️⃣ Minigame săn Code:\n   • Like/Share fanpage\n   • Nhận code giảm giá\n   • Đổi code lấy tiền thưởng\n\n💡 Mẹo: Kết hợp nhiều ưu đãi để tối đa lợi nhuận!\n\nBạn muốn biết cách tham gia không? 🎁"
+            ],
+            thanks: [
+                "Rất vui được hỗ trợ bạn! Nếu còn thắc mắc gì, đừng ngại liên hệ lại nhé! 😊\n\nChúc bạn có trải nghiệm tuyệt vời tại CoinWit! 🌟",
+                "Không có gì, đó là nhiệm vụ của mình mà! 🤗\n\nNếu bạn cần thêm bất kỳ hỗ trợ nào, mình luôn ở đây 24/7. Chúc bạn may mắn và thắng lớn! 💰",
+                "Cảm ơn bạn đã tin tưởng CoinWit! Hy vọng mình đã giải đáp được thắc mắc của bạn. 😊\n\nChúc bạn luôn gặp nhiều may mắn và thành công! 🍀"
+            ],
+            confusion: [
+                "Xin lỗi, mình chưa hiểu rõ ý bạn muốn hỏi. Bạn có thể diễn đạt lại hoặc hỏi cụ thể hơn được không? 🤔\n\nVí dụ:\n• \"Làm sao để nạp tiền?\"\n• \"Game nào dễ chơi nhất?\"\n• \"Rút tiền mất bao lâu?\"\n\nMình sẽ cố gắng hỗ trợ bạn tốt nhất! 😊",
+                "Hmm, mình hơi khó hiểu câu hỏi này. Bạn có thể nói rõ hơn được không? 😅\n\nMột số chủ đề mình có thể giúp bạn:\n📌 Nạp/Rút tiền\n📌 Chơi game và luật chơi\n📌 Xác minh tài khoản\n📌 Chương trình khuyến mãi\n📌 Bảo mật tài khoản\n📌 Giải quyết sự cố\n\nBạn quan tâm đến vấn đề nào nhỉ?",
+                "Mình chưa nắm bắt được ý của bạn lắm. Bạn đang cần hỗ trợ về vấn đề gì? 🤷\n\nHãy thử mô tả chi tiết hoặc đặt câu hỏi cụ thể để mình có thể tư vấn chính xác hơn nhé!\n\nVí dụ: \"Tôi nạp tiền nhưng chưa thấy vào tài khoản\" hoặc \"Làm sao để chơi game Tên Lửa?\"\n\nMình đang chờ bạn! 👂"
+            ]
+        };
+        
+        // Xử lý tin nhắn bot với AI thông minh hơn
+        function getBotResponse(userMessage) {
+            const msg = userMessage.toLowerCase();
+            
+            // Chào hỏi
+            if (msg.match(/chào|hello|hi|xin chào|helu|hey|ê|alo|halo/)) {
+                return getRandomResponse(botResponses.greetings);
+            }
+            
+            // Hỏi giúp đỡ
+            if (msg.match(/giúp|help|hỗ trợ|support|tư vấn|cần|hướng dẫn/)) {
+                return getRandomResponse(botResponses.help);
+            }
+            
+            // Nạp tiền
+            if (msg.match(/nạp tiền|nạp|deposit|top up|nap|nạp vào|nạp thêm|thêm tiền/)) {
+                return getRandomResponse(botResponses.deposit);
+            }
+            
+            // Rút tiền
+            if (msg.match(/rút tiền|rút|withdraw|cashout|rut|rút về|rút ra|chuyển tiền|chuyển về/)) {
+                return getRandomResponse(botResponses.withdraw);
+            }
+            
+            // Game
+            if (msg.match(/game|chơi|play|tên lửa|quét mìn|chẵn lẻ|trò chơi|mini game|casino|cá cược|đặt cược/)) {
+                return getRandomResponse(botResponses.game);
+            }
+            
+            // Tài khoản
+            if (msg.match(/tài khoản|account|thông tin|cá nhân|kyc|xác minh|xác thực|profile/)) {
+                return getRandomResponse(botResponses.account);
+            }
+            
+            // VIP
+            if (msg.match(/vip|thành viên|cấp độ|level|đặc quyền|ưu đãi vip|nâng cấp/)) {
+                return getRandomResponse(botResponses.vip);
+            }
+            
+            // Sự cố
+            if (msg.match(/lỗi|bug|không được|không vào|bị|sự cố|báo lỗi|không chạy|không hoạt động/)) {
+                return getRandomResponse(botResponses.problem);
+            }
+            
+            // Khuyến mãi
+            if (msg.match(/khuyến mãi|event|ưu đãi|khuyến mại|promotion|bonus|quà tặng|giải thưởng/)) {
+                return getRandomResponse(botResponses.promo);
+            }
+            
+            // Chúc may mắn
+            if (msg.match(/may mắn|chúc|phước|lộc|win|thắng|phát tài|tài lộc/)) {
+                return getRandomResponse(botResponses.luck);
+            }
+            
+            // Cảm ơn
+            if (msg.match(/cảm ơn|thank|thanks|cám ơn|tks|ty|oke|ok|được rồi|hiểu rồi/)) {
+                return getRandomResponse(botResponses.thanks);
+            }
+            
+            // Hỏi cách chơi
+            if (msg.match(/cách chơi|sao chơi|chơi thế nào|chơi như thế nào|luật chơi|hướng dẫn chơi/)) {
+                return getRandomResponse(botResponses.game);
+            }
+            
+            // Default
+            return getRandomResponse(botResponses.confusion);
+        }
+        
+        function getRandomResponse(responses) {
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+        
+        // Thêm tin nhắn vào UI
+        function addMessage(text, type = 'received', isImage = false) {
+            if (welcomeMessage && welcomeMessage.style.display !== 'none') {
+                welcomeMessage.style.display = 'none';
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            if (type === 'sent') {
+                avatar.textContent = 'You';
+            } else {
+                avatar.textContent = '🤖';
+            }
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            
+            if (isImage) {
+                const img = document.createElement('img');
+                img.src = text;
+                img.className = 'message-image';
+                img.alt = 'Image';
+                img.onclick = () => window.open(text, '_blank');
+                bubble.appendChild(img);
+            } else {
+                bubble.textContent = text;
+            }
+            
+            const time = document.createElement('div');
+            time.className = 'message-time';
+            time.textContent = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            
+            content.appendChild(bubble);
+            content.appendChild(time);
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Hiển thị typing indicator
+        function showTyping() {
+            typingIndicator.classList.add('active');
+        }
+        
+        function hideTyping() {
+            typingIndicator.classList.remove('active');
+        }
+        
+        // Gửi tin nhắn
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+            
+            // Hiển thị tin nhắn của user
+            addMessage(text, 'sent');
+            messageInput.value = '';
+            
+            // Lưu vào history
+            messageHistory.push({ role: 'user', text: text });
+            
+            // Hiển thị typing
+            showTyping();
+            
+            // Đợi một chút rồi trả lời
+            setTimeout(() => {
+                hideTyping();
+                const botReply = getBotResponse(text);
+                addMessage(botReply, 'received');
+                messageHistory.push({ role: 'bot', text: botReply });
+            }, 1000 + Math.random() * 1500); // Random 1-2.5s
+        }
+        
+        // Xử lý upload ảnh
+        async function handleImageUpload() {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            // Giả lập upload (có thể tích hợp API thật)
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                addMessage(e.target.result, 'sent', true);
+                
+                showTyping();
+                setTimeout(() => {
+                    hideTyping();
+                    // Phân tích ảnh dựa trên metadata
+                    const fileName = file.name.toLowerCase();
+                    let reply = '';
+                    
+                    // Phân tích theo tên file và loại ảnh
+                    if (fileName.includes('screenshot') || fileName.includes('screen')) {
+                        reply = 'Mình đã xem ảnh chụp màn hình của bạn rồi! 📸\n\nNếu đây là:\n• Lỗi kỹ thuật → Mình sẽ chuyển cho bộ phận kỹ thuật xử lý ngay\n• Giao dịch → Cho mình xin thêm mã giao dịch để kiểm tra\n• Kết quả game → Mình đã ghi nhận, kết quả đều được lưu lại minh bạch\n\nBạn cần mình hỗ trợ thêm điều gì không? 🤝';
+                    } else if (fileName.includes('cmnd') || fileName.includes('cccd') || fileName.includes('id')) {
+                        reply = 'Cảm ơn bạn đã gửi ảnh giấy tờ! 🪪\n\nĐể xác minh KYC, bạn cần:\n✅ Ảnh CMND/CCCD mặt trước\n✅ Ảnh CMND/CCCD mặt sau\n✅ Ảnh selfie cầm CMND/CCCD\n\n📌 Lưu ý: Ảnh phải rõ nét, đầy đủ 4 góc, không bị che\n\n👉 Bạn vui lòng upload trực tiếp tại mục "Xác minh KYC" để hệ thống xử lý nhanh hơn nhé! ⚡';
+                    } else if (fileName.includes('bank') || fileName.includes('transfer') || fileName.includes('payment')) {
+                        reply = 'Đã nhận được ảnh chuyển khoản của bạn! 💳\n\nĐể xử lý nhanh:\n1️⃣ Vui lòng cung cấp thêm mã giao dịch (nếu có)\n2️⃣ Số tiền đã chuyển\n3️⃣ Thời gian chuyển\n\n⏱️ Thời gian xử lý: 1-5 phút\n\nNếu quá 10 phút chưa thấy tiền vào, hãy liên hệ hotline: 1900xxxx để được hỗ trợ khẩn cấp nhé! 🆘';
+                    } else if (fileName.includes('qr') || fileName.includes('code')) {
+                        reply = 'Mình thấy bạn gửi mã QR rồi! 📱\n\nNếu đây là:\n• QR nạp tiền → Quét và thanh toán, tiền sẽ vào sau 1-5 phút\n• QR rút tiền → Làm theo hướng dẫn để hoàn tất\n• QR khác → Cho mình biết thêm chi tiết nhé\n\n💡 Lưu ý: Không chia sẻ QR thanh toán cho người khác để tránh mất tiền! 🔒';
+                    } else {
+                        // Phân tích chung cho ảnh thông thường
+                        const replies = [
+                            'Cảm ơn bạn đã gửi ảnh! 📸\n\nMình đã xem kỹ rồi. Nếu đây là:\n• Báo lỗi → Mình sẽ chuyển cho team kỹ thuật\n• Xác minh → Vui lòng upload tại mục KYC\n• Chứng từ giao dịch → Cung cấp thêm mã GD nhé\n\nBạn cần hỗ trợ gì thêm không? 🤝',
+                            'Ảnh của bạn rất rõ nét! 👌\n\nMình đã ghi nhận nội dung. Để xử lý nhanh hơn, bạn có thể:\n• Mô tả ngắn gọn vấn đề\n• Cung cấp thông tin liên quan (mã GD, thời gian...)\n• Hoặc gọi hotline 1900xxxx để được hỗ trợ trực tiếp\n\nMình luôn sẵn sàng giúp bạn! 😊',
+                            'Đã xem ảnh rồi nhé! 👀\n\nDựa vào ảnh bạn gửi, mình nhận thấy bạn có thể đang cần hỗ trợ về:\n• Giao dịch nạp/rút tiền\n• Xác minh tài khoản\n• Báo cáo lỗi hệ thống\n\nBạn hãy mô tả thêm để mình tư vấn chính xác hơn nhé! 💬'
+                        ];
+                        reply = getRandomResponse(replies);
+                    }
+                    
+                    addMessage(reply, 'received');
+                }, 1500);
+            };
+            reader.readAsDataURL(file);
+            fileInput.value = '';
+        }
+        
+        // Events
+        sendBtn.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+        fileInput.addEventListener('change', handleImageUpload);
+        
+        // Tự động chào
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                hideTyping();
+                const greet = getRandomResponse(botResponses.greetings);
+                // addMessage(greet, 'received');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

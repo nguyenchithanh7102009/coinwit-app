@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tải giấy tờ | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --dark-input: #333333;
+            --text-primary: #ffffff;
+            --warning-bg: #3A1E1E;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .accent-color { color: var(--yellow-accent); }
+        .accent-bg { background-color: var(--yellow-accent); }
+    </style>
+</head>
+<body class="bg-dark-bg">
+    
+    <header class="flex items-center p-4 border-b border-[var(--border-color)] bg-[var(--card-bg)] shadow-lg sticky top-0 z-10">
+        <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-semibold text-white flex-grow text-center ml-2">Xác minh tên thật</h1>
+        <div class="w-10 h-10"></div>
+    </header>
+
+    <div class="flex justify-between items-start p-4 bg-dark-bg max-w-md mx-auto">
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <i class="fas fa-check text-sm"></i>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Thông tin</p>
+        </div>
+        <div class="flex-1 h-px accent-bg mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">2</span>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Tải giấy tờ</p>
+        </div>
+        <div class="flex-1 h-px bg-gray-700 mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full bg-[var(--dark-input)] text-gray-400 flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">3</span>
+            </div>
+            <p class="text-xs mt-1 font-medium text-gray-500">Xét duyệt</p>
+        </div>
+    </div>
+
+    <main class="p-4 space-y-6">
+        
+        <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
+            <label class="text-base font-semibold accent-color block mb-3">Tải ảnh giấy tờ tùy thân</label>
+            <div class="upload-box relative w-full h-32 bg-[var(--dark-input)] rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center cursor-pointer">
+                <img id="id-preview" class="image-preview absolute w-full h-full object-contain p-2 hidden">
+                <i class="fas fa-plus placeholder-icon text-4xl accent-color opacity-50"></i>
+                <input type="file" id="id-file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+            </div>
+            <p class="text-xs text-gray-400 mt-2">(Tải ảnh mặt trước CCCD/CMND)</p>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] p-4 rounded-lg border border-[var(--border-color)]">
+            <label class="text-base font-semibold accent-color block mb-3">Tải ảnh mặt sau</label>
+            <div class="upload-box relative w-full h-32 bg-[var(--dark-input)] rounded-lg border-2 border-dashed border-gray-700 flex items-center justify-center cursor-pointer">
+                <img id="passport-preview" class="image-preview absolute w-full h-full object-contain p-2 hidden">
+                <i class="fas fa-plus placeholder-icon text-4xl accent-color opacity-50"></i>
+                <input type="file" id="passport-file" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer">
+            </div>
+            <p class="text-xs text-gray-400 mt-2">(Tải ảnh mặt sau CCCD/CMND)</p>
+        </div>
+        
+        <div class="p-4 rounded-lg bg-warning-bg border border-red-800">
+            <h3 class="font-semibold text-red-400 mb-2"><i class="fas fa-exclamation-circle mr-1"></i> Mẹo</h3>
+            <ol class="list-decimal list-inside text-gray-300 text-xs space-y-1">
+                <li>Giấy tờ tùy thân phải còn trong thời hạn hiệu lực.</li>
+                <li>Hãy đảm bảo rằng nội dung của ảnh được hiển thị rõ ràng, không bị mờ.</li>
+            </ol>
+        </div>
+        
+        <button id="submit-kyc-btn" 
+                class="w-full py-3 mt-4 rounded-lg font-bold text-black text-lg bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 transition duration-200 shadow-xl shadow-yellow-800/50">
+            Gửi đi
+        </button>
+    </main>
+    
+    <script>
+        // [ĐÃ THÊM]
+        const API_BASE_URL = 'http://coinwit.net/api'; 
+        const getToken = () => localStorage.getItem('authToken');
+
+        // --- LOGIC KIỂM TRA BƯỚC 1 ---
+        function checkPreviousStep() {
+            // Kiểm tra xem dữ liệu từ Bước 1 có tồn tại không
+            const fullName = sessionStorage.getItem('kycFullName');
+            const idNumber = sessionStorage.getItem('kycIdNumber');
+            
+            if (!fullName || !idNumber) {
+                // Nếu thiếu một trong hai, điều hướng trở lại Bước 1
+                alert('Vui lòng hoàn thành bước Thông tin trước.');
+                window.location.href = 'login'; 
+            }
+        }
+        
+        function initializeUploadLogic() {
+            const setupFileInput = (inputId, previewId) => {
+                const fileInput = document.getElementById(inputId);
+                const previewImg = document.getElementById(previewId);
+                const uploadBox = previewImg.closest('.upload-box');
+                const placeholderIcon = uploadBox.querySelector('.placeholder-icon');
+
+                fileInput.addEventListener('change', (event) => {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            previewImg.src = e.target.result;
+                            previewImg.classList.remove('hidden');
+                            if (placeholderIcon) placeholderIcon.classList.add('hidden');
+                            uploadBox.style.border = '2px solid var(--yellow-accent)'; 
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            };
+            setupFileInput('id-file', 'id-preview');
+            setupFileInput('passport-file', 'passport-preview');
+        }
+
+        // [ĐÃ SỬA]
+        async function submitKycDocuments() {
+            const submitBtn = document.getElementById('submit-kyc-btn');
+            const idFile = document.getElementById('id-file').files[0];
+            const passportFile = document.getElementById('passport-file').files[0]; 
+
+            if (!idFile || !passportFile) { 
+                alert('Vui lòng tải lên cả 2 ảnh (Mặt trước và Mặt sau).'); 
+                return;
+            }
+
+            const fullName = sessionStorage.getItem('kycFullName');
+            const idNumber = sessionStorage.getItem('kycIdNumber');
+
+            if (!fullName || !idNumber) {
+                alert('Mất phiên. Vui lòng quay lại Bước 1.');
+                window.location.href = 'login';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang tải lên...';
+
+            const token = getToken();
+            if (!token) {
+                alert('Mất phiên đăng nhập. Vui lòng đăng nhập lại.');
+                window.location.href = 'login';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/user/submit-kyc`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        fullName: fullName,
+                        idNumber: idNumber,
+                        // Giả lập đường dẫn ảnh, vì bạn chưa có logic upload file thật
+                        photo1: 'mock/photo1.jpg', 
+                        photo2: 'mock/photo2.jpg'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Lỗi không xác định');
+                }
+
+                // Chuyển hướng thành công
+                sessionStorage.setItem('isKycPending', 'true');
+                window.location.href = `kyc_step3_review.html?name=${encodeURIComponent(fullName)}&id=${encodeURIComponent(idNumber)}`;
+
+            } catch (error) {
+                alert(`Lỗi khi nộp KYC: ${error.message}`);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Gửi đi';
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Kiểm tra bước trước khi khởi tạo các logic khác
+            checkPreviousStep(); 
+            
+            initializeUploadLogic();
+            document.getElementById('submit-kyc-btn').addEventListener('click', submitKycDocuments);
+        });
+    </script>
+</body>
+</html>

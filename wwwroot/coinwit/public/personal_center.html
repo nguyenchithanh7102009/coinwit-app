@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trung tâm cá nhân | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-top: 122px; 
+        }
+        /* ... (Các style khác giữ nguyên) ... */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+        
+        .header-sticky {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+            background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: fixed; top: 61px; left: 0; right: 0; z-index: 30;
+            background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);
+        }
+        
+        .general-modal { opacity: 0; visibility: hidden; transition: opacity 0.3s ease; }
+        .general-modal.show { opacity: 1; visibility: visible; }
+        .general-modal .modal-content { transform: scale(0.95); opacity: 0; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        .general-modal.show .modal-content { transform: scale(1); opacity: 1; }
+
+        /* --- CSS CHO HIỆU ỨNG BOTTOM SHEET (MỚI) --- */
+        .general-modal.bottom-sheet {
+            display: flex;
+            align-items: flex-end; 
+            justify-content: center;
+        }
+        .general-modal.bottom-sheet .modal-content {
+            width: 100%;
+            border-radius: 1.5rem 1.5rem 0 0 !important; 
+            max-width: none;
+            transform: translateY(100%);
+            opacity: 1;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .general-modal.bottom-sheet.show .modal-content {
+            transform: translateY(0);
+        }
+        .currency-option {
+            transition: background-color 0.2s ease;
+        }
+        .currency-option.selected {
+            background-color: rgba(250, 204, 21, 0.1); 
+        }
+        .currency-option .fa-check {
+            display: none;
+        }
+        .currency-option.selected .fa-check {
+            display: block;
+        }
+        /* --- HẾT CSS BOTTOM SHEET --- */
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="h-[61px] flex items-center px-4 py-3 sub-header-sticky">
+        <a href="index" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Trung tâm cá nhân</h1>
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <main class="py-4 space-y-4">
+        
+        <div class="bg-[var(--card-bg)] rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)] mx-4">
+            <div class="flex items-center p-4">
+                <i class="fas fa-user-circle w-6 text-center text-lg mr-3" style="color: var(--yellow-accent);"></i>
+                <span class="flex-grow font-medium text-white">Tên tài khoản</span>
+                <span class="text-sm text-gray-400" id="detail-username">Đang tải...</span>
+            </div>
+            <a href="set_avatar" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-camera w-6 text-center text-lg text-gray-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Hình đại diện</span>
+                <img src="https://placehold.co/100x100/1a1b20/a0a0a0?text=?" alt="Avatar" id="detail-avatar-img" class="w-8 h-8 rounded-full mr-2 bg-gray-700">
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+            <a href="vip_level" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-gem w-6 text-center text-lg text-cyan-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Cấp độ VIP</span>
+                <span class="text-sm text-gray-400 mr-2" id="detail-vip-level">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+            <a href="kyc_verification" id="kyc-link-item" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-id-card w-6 text-center text-lg text-blue-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Xác minh tên thật</span>
+                <span class="text-sm font-medium mr-2 text-yellow-500" id="kyc-status">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)] mx-4">
+            
+            <div id="show-currency-btn" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60 transition-colors duration-200">
+                <i class="fas fa-money-bill-wave w-6 text-center text-lg mr-3" style="color: var(--yellow-accent);"></i>
+                <span class="flex-grow font-medium text-white">Tiền tệ</span>
+                
+                <div class="flex items-center gap-2 rounded-full bg-yellow-400/20 px-3 py-1.5 transition-colors hover:bg-yellow-400/30 border border-yellow-400/50">
+                    <span class="text-sm font-medium text-yellow-300" id="current-currency">USDT</span> 
+                    <i class="fas fa-chevron-down text-yellow-400 text-xs"></i>
+                </div>
+            </div>
+            <a href="bind_card" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-credit-card w-6 text-center text-lg text-gray-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Thẻ ngân hàng</span>
+                <span class="text-sm font-medium mr-2" style="color: var(--yellow-accent);" id="bank-card-status">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+            <a href="change_phone" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-mobile-alt w-6 text-center text-lg text-blue-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Số điện thoại</span>
+                <span class="text-sm font-medium mr-2" style="color: var(--yellow-accent);" id="detail-phone">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+            <a href="set_email" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-envelope w-6 text-center text-lg text-gray-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Thư</span>
+                <span class="text-sm font-medium mr-2" style="color: var(--yellow-accent);" id="detail-email">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+        </div>
+        
+        <div class="bg-[var(--card-bg)] rounded-lg shadow border border-[var(--border-color)] divide-y divide-[var(--border-color)] mx-4">
+            <a href="change_password" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-lock w-6 text-center text-lg text-red-500 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Mật khẩu đăng nhập</span>
+                <span class="text-sm font-medium mr-2" style="color: var(--yellow-accent);">Sửa</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+            <a href="set_fund_password" class="flex items-center p-4 cursor-pointer hover:bg-gray-800/60">
+                <i class="fas fa-shield-alt w-6 text-center text-lg text-cyan-400 mr-3"></i>
+                <span class="flex-grow font-medium text-white">Mật khẩu quỹ</span>
+                <span class="text-sm font-medium mr-2" style="color: var(--yellow-accent);" id="fund-password-status">Đang tải...</span>
+                <i class="fas fa-chevron-right text-gray-500 text-sm"></i>
+            </a>
+        </div>
+    </main>
+
+    <div id="pending-modal" class="general-modal fixed inset-0 bg-black bg-opacity-75 z-[100] hidden flex items-center justify-center p-4">
+        <div class="modal-content bg-[var(--card-bg)] w-full max-w-sm p-6 rounded-2xl shadow-xl border border-[var(--border-color)] text-center">
+            <h3 class="text-lg font-semibold mb-3" style="color: var(--yellow-accent);">Đang xét duyệt</h3>
+            <p class="text-sm text-gray-300 mb-6">Hệ thống đang xem xét tài liệu của bạn. Vui lòng đợi.</p>
+            <button id="hide-pending-btn" class="w-full py-2 rounded-lg font-bold text-black bg-gradient-to-br from-yellow-400 to-yellow-600">OK</button>
+        </div>
+    </div>
+
+    <div id="currency-modal" 
+         class="general-modal bottom-sheet fixed inset-0 bg-black bg-opacity-75 z-[100] hidden p-0">
+        <div class="modal-content bg-[var(--card-bg)] w-full border-t border-[var(--border-color)]" 
+             style="border-radius: 1.5rem 1.5rem 0 0;">
+            <div class="flex justify-between items-center p-4 border-b border-[var(--border-color)]">
+                <h3 class="text-lg font-semibold text-white ml-2">Chọn tiền tệ</h3>
+                <span id="hide-currency-btn-1" class="close-btn text-2xl text-gray-500 cursor-pointer w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full">&times;</span>
+            </div>
+            <div class="p-2 space-y-1">
+                <div id="option-VND" class="currency-option flex items-center justify-between p-4 rounded-lg cursor-pointer hover:bg-white/10" data-value="VND">
+                    <span class="font-medium text-white text-lg">VND (Việt Nam)</span>
+                    <i class="fas fa-check text-yellow-400 text-lg"></i>
+                </div>
+                <div id="option-USDT" class="currency-option flex items-center justify-between p-4 rounded-lg cursor-pointer hover:bg-white/10" data-value="USDT">
+                    <span class="font-medium text-white text-lg">USDT (Tether)</span>
+                    <i class="fas fa-check text-yellow-400 text-lg"></i>
+                </div>
+            </div>
+            <div class="h-6"></div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // Hàm này đặt lại tất cả các trường về trạng thái "Đang tải..."
+        function resetProfileDisplay() {
+            document.getElementById('detail-username').textContent = 'Đang tải...';
+            document.getElementById('detail-vip-level').textContent = 'Đang tải...';
+            document.getElementById('kyc-status').textContent = 'Đang tải...';
+            document.getElementById('kyc-status').className = 'text-sm font-medium mr-2 text-gray-400';
+            document.getElementById('bank-card-status').textContent = 'Đang tải...';
+            document.getElementById('detail-phone').textContent = 'Đang tải...';
+            document.getElementById('detail-email').textContent = 'Đang tải...';
+            document.getElementById('fund-password-status').textContent = 'Đang tải...';
+            // Đặt lại trạng thái Avatar về mặc định
+            document.getElementById('detail-avatar-img').src = "https://placehold.co/100x100/1a1b20/a0a0a0?text=?";
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            
+            // --- 1. ĐỊNH NGHĨA HÀM VÀ BIẾN QUẢN LÝ MODAL ---
+            const pendingModal = document.getElementById('pending-modal');
+            const currencyModal = document.getElementById('currency-modal');
+            
+            function showCurrencyModal() {
+                if (currencyModal) {
+                    currencyModal.classList.remove('hidden');
+                    setTimeout(() => currencyModal.classList.add('show'), 10);
+                }
+            }
+            
+            function hideCurrencyModal() {
+                if (currencyModal) {
+                    currencyModal.classList.remove('show');
+                    setTimeout(() => currencyModal.classList.add('hidden'), 400); 
+                }
+            }
+            
+            function showPendingModal() {
+                if (pendingModal) {
+                    pendingModal.classList.remove('hidden');
+                    setTimeout(() => pendingModal.classList.add('show'), 10);
+                }
+            }
+            
+            function hidePendingModal() {
+                if (pendingModal) {
+                    pendingModal.classList.remove('show');
+                    setTimeout(() => pendingModal.classList.add('hidden'), 300); 
+                }
+            }
+            
+            // --- LOGIC MỚI CHO BOTTOM SHEET ---
+            const currencyOptions = document.querySelectorAll('.currency-option');
+            const currentCurrencyEl = document.getElementById('current-currency');
+
+            function updateCheckmarks() {
+                if (!currentCurrencyEl) return;
+                const currentSelection = currentCurrencyEl.textContent;
+                currencyOptions.forEach(option => {
+                    if (option.dataset.value === currentSelection) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+            }
+
+            currencyOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const selectedValue = this.dataset.value;
+                    if (currentCurrencyEl) currentCurrencyEl.textContent = selectedValue;
+                    localStorage.setItem('selectedCurrency', selectedValue);
+                    if (window.initCurrency) {
+                        window.globalCurrency = selectedValue;
+                    }
+                    updateCheckmarks();
+                    setTimeout(() => {
+                        hideCurrencyModal();
+                    }, 200);
+                });
+            });
+            
+            // --- 2. GÁN SỰ KIỆN (ATTACH EVENT LISTENERS) ---
+            document.getElementById('show-currency-btn')?.addEventListener('click', () => {
+                showCurrencyModal();
+                updateCheckmarks();
+            });
+            document.getElementById('hide-currency-btn-1')?.addEventListener('click', hideCurrencyModal);
+            document.getElementById('hide-pending-btn')?.addEventListener('click', hidePendingModal);
+
+
+            // --- 3. LOGIC TẢI DỮ LIỆU ---
+            
+            // B1: Đặt lại trạng thái hiển thị
+            resetProfileDisplay(); 
+
+            // B2: Kiểm tra token và tải tiền tệ
+            const token = checkLogin(); 
+            if (!token) return; 
+
+            await initCurrency(); 
+            
+            const currencyEl = document.getElementById('current-currency');
+            if (currencyEl) currencyEl.textContent = window.globalCurrency || 'USDT'; 
+            
+            // B3: LỌC DỮ LIỆU GIẢ (RẤT QUAN TRỌNG CHO TÀI KHOẢN MỚI)
+            // Nếu là tài khoản mới, xóa sessionStorage để tránh hiển thị trạng thái KYC cũ
+            if (token !== localStorage.getItem('lastCheckedToken')) { 
+                sessionStorage.removeItem('isKycPending');
+                // Lưu token hiện tại để so sánh lần sau
+                localStorage.setItem('lastCheckedToken', token); 
+            }
+            
+
+            try {
+                // Giả định fetchAPI được định nghĩa trong main.js
+                const data = await fetchAPI('/user/profile');
+                
+                document.getElementById('detail-username').textContent = data.username;
+                
+                const savedAvatar = localStorage.getItem('userAvatarUrl');
+                if (savedAvatar) {
+                    document.getElementById('detail-avatar-img').src = savedAvatar;
+                }
+                
+                document.getElementById('detail-vip-level').textContent = `VIP ${data.vipLevel || 0}`; // Đảm bảo luôn có giá trị
+                
+                // Cập nhật trạng thái KYC
+                const kycStatusEl = document.getElementById('kyc-status');
+                const kycLinkEl = document.getElementById('kyc-link-item');
+                
+                // Trạng thái: Đang xét duyệt (lấy từ sessionStorage sau khi submit KYC)
+                if (sessionStorage.getItem('isKycPending') === 'true') {
+                    kycStatusEl.textContent = "Đang xét duyệt";
+                    kycStatusEl.classList.remove('text-yellow-500');
+                    kycStatusEl.classList.add('text-blue-400');
+                    kycLinkEl.addEventListener('click', (e) => { 
+                        e.preventDefault(); 
+                        showPendingModal(); 
+                    });
+                // Trạng thái: Đã xác minh (lấy từ dữ liệu API)
+                } else if (data.isNameVerified) {
+                    kycStatusEl.textContent = "Đã xác minh";
+                    kycStatusEl.classList.remove('text-yellow-500');
+                    kycStatusEl.classList.add('text-green-400');
+                    kycLinkEl.addEventListener('click', (e) => { 
+                        e.preventDefault(); 
+                        alert(`Đã xác minh: ${data.fullName}`); 
+                    });
+                // Trạng thái: Chưa xác thực (mặc định)
+                } else {
+                    kycStatusEl.textContent = "Vui lòng xác thực";
+                    kycStatusEl.classList.remove('text-gray-400');
+                    kycStatusEl.classList.add('text-yellow-500');
+                    // Giữ nguyên href để điều hướng đến trang KYC
+                }
+
+                // Cập nhật Thẻ ngân hàng
+                const bankStatusEl = document.getElementById('bank-card-status');
+                if (data.bankName && data.accountNumber) {
+                    bankStatusEl.textContent = `Sửa (${data.bankName})`;
+                    bankStatusEl.classList.remove('text-yellow-500'); // Xóa màu vàng mặc định
+                } else {
+                    bankStatusEl.textContent = "Chưa liên kết";
+                    bankStatusEl.classList.add('text-yellow-500');
+                }
+
+                // Cập nhật SĐT
+                const phoneEl = document.getElementById('detail-phone');
+                if (data.phone) {
+                    phoneEl.textContent = data.phone;
+                    phoneEl.classList.remove('text-yellow-500');
+                } else {
+                    phoneEl.textContent = "Chưa gắn";
+                    phoneEl.classList.add('text-yellow-500');
+                }
+
+                // Cập nhật Email
+                const emailEl = document.getElementById('detail-email');
+                if (data.email) {
+                    emailEl.textContent = "Sửa";
+                    emailEl.classList.remove('text-yellow-500');
+                } else {
+                    emailEl.textContent = "Chưa gắn";
+                    emailEl.classList.add('text-yellow-500');
+                }
+
+                // Cập nhật Mật khẩu quỹ
+                const fundPassEl = document.getElementById('fund-password-status');
+                if (data.fundPasswordSet) {
+                    fundPassEl.textContent = "Sửa";
+                    fundPassEl.classList.remove('text-yellow-500');
+                } else {
+                    fundPassEl.textContent = "Cài đặt";
+                    fundPassEl.classList.add('text-yellow-500');
+                }
+
+            } catch (error) {
+                // Đặt lại các trường về lỗi nếu không gọi được API
+                document.getElementById('detail-username').textContent = 'Lỗi tải';
+                document.getElementById('detail-vip-level').textContent = 'Lỗi tải';
+            }
+        });
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Bỏ qua các thư mục cài đặt và file rác
+SETUP/
+pm2 restart coinwit-app.txt
+# Có thể thêm các file khác nếu cần

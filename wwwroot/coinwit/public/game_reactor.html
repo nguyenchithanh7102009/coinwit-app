@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Game Máy Bay Cược</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <script src="main.js" defer></script>
+    
+    <style>
+        :root {
+            --bg-dark-primary: #1a1b20; --bg-dark-secondary: #2b2d35; --bg-dark-tertiary: #393c50;
+            --yellow-primary: #facc15; --yellow-hover: #eab308; --text-light: #e0e00; --text-dark: #a0a0a0;
+            --bg-glass-panel: rgba(43, 45, 53, 0.7); --border-glass: rgba(255, 255, 255, 0.1);
+            --flame-yellow: #fef08a; --flame-orange: #f97316;
+        }
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: var(--bg-dark-primary); }
+        #gameCanvas { 
+            width: 100%; height: 100%; 
+            background: radial-gradient(ellipse at bottom, #0a0a23 0%, #00001a 100%);
+            position: absolute; top: 0; left: 0; z-index: 10;
+            filter: brightness(1.1);
+        }
+        .loader { border: 4px solid #f3f3f340; border-top: 4px solid var(--yellow-primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        #multiplier-display { font-weight: bold; text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); }
+        #multiplier-display.text-red-500 { text-shadow: 0 0 10px rgba(255, 0, 0, 0.5); }
+        .canvas-overlay-text { font-size: 5vw; text-transform: uppercase; }
+
+        .bet-btn { transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border: none; color: white; font-weight: 800; }
+        .bet-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .bet-btn:disabled { filter: grayscale(80%); opacity: 0.6; }
+        
+        @media (max-width: 1024px) {
+            .bet-panel { width: 100% !important; } #gameCanvas { height: 50vh; }
+            .game-container { flex-direction: column; height: 100vh; } 
+            .controls-column { height: 50vh; }
+            #history-bar { display: none; }
+        }
+        
+        .input-bet-styled { background-color: var(--bg-dark-primary); border: 1px solid var(--bg-dark-tertiary); color: var(--yellow-primary); font-weight: 700; text-align: center; border-radius: 8px; padding: 0.25rem 0.5rem; width: 100%; }
+        .input-bet-styled:focus { outline: none; border-color: var(--yellow-primary); }
+        .input-bet-styled::-webkit-outer-spin-button, .input-bet-styled::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .input-bet-styled { -moz-appearance: textfield; }
+        
+        .mod-btn { background-color: var(--bg-dark-tertiary); color: var(--text-light); font-weight: 600; border-radius: 8px; padding: 0.125rem 0.25rem; lg:padding: 0.25rem; text-align: center; transition: all 0.2s ease-in-out; border: none; cursor: pointer; }
+        .mod-btn:hover:not(:disabled) { background-color: #4a4d5e; }
+        
+        .quick-bet-btn { background-color: var(--bg-dark-tertiary); color: var(--text-light); font-weight: 600; border-radius: 8px; padding: 0.125rem 0.25rem; lg:padding: 0.25rem; transition: all 0.2s ease-in-out; border: none; cursor: pointer; }
+        .quick-bet-btn:hover:not(:disabled) { background-color: #4a4d5e; color: var(--yellow-primary); }
+        
+        .btn-yellow-primary { background-color: var(--yellow-primary); color: var(--bg-dark-primary); font-weight: 700; border-radius: 8px; text-align: center; transition: all 0.2s ease-in-out; }
+        .btn-yellow-primary:hover { background-color: var(--yellow-hover); }
+        .btn-gradient-yellow { background-image: linear-gradient(to right, #facc15, #eab308); color: var(--bg-dark-primary); }
+        .btn-gradient-yellow:hover { background-image: linear-gradient(to right, #eab308, #facc15); }
+        .btn-gradient-red { background-image: linear-gradient(to right, #ef4444, #dc2626); color: white; }
+        .btn-gradient-red:hover { background-image: linear-gradient(to right, #dc2626, #ef4444); }
+        .btn-gradient-blue { background-image: linear-gradient(to right, #3b82f6, #2563eb); color: white; }
+        .btn-gradient-blue:hover { background-image: linear-gradient(to right, #2563eb, #3b82f6); }
+        .btn-dark-toggle { background-color: var(--bg-dark-tertiary); color: var(--text-light); font-weight: 600; border-radius: 8px; text-align: center; transition: all 0.2s ease-in-out; }
+        .btn-dark-toggle:hover { background-color: #4a4d5e; }
+        .tab-btn { background-color: transparent; color: var(--text-dark); transition: all 0.3s ease; }
+        .tab-btn.active { background-color: var(--bg-dark-tertiary); color: var(--text-light); box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .tab-btn:not(.active):hover { color: var(--text-light); }
+        #all-bets-panel-container { scrollbar-gutter: stable; }
+
+        #plane-flame {
+            width: 50px; height: 20px;
+            background: linear-gradient(to right, var(--flame-yellow), var(--flame-orange));
+            border-radius: 50% 0 0 50%;
+            transform-origin: 100% 50%;
+            box-shadow: 0 0 15px 5px var(--flame-orange);
+            filter: blur(3px); animation: flicker 0.1s infinite alternate;
+            opacity: 0; 
+            /* Xóa transition, dùng JS để điều khiển opacity để tránh flicker khi khởi tạo */
+        }
+        .flame-blue {
+            background: linear-gradient(to right, #60a5fa, #2563eb) !important;
+            box-shadow: 0 0 20px 7px #2563eb !important;
+        }
+        .flame-purple {
+            background: linear-gradient(to right, #c084fc, #7e22ce) !important;
+            box-shadow: 0 0 20px 7px #7e22ce !important;
+        }
+        
+        /* [NÂNG CẤP] Lửa cầu vồng siêu xịn (100x) */
+        .flame-rainbow {
+            /* 7 màu: Đỏ, Cam, Vàng, Lục, Lam, Tím, Đỏ */
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #8b00ff, #ff0000) !important;
+            background-size: 400% 100% !important;
+            /* Thêm animation pulse cho shadow */
+            animation-name: flicker, rainbow-flow, rainbow-pulse !important;
+            animation-duration: 0.1s, 2s, 1s !important;
+            animation-iteration-count: infinite, infinite, infinite !important;
+            animation-timing-function: linear, linear, ease-in-out !important;
+            animation-direction: alternate, normal, alternate !important;
+        }
+        
+        @keyframes flicker {
+            0% { transform: scale(1, 1); } 50% { transform: scale(1.2, 0.8); } 100% { transform: scale(0.9, 1.1); }
+        }
+        @keyframes rainbow-flow {
+            0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; }
+        }
+
+        /* [NÂNG CẤP] Animation pulse cho shadow 100x */
+        @keyframes rainbow-pulse {
+            0% { box-shadow: 0 0 20px 7px #ffffff, 0 0 30px 10px #ff0000; }
+            50% { box-shadow: 0 0 25px 10px #ffffff, 0 0 35px 15px #0000ff; }
+            100% { box-shadow: 0 0 20px 7px #ffffff, 0 0 30px 10px #00ff00; }
+        }
+        
+        /* [XÓA] Xóa #plane-prismatic-core */
+        
+        /* [XÓA] Xóa hiệu ứng CSS, thay bằng JS */
+        #explosion-effect { display: none; }
+        
+        @keyframes screen-shake {
+            0%, 100% { transform: translate(0, 0); }
+            10%, 30%, 50%, 70%, 90% { transform: translate(-5px, 5px); }
+            20%, 40%, 60%, 80% { transform: translate(5px, -5px); }
+        }
+
+        .controls-column::-webkit-scrollbar, 
+        #bet-panels-container::-webkit-scrollbar { display: none; }
+        .controls-column, #bet-panels-container { -ms-overflow-style: none; scrollbar-width: none; }
+        #history-bar::-webkit-scrollbar,
+        #history-bar-mobile::-webkit-scrollbar { display: none; }
+        #history-bar,
+        #history-bar-mobile { -ms-overflow-style: none; scrollbar-width: none; }
+
+    </style>
+</head>
+<body class="bg-gray-900 text-white h-full m-0 p-0">
+
+    <div id="game-container" class="flex flex-col lg:flex-row h-full w-full relative">
+        
+        <div id="history-bar" class="hidden lg:flex absolute top-0 left-0 w-full p-2 gap-2 overflow-x-auto z-20" style="background-color: rgba(0,0,0,0.2);">
+        </div>
+        
+        <div class="w-full lg:w-4/5 h-[50vh] lg:h-full relative overflow-hidden">
+            
+            <div id="user-info-mobile" class="lg:hidden absolute top-0 left-0 w-full z-30 p-2" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                <div class="flex flex-col sm:flex-row items-center justify-between w-full">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1 min-w-0 w-full sm:w-auto">
+                        <span id="user-vitals-mobile" class="text-xs sm:text-sm text-white font-semibold truncate">Đang tải...</span>
+                        <div class="flex items-baseline gap-1.5">
+                            <span class="text-xs text-gray-400">Số dư:</span>
+                            <span id="balance-mobile" class="font-bold text-white text-sm sm:text-base truncate">0.00 USDT</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                        <a href="http://coinwit.net/index.html" class="btn-dark-toggle py-1 px-2 text-xs sm:text-sm w-1/4 sm:w-auto">
+                            <i class="fas fa-home mr-1"></i>
+                            <span>TRANG CHỦ</span>
+                        </a>
+                        <button id="my-history-btn-mobile" class="btn-dark-toggle py-1 px-2 text-xs sm:text-sm w-1/4 sm:w-auto">
+                            <i class="fas fa-history mr-1"></i>
+                            <span>LỊCH SỬ CƯỢC</span>
+                        </button>
+                        <button id="currency-toggle-btn-mobile" class="btn-dark-toggle py-1 px-2 text-xs sm:text-sm w-1/4 sm:w-auto">
+                            <i class="fas fa-exchange-alt mr-1"></i>
+                            <span>Đổi (VND)</span>
+                        </button>
+                        <a href="deposit" class="btn-yellow-primary py-1 px-2 text-xs sm:text-sm block text-center w-1/4 sm:w-auto">
+                            <i class="fas fa-wallet mr-1"></i>
+                            <span>NẠP TIỀN</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div id="history-bar-mobile" class="lg:hidden absolute top-0 left-0 w-full p-2 gap-2 overflow-x-auto z-20 mt-[92px] sm:mt-[60px]" style="background-color: rgba(0,0,0,0.2);">
+                </div>
+
+            <canvas id="gameCanvas" class="z-10"></canvas>
+            
+            <div id="multiplier-display" class="absolute inset-0 items-center justify-center mt-56 text-7xl lg:text-9xl font-bold text-white z-20 hidden">
+                1.00x
+            </div>
+            
+            <div id="plane-flame" class="absolute z-10" style="left: 100px; top: 100px;"></div>
+            </div>
+
+        <div class="controls-column w-full lg:w-1/5 bg-[var(--bg-dark-primary)] p-2 lg:p-4 h-[50vh] lg:h-full flex flex-col space-y-2 lg:space-y-4">
+            
+            <div id="user-info-desktop" class="hidden lg:block w-full" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                <div class="flex flex-col w-full gap-3 p-3">
+                    <div class="flex flex-col w-full gap-1">
+                        <span id="user-vitals-desktop" class="text-sm text-white font-semibold truncate">Đang tải...</span>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-sm text-gray-400">Số dư:</span>
+                            <span id="balance-desktop" class="font-bold text-white text-lg truncate">0.00 USDT</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col w-full gap-2">
+                        <a href="http://coinwit.net/index.html" class="btn-dark-toggle py-2 px-3 text-sm w-full">
+                            <i class="fas fa-home mr-1"></i>
+                            <span>TRANG CHỦ</span>
+                        </a>
+                        <button id="my-history-btn-desktop" class="btn-dark-toggle py-2 px-3 text-sm w-full">
+                            <i class="fas fa-history mr-1"></i>
+                            <span>LỊCH SỬ CƯỢC</span>
+                        </button>
+                        <button id="currency-toggle-btn-desktop" class="btn-dark-toggle py-2 px-3 text-sm w-full">
+                            <i class="fas fa-exchange-alt mr-1"></i>
+                            <span>Đổi (VND)</span>
+                        </button>
+                        <a href="deposit" class="btn-yellow-primary py-2 px-3 text-sm block text-center w-full">
+                            <i class="fas fa-wallet mr-1"></i>
+                            <span>NẠP TIỀN</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex w-full rounded-lg p-1 border" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                <button id="tab-bet" class="tab-btn active w-1/2 p-1 lg:p-2 rounded-lg font-bold text-xs sm:text-base">
+                    <i class="fas fa-rocket mr-1"></i> Cược
+                </button>
+                <button id="tab-history" class="tab-btn w-1/2 p-1 lg:p-2 rounded-lg font-bold text-xs sm:text-base">
+                    <i class="fas fa-users mr-1"></i> Tất cả cược
+                </button>
+            </div>
+            
+            <div class="text-center text-xs sm:text-sm text-gray-400">
+                Số người cược: <span id="player-count" class="font-bold text-white">0</span>
+            </div>
+
+            <div id="tab-content-container" class="flex-grow min-h-0 flex flex-col">
+                <div id="bet-panels-container" class="flex flex-col gap-2 lg:gap-4 h-full min-h-0"> 
+                    
+                    <div class="bet-panel p-2 lg:p-3 rounded-lg shadow-xl space-y-1 lg:space-y-1.5 border flex flex-col justify-center min-h-0" data-panel-id="1" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                        <h3 class="font-bold text-sm lg:text-lg text-center text-[var(--yellow-primary)]">CƯỢC</h3>
+                        <div class="grid grid-cols-3 gap-2 items-center">
+                            <button class="mod-btn text-xs lg:text-base" data-action="half">/2</button>
+                            <input type="number" step="0.01" min="0.1" value="0" class="input-bet-styled text-base lg:text-lg" data-amount-usdt="0.00" placeholder="0.00">
+                            <button class="mod-btn text-xs lg:text-base" data-action="double">x2</button>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
+                             <button class="quick-bet-btn text-xs" data-amount-usdt="0.1">+0.1</button>
+                            <button class="quick-bet-btn text-xs" data-amount-usdt="5">+5</button>
+                            <button class="quick-bet-btn text-xs" data-amount-usdt="100">+100</button>
+                            <button class="quick-bet-btn font-bold text-[var(--yellow-primary)] text-xs" data-action="max">MAX</button>
+                        </div>
+                        <button class="btn-action w-full p-2 rounded-lg font-bold text-sm sm:text-base bet-btn">CƯỢC</button>
+                        <div class="panel-message text-center h-5 text-sm"></div>
+                    </div>
+
+                    <div class="bet-panel p-2 lg:p-3 rounded-lg shadow-xl space-y-1 lg:space-y-1.5 border flex flex-col justify-center min-h-0" data-panel-id="2" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                        <h3 class="font-bold text-sm lg:text-lg text-center text-[var(--yellow-primary)]">CƯỢC</h3>
+                        <div class="grid grid-cols-3 gap-2 items-center">
+                            <button class="mod-btn text-xs lg:text-base" data-action="half">/2</button>
+                             <input type="number" step="0.01" min="0.1" value="0" class="input-bet-styled text-base lg:text-lg" data-amount-usdt="0.00" placeholder="0.00">
+                            <button class="mod-btn text-xs lg:text-base" data-action="double">x2</button>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2">
+                            <button class="quick-bet-btn text-xs" data-amount-usdt="0.1">+0.1</button>
+                            <button class="quick-bet-btn text-xs" data-amount-usdt="5">+5</button>
+                            <button class="quick-bet-btn text-xs" data-amount-usdt="100">+100</button>
+                            <button class="quick-bet-btn font-bold text-[var(--yellow-primary)] text-xs" data-action="max">MAX</button>
+                        </div>
+                        <button class="btn-action w-full p-2 rounded-lg font-bold text-sm sm:text-base bet-btn">CƯỢC</button>
+                        <div class="panel-message text-center h-5 text-sm"></div>
+                    </div>
+                </div>
+
+                <div id="all-bets-panel-container" class="hidden h-full overflow-y-auto rounded-lg p-2 space-y-2 min-h-0 border" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                    <p class="text-center text-gray-400 p-4">Đang chờ phiên mới...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="my-history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-lg bg-[var(--bg-dark-secondary)] rounded-lg shadow-xl border border-[var(--border-glass)] flex flex-col" style="max-height: 80vh;">
+            <div class="flex items-center justify-between p-4 border-b border-[var(--border-glass)]">
+                <h3 class="text-lg font-bold text-white">Lịch sử cược của tôi (Crash)</h3>
+                <button id="my-history-close-btn" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="history-panel-container" class="overflow-y-auto p-4 space-y-2">
+                <div id="history-loading" class="text-center text-gray-400">
+                    <div class="loader inline-block"></div>
+                    <span class="ml-2">Đang tải lịch sử...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="audio-bet" src="https://assets.mixkit.co/sfx/preview/mixkit-hard-pop-click-2364.mp3" preload="auto"></audio>
+    <audio id="audio-cashout" src="https://assets.mixkit.co/sfx/preview/mixkit-game-success-alert-2039.mp3" preload="auto"></audio>
+    <audio id="audio-crash" src="https://assets.mixkit.co/sfx/preview/mixkit-explosion-in-battle-2809.mp3" preload="auto"></audio>
+    <audio id="audio-takeoff" src="https://assets.mixkit.co/sfx/preview/mixkit-jet-engine-in-different-intensities-2715.mp3" preload="auto" loop></audio>
+    
+    <script>
+        // --- 1. Lấy các phần tử DOM ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const multiplierDisplay = document.getElementById('multiplier-display');
+        const historyBar = document.getElementById('history-bar');
+        const historyBarMobile = document.getElementById('history-bar-mobile'); 
+        
+        const userInfoMobile = document.getElementById('user-info-mobile');
+        const balanceElMobile = document.getElementById('balance-mobile');
+        const userVitalsElMobile = document.getElementById('user-vitals-mobile');
+        const myHistoryBtnMobile = document.getElementById('my-history-btn-mobile');
+        const currencyToggleBtnMobile = document.getElementById('currency-toggle-btn-mobile');
+        
+        const userInfoDesktop = document.getElementById('user-info-desktop');
+        const balanceElDesktop = document.getElementById('balance-desktop');
+        const userVitalsElDesktop = document.getElementById('user-vitals-desktop');
+        const myHistoryBtnDesktop = document.getElementById('my-history-btn-desktop');
+        const currencyToggleBtnDesktop = document.getElementById('currency-toggle-btn-desktop');
+        
+        const betPanels = document.querySelectorAll('.bet-panel');
+        const tabBet = document.getElementById('tab-bet');
+        const tabHistory = document.getElementById('tab-history');
+        const betPanelsContainer = document.getElementById('bet-panels-container');
+        const allBetsPanelContainer = document.getElementById('all-bets-panel-container'); 
+        const myHistoryModal = document.getElementById('my-history-modal');
+        const myHistoryCloseBtn = document.getElementById('my-history-close-btn');
+        const historyPanelContainer = document.getElementById('history-panel-container');
+        const historyLoading = document.getElementById('history-loading');
+        
+        const planeFlame = document.getElementById('plane-flame');
+        // Xóa tham chiếu tới #plane-thrust-particle
+        // const planeThrustParticle = document.getElementById('plane-thrust-particle'); 
+        // [XÓA] Xóa prismatic core
+        
+        const playerCountEl = document.getElementById('player-count');
+
+        // --- 2. Cài đặt Canvas và Game ---
+        let canvasWidth, canvasHeight;
+        let plane = { x: 150, y: 0, targetY: 0, svg: null, loaded: false, hidden: false, width: 200, height: 80 };
+        let stars = [];
+        let windLines = []; // Vệt sao
+        let gameSpeed = 1;
+        let lastTimestamp = 0;
+        let currentBalance = 0;
+        let gameState = 'CONNECTING';
+        let currentMultiplier = 1.00;
+        
+        let planeTilt = 0;
+        let debrisParticles = []; // Mảnh vỡ (Vẽ trên Canvas)
+        let shockwaves = []; // Sóng xung kích (Vẽ trên Canvas)
+        
+        const panelStates = {
+            '1': { state: 'IDLE', betAmount: 0 },
+            '2': { state: 'IDLE', betAmount: 0 }
+        };
+        
+        // --- 3. Hàm vẽ (Canvas) ---
+        function resizeCanvas() {
+            canvasWidth = canvas.clientWidth; canvasHeight = canvas.clientHeight;
+            canvas.width = canvasWidth; canvas.height = canvasHeight;
+            plane.targetY = canvasHeight * 0.55; 
+            if (plane.y === 0) plane.y = plane.targetY;
+            createStars(); 
+            createStarStreaks();
+        }
+        
+        function loadPlaneSVG() {
+            const svgString = `<svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <path fill="url(#grad)" d="M50,40 Q60,25 100,25 L160,25 C180,25 195,30 195,40 C195,50 180,55 160,55 L100,55 Q60,55 50,40 Z" />
+                <path fill="#a0a0a0" d="M50,40 L30,20 L40,40 L30,60 L50,40 Z" />
+                <path fill="#3b82f6" d="M150,30 L165,30 Q180,35 180,40 Q180,45 165,50 L150,50 Q145,40 150,30 Z" />
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#b0b0b0;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+            </svg>`;
+            const img = new Image();
+            img.onload = () => { plane.svg = img; plane.loaded = true; };
+            img.src = 'data:image/svg+xml;base64,' + btoa(svgString);
+        }
+
+        function createStars(count = 100) {
+            stars = [];
+            for (let i = 0; i < count; i++) { 
+                stars.push({ 
+                    x: Math.random() * canvasWidth * 2, 
+                    y: Math.random() * canvasHeight, 
+                    radius: Math.random() * 1.5 + 0.5, 
+                    speed: Math.random() * 0.5 + 0.2,
+                    opacity: Math.random() * 0.5 + 0.5, 
+                    twinkleSpeed: (Math.random() - 0.5) * 0.05 
+                }); 
+            }
+        }
+        
+        function createStarStreaks(count = 150) { 
+            windLines = [];
+            for (let i = 0; i < count; i++) {
+                windLines.push({
+                    x: Math.random() * canvasWidth * 2,
+                    y: Math.random() * canvasHeight,
+                    length: Math.random() * 20 + 20, 
+                    speed: Math.random() * 20 + 15, 
+                    opacity: Math.random() * 0.5 + 0.3,
+                    color: Math.random() > 0.5 ? 'rgba(200, 200, 255,' : 'rgba(255, 255, 200,' 
+                });
+            }
+        }
+
+        function createExplosion(x, y, count = 100) {
+            debrisParticles = []; 
+            const colors = ['#facc15', '#f97316', '#ffffff', '#fef08a'];
+            for (let i = 0; i < count; i++) {
+                debrisParticles.push({
+                    x: x, y: y,
+                    vx: (Math.random() - 0.5) * (Math.random() * 15 + 5), 
+                    vy: (Math.random() - 0.5) * (Math.random() * 15 + 5) - 2, 
+                    opacity: 1.0,
+                    gravity: 0.1, 
+                    life: 50 + Math.random() * 50, 
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 3 + 2
+                });
+            }
+        }
+        function createShockwave(x, y) {
+            shockwaves = []; 
+            shockwaves.push({
+                x: x, y: y,
+                radius: 0,
+                maxRadius: 300,
+                opacity: 1,
+                speed: 10,
+                lineWidth: 15
+            });
+        }
+        
+        // --- 4. Vòng lặp Animate (Đã tổ chức lại) ---
+        
+        function updateGraphics(delta, gameSpeed) {
+            // Sao
+            stars.forEach(s => {
+                s.x -= s.speed * gameSpeed * 50 * delta;
+                if (s.x < 0) { s.x = canvasWidth * 2 + Math.random() * 100; s.y = Math.random() * canvasHeight; }
+                s.opacity += s.twinkleSpeed;
+                if (s.opacity > 1.0 || s.opacity < 0.3) { s.twinkleSpeed *= -1; }
+            });
+
+            // Vệt sao
+            windLines.forEach(l => {
+                l.x -= l.speed * gameSpeed * 50 * delta;
+                if (l.x < -l.length) { l.x = canvasWidth * 2 + Math.random() * 100; l.y = Math.random() * canvasHeight; }
+            });
+
+            // Mảnh vỡ (Nổ)
+            debrisParticles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.opacity -= 0.02; p.life--;
+                if (p.life <= 0 || p.opacity <= 0) { debrisParticles.splice(i, 1); }
+            });
+            // Sóng xung kích (Nổ)
+            shockwaves.forEach((s, i) => {
+                s.radius += s.speed; s.opacity -= 0.02; s.lineWidth -= 0.2;
+                if (s.opacity <= 0 || s.lineWidth <= 0) { shockwaves.splice(i, 1); }
+            });
+        }
+        
+        function drawGraphics() {
+            // Sao
+            stars.forEach(s => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.fill();
+            });
+
+            // Vệt sao
+            let windAlpha = (gameState === 'RUNNING') ? Math.min(1, (gameSpeed - 1) * 3.5) : 0;
+            windLines.forEach(l => {
+                const gradient = ctx.createLinearGradient(l.x, l.y, l.x - l.length, l.y);
+                gradient.addColorStop(0, l.color + l.opacity + ')');
+                gradient.addColorStop(1, l.color + '0)');
+                ctx.strokeStyle = gradient; ctx.lineWidth = 1.5; ctx.globalAlpha = l.opacity * windAlpha;
+                ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(l.x - l.length * gameSpeed, l.y); ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0;
+            
+            // Mảnh vỡ (Nổ)
+            debrisParticles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.opacity;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+            
+            // Sóng xung kích (Nổ)
+            shockwaves.forEach(s => {
+                ctx.strokeStyle = `rgba(255, 255, 255, ${s.opacity})`;
+                ctx.lineWidth = s.lineWidth;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2); ctx.stroke();
+            });
+            ctx.globalAlpha = 1.0;
+        }
+        
+        function drawPlane(timestamp) {
+            if (plane.loaded && !plane.hidden) {
+                plane.width = 200 * (0.8 + gameSpeed * 0.01);
+                plane.height = 80 * (0.8 + gameSpeed * 0.01);
+                
+                ctx.save();
+                ctx.translate(plane.x, plane.y);
+                
+                if (gameState === 'RUNNING') {
+                    planeTilt = Math.sin(timestamp / 200) * (gameSpeed * 0.005);
+                }
+                ctx.rotate(planeTilt);
+                
+                ctx.filter = 'none';
+                ctx.drawImage(plane.svg, -plane.width / 2, -plane.height / 2, plane.width, plane.height);
+                ctx.restore();
+            }
+        }
+
+        function animate(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const delta = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+            
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            if (gameState === 'RUNNING') {
+                gameSpeed = 1 + Math.log10(currentMultiplier);
+            } else { 
+                gameSpeed = 1;
+            }
+            plane.y += (plane.targetY - plane.y) * 0.05;
+
+            updateGraphics(delta, gameSpeed);
+            drawGraphics();
+            drawPlane(timestamp);
+            
+            // [SỬA LỖI] Cập nhật vị trí lửa CSS mỗi frame
+            if (plane.loaded) {
+                const flameX = (plane.x - plane.width / 2);
+                planeFlame.style.left = (flameX - 20) + 'px'; 
+                planeFlame.style.top = (plane.y - 10) + 'px';
+                // ĐÃ XÓA logic cho planeThrustParticle
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- 5. Logic Game và Socket.IO ---
+        let socket;
+        let userId;
+
+        function playSound(id, volume = 0.5) {
+            try {
+                const audio = document.getElementById(id);
+                if (audio) {
+                    audio.volume = volume;
+                    audio.currentTime = 0; 
+                    const playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => {
+                        });
+                    }
+                }
+            } catch (e) { }
+        }
+        function stopSound(id) {
+            try {
+                const audio = document.getElementById(id);
+                if (audio) { audio.pause(); audio.currentTime = 0; }
+            } catch (e) { }
+        }
+
+        function decodeJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) { return null; }
+        }
+        
+        function formatGameCurrency(amountUSDT) {
+            const numberAmount = parseFloat(amountUSDT);
+            if (isNaN(numberAmount)) return "0.00";
+            if (typeof window.formatCurrency === 'function') {
+                return window.formatCurrency(amountUSDT);
+            }
+            if (window.globalCurrency === 'VND') {
+                const amountVND = numberAmount * (window.globalExchangeRate || 27000);
+                return new Intl.NumberFormat('vi-VN').format(Math.floor(amountVND)) + ' ₫';
+            } else {
+                return numberAmount.toFixed(2) + ' USDT';
+            }
+        }
+        
+        function updateCurrencyToggleText() {
+            [currencyToggleBtnMobile, currencyToggleBtnDesktop].forEach(btn => {
+                if (btn) { 
+                    const textEl = btn.querySelector('span');
+                    if (textEl) {
+                        textEl.textContent = (window.globalCurrency === 'USDT' ? 'Đổi (VND)' : 'Đổi (USDT)');
+                    }
+                }
+            });
+        }
+        
+        async function toggleCurrency() {
+            try {
+                const newCurrency = (window.globalCurrency === 'USDT') ? 'VND' : 'USDT';
+                localStorage.setItem('selectedCurrency', newCurrency);
+                if (typeof window.initCurrency === 'function') { await window.initCurrency(); } 
+                else { window.globalCurrency = newCurrency; }
+            } catch (e) { }
+            
+            updateCurrencyToggleText();
+            balanceElMobile.textContent = formatGameCurrency(currentBalance);
+            balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+            betPanels.forEach(panel => {
+                const panelId = panel.dataset.panelId;
+                const currentUSDT = getBetAmount(panelId, true); 
+                setBetAmount(panelId, currentUSDT); 
+            });
+        }
+
+        async function loadUserProfile() {
+            if (typeof window.fetchAPI !== 'function') {
+                userVitalsElMobile.textContent = `User: ${userId} (Lỗi fetchAPI)`; 
+                userVitalsElDesktop.textContent = `User: ${userId} (Lỗi fetchAPI)`;
+                return;
+            }
+            try {
+                const profile = await fetchAPI('/api/user/profile'); 
+                currentBalance = profile.balance || 0;
+                balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                userVitalsElMobile.textContent = `Xin chào, ${profile.username || userId}!`;
+                userVitalsElDesktop.textContent = `Xin chào, ${profile.username || userId}!`;
+                
+            } catch (error) {
+                userVitalsElMobile.textContent = `User: ${userId} (Lỗi tải VIP)`;
+                userVitalsElDesktop.textContent = `User: ${userId} (Lỗi tải VIP)`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = (typeof checkLogin === 'function') ? checkLogin() : localStorage.getItem('authToken');
+            
+            userInfoMobile.classList.remove('hidden');
+            userInfoDesktop.classList.remove('lg:hidden'); 
+            userInfoDesktop.classList.add('hidden', 'lg:flex', 'flex-col'); 
+            
+            if (!token) {
+                userVitalsElMobile.textContent = 'Vui lòng đăng nhập';
+                userVitalsElDesktop.textContent = 'Vui lòng đăng nhập';
+                balanceElMobile.textContent = '...';
+                balanceElDesktop.textContent = '...';
+                [myHistoryBtnMobile, myHistoryBtnDesktop, currencyToggleBtnMobile, currencyToggleBtnDesktop].forEach(btn => {
+                    if(btn) btn.disabled = true;
+                });
+                return; 
+            }
+            
+            const payload = decodeJwt(token);
+            if (!payload || !payload.userId) {
+                userVitalsElMobile.textContent = 'Lỗi: Token không hợp lệ.';
+                userVitalsElDesktop.textContent = 'Lỗi: Token không hợp lệ.';
+                return;
+            }
+            
+            userId = payload.userId;
+            try {
+                if (typeof window.initCurrency === 'function') { 
+                    await window.initCurrency(); 
+                }
+            } catch (e) { }
+            
+            updateCurrencyToggleText();
+            
+            await loadUserProfile();
+            initializeGame();
+            connectSocket(userId);
+        });
+        
+        function getBetInputEl(panelId) { return document.querySelector(`.bet-panel[data-panel-id="${panelId}"] .input-bet-styled`); }
+        function getBetAmount(panelId, forceUSDT = false) {
+            const input = getBetInputEl(panelId);
+            
+            if (forceUSDT) {
+                return parseFloat(input.dataset.amountUsdt) || 0;
+            }
+            
+            let val = parseFloat(input.value) || 0;
+            if (window.globalCurrency === 'VND') {
+                val = val / (window.globalExchangeRate || 27000);
+            }
+            return val; 
+        }
+        
+        function setBetAmount(panelId, amountUSDT) {
+            const input = getBetInputEl(panelId);
+            let finalAmountUSDT = Math.max(0, parseFloat(amountUSDT));
+            if (isNaN(finalAmountUSDT)) finalAmountUSDT = 0;
+            
+            input.dataset.amountUsdt = finalAmountUSDT.toFixed(4); 
+
+            if (window.globalCurrency === 'VND') {
+                const amountVND = finalAmountUSDT * (window.globalExchangeRate || 27000);
+                input.value = Math.floor(amountVND).toFixed(0);
+            } else {
+                input.value = finalAmountUSDT.toFixed(2);
+            }
+        }
+
+        function getReservedAmount(excludePanelId = null) {
+            let total = 0;
+            for (const pid in panelStates) {
+                if (excludePanelId && pid === excludePanelId) continue;
+                const st = panelStates[pid].state;
+                // Tính cả các cược đã đặt và đang chờ
+                if (st === 'BET_PLACED' || st === 'RUNNING' || st === 'QUEUED' || st === 'CASHED_OUT') {
+                    total += panelStates[pid].betAmount || 0;
+                }
+            }
+            return total;
+        }
+        function initializeGame() {
+            resizeCanvas(); loadPlaneSVG();
+            window.addEventListener('resize', resizeCanvas);
+            requestAnimationFrame(animate);
+            betPanels.forEach(panel => {
+                const panelId = panel.dataset.panelId;
+                const actionButton = panel.querySelector('.btn-action');
+                
+                // === THÊM SỬA LỖI: Lắng nghe sự kiện gõ tay ===
+                const input = panel.querySelector('.input-bet-styled');
+                input.addEventListener('change', (e) => {
+                    let value = parseFloat(e.target.value) || 0;
+                    let amountUSDT = 0;
+                    
+                    if (window.globalCurrency === 'VND') {
+                        const exchangeRate = window.globalExchangeRate || 27000; 
+                        amountUSDT = value / exchangeRate;
+                    } else {
+                        amountUSDT = value;
+                    }
+                    
+                    // Cập nhật lại dataset để logic cược hoạt động
+                    e.target.dataset.amountUsdt = amountUSDT.toFixed(4);
+                    
+                    // Cập nhật lại giá trị input để làm tròn
+                    // Bạn có thể bỏ dòng này nếu muốn giữ nguyên số người dùng gõ
+                    setBetAmount(panelId, amountUSDT);
+                });
+                // === HẾT SỬA LỖI ===
+
+                actionButton.addEventListener('click', () => handleActionButtonClick(panelId));
+                
+                panel.querySelectorAll('.mod-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const action = button.dataset.action; 
+                        const currentAmountUSDT = getBetAmount(panelId, true); 
+                        if (action === 'half') { setBetAmount(panelId, currentAmountUSDT / 2); }
+                        else if (action === 'double') { setBetAmount(panelId, currentAmountUSDT * 2); }
+                    });
+                });
+                
+                panel.querySelectorAll('.quick-bet-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const amountUSDT = parseFloat(button.dataset.amountUsdt); 
+                        const action = button.dataset.action;
+                        let currentAmountUSDT = getBetAmount(panelId, true); 
+                        
+                        if (action === 'max') { 
+                            const reserved = getReservedAmount(panelId);
+                            const availableBalance = currentBalance - reserved;
+                            setBetAmount(panelId, Math.max(0, availableBalance)); 
+                        } else if (!isNaN(amountUSDT)) { 
+                            setBetAmount(panelId, currentAmountUSDT + amountUSDT);
+                        }
+                    });
+                });
+            });
+            
+            [currencyToggleBtnMobile, currencyToggleBtnDesktop].forEach(btn => {
+                if (btn) btn.addEventListener('click', toggleCurrency);
+            });
+            [myHistoryBtnMobile, myHistoryBtnDesktop].forEach(btn => {
+                if (btn) {
+                    btn.addEventListener('click', () => {
+                        myHistoryModal.classList.remove('hidden');
+                        loadBetHistory(); 
+                    });
+                }
+            });
+            
+            tabBet.addEventListener('click', () => { showTab('bet'); });
+            tabHistory.addEventListener('click', () => { showTab('history'); });
+
+            if (myHistoryCloseBtn) {
+                myHistoryCloseBtn.addEventListener('click', () => {
+                    myHistoryModal.classList.add('hidden');
+                });
+            }
+        }
+        function connectSocket(userId) {
+            const serverUrl = window.location.origin; 
+            socket = io(serverUrl, { query: { user_id: userId } });
+            
+            socket.on('connect', () => { });
+            socket.on('disconnect', () => { 
+                userVitalsElMobile.textContent = 'Lỗi: Mất kết nối! Đang thử lại...'; 
+                userVitalsElDesktop.textContent = 'Lỗi: Mất kết nối! Đang thử lại...'; 
+            });
+            
+            socket.on('crash_update', (data) => {
+                const newState = data.state;
+                const stateChanged = newState !== gameState; 
+                gameState = newState; 
+                
+                currentMultiplier = parseFloat(data.multiplier) || 1.00;
+                
+                if (playerCountEl) {
+                    const allPlayers = new Set([
+                        ...Object.keys(data.allActivePlayers || {}),
+                        ...Object.keys(data.allCashedOutPlayers || {})
+                    ]);
+                    playerCountEl.textContent = allPlayers.size; 
+                }
+                
+                updateUIForState(data, stateChanged); 
+                
+                const myBets = data.playerBets ? data.playerBets[userId] : null;
+                updateMyPanelStates(myBets); 
+
+                updateAllBetsPanel(data.allActivePlayers, data.allCashedOutPlayers);
+            });
+
+            socket.on('crash_history', (history) => { updateHistoryBar(history); });
+            
+            socket.on('user_data_update', (data) => {
+                if (data.balance !== undefined) { 
+                    currentBalance = parseFloat(data.balance); 
+                    balanceElMobile.textContent = formatGameCurrency(currentBalance); 
+                    balanceElDesktop.textContent = formatGameCurrency(currentBalance); 
+                }
+            });
+            socket.on('bet_response', (data) => {
+                if (!data.panelId) return;
+                const panelId = data.panelId.toString();
+                
+                if (!data.success) { 
+                    // Cược thất bại - hoàn lại số dư
+                    const betAmount = panelStates[panelId]?.betAmount || 0;
+                    if (betAmount > 0) {
+                        currentBalance += betAmount;
+                        balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                        balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                    }
+                    showPanelMessage(panelId, data.message || 'Cược thất bại.', true); 
+                    panelStates[panelId].state = 'IDLE'; 
+                    panelStates[panelId].betAmount = 0;
+                } 
+                else {
+                    // Cược thành công - cập nhật số dư từ server
+                    showPanelMessage(panelId, `Đã cược ${formatGameCurrency(data.betAmount)}.`, false);
+                    panelStates[panelId].state = 'BET_PLACED';
+                    panelStates[panelId].betAmount = data.betAmount;
+                    // Đồng bộ số dư từ server để đảm bảo chính xác
+                    currentBalance = parseFloat(data.newBalance); 
+                    balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                    balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                    playSound('audio-bet'); 
+                }
+                updatePanelButtons();
+            });
+            socket.on('cancel_bet_response', (data) => {
+                 if (data.success) {
+                    showPanelMessage(data.panelId, "Đã hủy cược.", false); 
+                    panelStates[data.panelId].state = 'IDLE';
+                    panelStates[data.panelId].betAmount = 0;
+                    currentBalance = parseFloat(data.newBalance); 
+                    balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                    balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                } else { showPanelMessage(data.panelId, data.message, true); }
+                updatePanelButtons();
+            });
+            socket.on('cashout_success', (data) => {
+                const profit = parseFloat(data.won); const multiText = parseFloat(data.multiplier).toFixed(2);
+                showPanelMessage(data.panelId, `Thắng +${formatGameCurrency(profit)} @ ${multiText}x!`, false);
+                currentBalance = parseFloat(data.newBalance); 
+                balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                panelStates[data.panelId].state = 'CASHED_OUT';
+                playSound('audio-cashout'); 
+                updatePanelButtons();
+            });
+            socket.on('game_error', (message) => { 
+                // Hiển thị lỗi cho tất cả các panel đang có vấn đề
+                ['1', '2'].forEach(pid => {
+                    if (panelStates[pid].state === 'BET_PLACED' || panelStates[pid].state === 'QUEUED') {
+                        showPanelMessage(pid, message, true);
+                        // Nếu lỗi liên quan đến cược, reset về IDLE
+                        if (message.includes('đã cược') || message.includes('không đủ') || message.includes('đang chờ')) {
+                            const betAmount = panelStates[pid].betAmount || 0;
+                            if (betAmount > 0) {
+                                currentBalance += betAmount;
+                                balanceElMobile.textContent = formatGameCurrency(currentBalance);
+                                balanceElDesktop.textContent = formatGameCurrency(currentBalance);
+                            }
+                            panelStates[pid].state = 'IDLE';
+                            panelStates[pid].betAmount = 0;
+                            updatePanelButtons();
+                        }
+                    }
+                });
+            });
+        }
+        
+        // --- 6. Hàm cập nhật UI ---
+        
+        function showTab(tabName) {
+            if (tabName === 'bet') {
+                betPanelsContainer.classList.remove('hidden'); 
+                allBetsPanelContainer.classList.add('hidden'); 
+                tabBet.classList.add('active'); 
+                tabHistory.classList.remove('active');
+            } else if (tabName === 'history') {
+                betPanelsContainer.classList.add('hidden'); 
+                allBetsPanelContainer.classList.remove('hidden'); 
+                tabBet.classList.remove('active'); 
+                tabHistory.classList.add('active');
+            }
+        }
+        
+        async function loadBetHistory() {
+            historyPanelContainer.innerHTML = ''; 
+            historyLoading.classList.remove('hidden');
+            historyPanelContainer.appendChild(historyLoading);
+            
+            if (typeof window.fetchAPI !== 'function') {
+                historyPanelContainer.innerHTML = '<p class="text-center text-red-400">Lỗi: Không tìm thấy hàm fetchAPI.</p>'; return;
+            }
+            try {
+                const historyData = await fetchAPI('/api/game/bet-history');
+                historyLoading.classList.add('hidden'); 
+                historyPanelContainer.innerHTML = '';
+                
+                const crashHistory = historyData.filter(bet => bet.betType === 'CRASH');
+                
+                if (crashHistory.length === 0) {
+                    historyPanelContainer.innerHTML = '<p class="text-center text-gray-400">Bạn chưa có lịch sử cược nào cho game này.</p>'; return;
+                }
+                crashHistory.forEach(bet => { 
+                    historyPanelContainer.appendChild(createHistoryRow(bet)); 
+                });
+            } catch (error) { 
+                historyPanelContainer.innerHTML = `<p class="text-center text-red-400">Lỗi: ${error.message}</p>`; 
+            }
+        }
+        
+        function createHistoryRow(bet) {
+            const row = document.createElement('div');
+            row.className = 'bg-[var(--bg-dark-primary)] p-3 rounded-lg flex items-center gap-3';
+            let statusColorClass = 'text-gray-400', payoutText = '...', payoutColorClass = 'text-white', iconClass = 'fa-clock';
+            if (bet.status === 'WIN') {
+                statusColorClass = 'text-green-400'; payoutText = `+${bet.payout.toFixed(2)} USDT`;
+                payoutColorClass = 'text-green-400'; iconClass = 'fa-check-circle';
+            } else if (bet.status === 'LOSE') {
+                statusColorClass = 'text-red-400'; payoutText = `${bet.payout.toFixed(2)} USDT`;
+                payoutColorClass = 'text-red-400'; iconClass = 'fa-times-circle';
+            }
+            const betTime = new Date(bet.placedAt).toLocaleString('vi-VN');
+            row.innerHTML = `
+                <div class="w-10 h-10 rounded-full flex items-center justify-center ${statusColorClass} bg-[var(--bg-dark-tertiary)] text-xl">
+                    <i class="fas ${iconClass}"></i>
+                </div>
+                <div class="flex-grow">
+                    <p class="text-sm font-semibold text-white">Cược: ${bet.betAmount.toFixed(2)} USDT</p>
+                    <p class="text-xs text-gray-400">${betTime}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-sm font-bold ${payoutColorClass}">${payoutText}</p>
+                    <p class="text-xs ${statusColorClass}">${bet.resultNumber || bet.status}</p>
+                </div>`;
+            return row;
+        }
+
+        function createAllBetsRow(username, betAmount, statusText, statusType = 'pending_wait') {
+            const row = document.createElement('div');
+            row.className = 'bg-[var(--bg-dark-primary)] p-2 rounded-md flex items-center justify-between gap-2 text-sm';
+            
+            let statusColorClass = 'text-gray-400'; 
+            if (statusType === 'win') {
+                statusColorClass = 'text-green-400'; 
+            } else if (statusType === 'pending_run') {
+                statusColorClass = 'text-red-400'; 
+            }
+            
+            const shortName = (username.length > 10) ? username.substring(0, 8) + '...' : username;
+
+            row.innerHTML = `
+                <span class="font-semibold text-white truncate w-1/3">${shortName}</span>
+                <span class="font-bold text-yellow-400 text-right w-1/3">${formatGameCurrency(betAmount)}</span>
+                <span class="font-semibold ${statusColorClass} text-right w-1/3" data-bet-status="true">${statusText}</span>
+            `;
+            return row;
+        }
+
+        function updateAllBetsPanel(allActive, allCashedOut) {
+            if (!allBetsPanelContainer) return;
+
+            let allRealBets = [];
+            
+            for (const userId in allActive) {
+                for (const panelId in allActive[userId]) {
+                    const bet = allActive[userId][panelId];
+                    let statusText = 'Đang cược'; 
+                    let statusType = 'pending_wait'; 
+                    if (gameState === 'RUNNING') {
+                        statusText = 'Đang bay';
+                        statusType = 'pending_run'; 
+                    }
+                    allRealBets.push({
+                        username: bet.username,
+                        amount: bet.betAmount,
+                        statusText: statusText,
+                        statusType: statusType
+                    });
+                }
+            }
+            
+            for (const userId in allCashedOut) {
+                for (const panelId in allCashedOut[userId]) {
+                    const bet = allCashedOut[userId][panelId];
+                    allRealBets.push({
+                        username: bet.username,
+                        amount: bet.betAmount,
+                        statusText: 'Đã rút',
+                        statusType: 'win'
+                    });
+                }
+            }
+
+            allRealBets.sort((a, b) => {
+                if (a.statusType !== 'win' && b.statusType === 'win') return -1;
+                if (a.statusType === 'win' && b.statusType !== 'win') return 1;
+                return b.amount - a.amount; 
+            });
+
+            allBetsPanelContainer.innerHTML = ''; 
+
+                if (allRealBets.length === 0) {
+                if (gameState === 'WAITING') {
+                    allBetsPanelContainer.innerHTML = '<p class="text-center text-gray-400 p-4">Đang đợi phiên mới...</p>';
+                } else {
+                    allBetsPanelContainer.innerHTML = '<p class="text-center text-gray-400 p-4">Chưa có người chơi nào cược.</p>';
+                }
+                return;
+            }
+
+            const header = document.createElement('div');
+            header.className = 'flex items-center justify-between gap-2 text-xs font-bold text-gray-400 px-2';
+            header.innerHTML = `
+                <span class="w-1/3">Người chơi</span>
+                <span class="w-1/3 text-right">Số tiền</span>
+                <span class="w-1/3 text-right">Trạng thái</span>
+            `;
+            allBetsPanelContainer.appendChild(header);
+
+            allRealBets.forEach(bet => {
+                allBetsPanelContainer.appendChild(
+                    createAllBetsRow(bet.username, bet.amount, bet.statusText, bet.statusType)
+                );
+            });
+        }
+        
+        function updateUIForState(data, stateChanged) { 
+            
+            multiplierDisplay.textContent = ''; 
+            multiplierDisplay.className = 'absolute inset-0 items-center justify-center mt-56 font-bold z-20 hidden'; 
+
+            switch (data.state) {
+                case 'WAITING':
+                    multiplierDisplay.classList.add('canvas-overlay-text', 'text-white', 'flex'); 
+                    multiplierDisplay.classList.remove('hidden');
+                    multiplierDisplay.textContent = `BẮT ĐẦU SAU ${data.countdown}s`;
+                    plane.targetY = canvasHeight * 0.55;
+                    stopSound('audio-takeoff'); 
+                    plane.hidden = false;
+                    
+                    planeFlame.style.opacity = 0;
+                    // Xóa logic cho planeThrustParticle
+                    
+                    // [XÓA] Xóa prismatic core
+                    
+                    canvas.style.animation = 'none'; // Dừng rung
+
+                    for (const panelId in panelStates) {
+                        if (panelStates[panelId].state === 'CASHED_OUT' || panelStates[panelId].state === 'RUNNING') {
+                            panelStates[panelId].state = 'IDLE'; 
+                            panelStates[panelId].betAmount = 0;
+                            showPanelMessage(panelId, '', false);
+                        }
+                    }
+                    // Xử lý các cược đã queue từ phiên trước
+                    ['1','2'].forEach(pid => {
+                        if (panelStates[pid].state === 'QUEUED') {
+                            const betAmountUSDT = panelStates[pid].betAmount || 0;
+                            const minBetUSDT = 0.1;
+                            if (betAmountUSDT < minBetUSDT) {
+                                showPanelMessage(pid, `Cược tối thiểu là ${minBetUSDT} USDT.`, true);
+                                panelStates[pid].state = 'IDLE'; 
+                                panelStates[pid].betAmount = 0;
+                                return;
+                            }
+                            
+                            // Tính số dư đã reserve cho panel khác (không tính panel hiện tại)
+                            const reserved = getReservedAmount(pid);
+                            const totalNeeded = betAmountUSDT + reserved;
+                            
+                            if (totalNeeded > currentBalance + 0.00001) {
+                                showPanelMessage(pid, 'Số dư không đủ. Vui lòng giảm số tiền cược.', true);
+                                panelStates[pid].state = 'IDLE'; 
+                                panelStates[pid].betAmount = 0;
+                                return;
+                            }
+                            
+                            // Không trừ số dư ở đây - server sẽ trừ khi nhận được cược
+                            // Chỉ cập nhật UI tạm thời
+                            const tempReserved = getReservedAmount(pid);
+                            const tempBalance = currentBalance - tempReserved - betAmountUSDT;
+                            balanceElMobile.textContent = formatGameCurrency(Math.max(0, tempBalance));
+                            balanceElDesktop.textContent = formatGameCurrency(Math.max(0, tempBalance));
+                            
+                            if (socket) { 
+                                socket.emit('crash_bet', { betAmount: betAmountUSDT, panelId: pid }); 
+                            }
+                            panelStates[pid].state = 'BET_PLACED';
+                            showPanelMessage(pid, 'Đang gửi cược...', false);
+                        }
+                    });
+                    break;
+                case 'RUNNING':
+                    multiplierDisplay.classList.add('text-7xl', 'lg:text-9xl', 'text-white', 'flex'); 
+                    multiplierDisplay.classList.remove('hidden');
+                    multiplierDisplay.textContent = `${currentMultiplier.toFixed(2)}x`;
+                    plane.targetY = canvasHeight * 0.55 - (gameSpeed * 10);
+                    playSound('audio-takeoff', 0.2); 
+                    
+                    const flameOpacity = Math.min(1, (gameSpeed - 1) * 2.5);
+                    
+                    planeFlame.style.opacity = flameOpacity;
+                    planeFlame.classList.remove('flame-blue', 'flame-purple', 'flame-rainbow');
+
+                    // [SỬA LỖI] Đảm bảo cập nhật classes lửa
+                    if (currentMultiplier >= 100) { // <-- MỐC 100x
+                        planeFlame.classList.add('flame-rainbow');
+                    } else if (currentMultiplier >= 50) { // <-- MỐC 50x
+                        planeFlame.classList.add('flame-purple');
+                    } else if (currentMultiplier >= 10) { // <-- MỐC 10x
+                        planeFlame.classList.add('flame-blue');
+                    }
+
+                    break;
+                case 'CRASHED':
+                    multiplierDisplay.classList.add('canvas-overlay-text', 'text-red-500', 'animate-pulse', 'flex'); 
+                    multiplierDisplay.classList.remove('hidden');
+                    multiplierDisplay.textContent = `ĐÃ NỔ @ ${currentMultiplier.toFixed(2)}x`;
+                    plane.targetY = canvasHeight * 0.55 + 50;
+                    stopSound('audio-takeoff'); 
+                    
+                    planeFlame.style.opacity = 0;
+                    
+                    if (stateChanged) { 
+                        playSound('audio-crash', 0.7); 
+                        plane.hidden = true;
+                        
+                        // [NÂNG CẤP] Kích hoạt nổ CANVAS
+                        createExplosion(plane.x, plane.y, 100); 
+                        createShockwave(plane.x, plane.y);
+                        
+                        // Kích hoạt rung CSS
+                        canvas.style.animation = 'none';
+                        canvas.offsetHeight;
+                        canvas.style.animation = 'screen-shake 0.5s ease-out';
+                    }
+
+                    if (allBetsPanelContainer) {
+                        allBetsPanelContainer.querySelectorAll('span[data-bet-status="true"]').forEach(el => {
+                            if(el.textContent === 'Đang bay') { 
+                                el.textContent = 'Đã thua';
+                            }
+                        });
+                    }
+                    break;
+                default: 
+                    multiplierDisplay.classList.add('hidden');
+                    multiplierDisplay.classList.remove('flex');
+                    break;
+            }
+            updatePanelButtons();
+        }
+        
+        function updateMyPanelStates(myBets) {
+            for (const panelId in panelStates) {
+                const myBetOnPanel = myBets ? myBets[panelId] : null; 
+                const currentState = panelStates[panelId].state; 
+                
+                if (myBetOnPanel) {
+                    panelStates[panelId].betAmount = myBetOnPanel.amount; 
+                    
+                    if (myBetOnPanel.isCashedOut) {
+                        panelStates[panelId].state = 'CASHED_OUT';
+                    } else if (gameState === 'RUNNING') {
+                        panelStates[panelId].state = 'RUNNING';
+                    } else if (gameState === 'WAITING') {
+                        panelStates[panelId].state = 'BET_PLACED';
+                    }
+                } else {
+                    if (currentState === 'BET_PLACED' || currentState === 'RUNNING' || currentState === 'CASHED_OUT') {
+                         panelStates[panelId].state = 'IDLE'; 
+                         panelStates[panelId].betAmount = 0;
+                         if (gameState === 'WAITING') {
+                             showPanelMessage(panelId, '', false);
+                         }
+                    }
+                }
+            }
+        }
+        
+        function updatePanelButtons() {
+            betPanels.forEach(panel => {
+                const panelId = panel.dataset.panelId; const button = panel.querySelector('.btn-action');
+                const input = panel.querySelector('.input-bet-styled'); const modButtons = panel.querySelectorAll('.mod-btn, .quick-bet-btn');
+                
+                const panelData = panelStates[panelId]; 
+                const state = panelData.state;         
+                
+                button.disabled = false; input.disabled = false; modButtons.forEach(btn => btn.disabled = false);
+                button.className = 'btn-action w-full p-2 rounded-lg font-bold text-sm sm:text-base bet-btn';
+                switch (gameState) {
+                    case 'WAITING':
+                        if (state === 'IDLE') { button.classList.add('btn-gradient-yellow'); button.textContent = 'CƯỢC'; } 
+                        else if (state === 'BET_PLACED') {
+                            button.classList.add('btn-gradient-red'); button.textContent = 'HỦY CƯỢC';
+                            input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                        }
+                        break;
+                    case 'RUNNING':
+                        if (state === 'RUNNING') { 
+                            button.classList.add('btn-gradient-blue');
+                            const betAmount = panelData.betAmount || 0;
+                            const winAmount = betAmount * currentMultiplier;
+                            button.textContent = `RÚT ${formatGameCurrency(winAmount)}`;
+                            input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                        } 
+                        else if (state === 'BET_PLACED') { 
+                            button.classList.add('btn-gradient-blue');
+                            button.textContent = `RÚT...`; 
+                            button.disabled = false; 
+                            input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                        } 
+                        else if (state === 'QUEUED') {
+                            button.classList.add('btn-gradient-red');
+                            button.textContent = 'HỦY ĐẶT TRƯỚC';
+                            button.disabled = false;
+                            input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                        }
+                        else if (state === 'CASHED_OUT') {
+                            button.classList.add('bg-gray-500', 'text-white'); button.textContent = 'ĐÃ CASHOUT';
+                            button.disabled = true; input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                        } else { 
+                            // === THÊM CHỨC NĂNG: Cho phép đặt trước phiên sau khi game đang chạy ===
+                            // (Trạng thái là IDLE - chưa cược)
+                            button.classList.add('btn-gradient-yellow');
+                            button.textContent = '⏱️ ĐẶT TRƯỚC';
+                            button.disabled = false;
+                            // Cho phép nhập số tiền để chờ cược
+                            input.disabled = false; 
+                            modButtons.forEach(btn => btn.disabled = false); 
+                            // === HẾT THÊM CHỨC NĂNG ===
+                        }
+                        break;
+                    case 'CRASHED':
+                        // === THÊM CHỨC NĂNG: Cho phép chờ cược khi game vừa nổ ===
+                        if (state === 'RUNNING') { showPanelMessage(panelId, 'Bạn đã thua cược.', true); }
+                        if (state === 'QUEUED') {
+                            button.classList.add('btn-gradient-red'); 
+                            button.textContent = 'HỦY ĐẶT TRƯỚC';
+                            button.disabled = false; 
+                            input.disabled = true; 
+                            modButtons.forEach(btn => btn.disabled = true);
+                        } else if (state === 'CASHED_OUT') {
+                            button.classList.add('bg-gray-500', 'text-white'); 
+                            button.textContent = 'ĐÃ CASHOUT';
+                            button.disabled = true; 
+                            input.disabled = true; 
+                            modButtons.forEach(btn => btn.disabled = true);
+                        } else {
+                            // Cho phép đặt trước cho phiên tiếp theo
+                            button.classList.add('btn-gradient-yellow');
+                            button.textContent = '⏱️ ĐẶT TRƯỚC';
+                            button.disabled = false;
+                            // Cho phép nhập số tiền
+                            input.disabled = false; 
+                            modButtons.forEach(btn => btn.disabled = false);
+                        }
+                        break;
+                    default:
+                        button.classList.add('bg-gray-700', 'text-white'); button.textContent = 'ĐANG KẾT NỐI...';
+                        button.disabled = true; input.disabled = true; modButtons.forEach(btn => btn.disabled = true);
+                }
+            });
+        }
+        
+        let panelMessageTimers = {};
+        function showPanelMessage(panelId, message, isError = false) {
+            const panel = document.querySelector(`.bet-panel[data-panel-id="${panelId}"]`); if (!panel) return;
+            const messageEl = panel.querySelector('.panel-message');
+            
+            if (panelStates[panelId].state === 'CASHED_OUT' && isError) {
+                return; 
+            }
+            
+            messageEl.textContent = message;
+            messageEl.className = `panel-message text-center h-5 text-sm ${isError ? 'text-red-400' : 'text-green-400'}`;
+            
+            if (panelMessageTimers[panelId]) { clearTimeout(panelMessageTimers[panelId]); }
+            
+            if (message) { 
+                panelMessageTimers[panelId] = setTimeout(() => {
+                    if (panelStates[panelId].state !== 'RUNNING') { 
+                        messageEl.textContent = ''; 
+                    }
+                }, 3000);
+            }
+        }
+        
+        function updateHistoryBar(history) {
+            const content = document.createDocumentFragment();
+            history.slice().reverse().slice(0, 30).forEach(item => {
+                const crashPoint = parseFloat(item.crashPoint); const span = document.createElement('span');
+                let colorClass = 'bg-red-500/50';
+                if (crashPoint >= 2.0) colorClass = 'bg-green-500/50';
+                if (crashPoint >= 10.0) colorClass = 'bg-yellow-400/50';
+                span.className = `${colorClass} text-white px-2 py-0.5 rounded-full text-xs font-bold whitespace-nowrap`;
+                span.textContent = `${crashPoint.toFixed(2)}x`;
+                content.appendChild(span);
+            });
+            
+            historyBar.innerHTML = '';
+            historyBar.appendChild(content.cloneNode(true));
+            
+            historyBarMobile.innerHTML = '';
+            historyBarMobile.appendChild(content.cloneNode(true));
+        }
+        
+        function handleActionButtonClick(panelId) {
+            const state = panelStates[panelId].state; 
+            if (gameState === 'WAITING') {
+                if (state === 'IDLE') {
+                    const betAmountUSDT = getBetAmount(panelId, true); 
+                    const minBetUSDT = 0.1; 
+
+                    if (betAmountUSDT < minBetUSDT) {
+                        const minBetText = (window.globalCurrency === 'VND') ? 
+                            formatGameCurrency(minBetUSDT) : 
+                            `${minBetUSDT} USDT`;
+                        showPanelMessage(panelId, `Cược tối thiểu là ${minBetText}.`, true);
+                        return;
+                    }
+                    
+                    // Tính tổng số dư đã reserve cho các panel khác (bao gồm cả QUEUED)
+                    const reserved = getReservedAmount(panelId);
+                    const totalNeeded = betAmountUSDT + reserved;
+                    
+                    if (totalNeeded > currentBalance + 0.00001) {
+                        showPanelMessage(panelId, 'Số dư không đủ.', true);
+                        return;
+                    }
+
+                    if (betAmountUSDT > 0 && socket) {
+                        // Không trừ số dư ở đây - server sẽ trừ khi nhận được cược
+                        // Chỉ cập nhật UI tạm thời để tránh double bet
+                        const tempReserved = getReservedAmount(panelId);
+                        const tempBalance = currentBalance - tempReserved - betAmountUSDT;
+                        balanceElMobile.textContent = formatGameCurrency(Math.max(0, tempBalance));
+                        balanceElDesktop.textContent = formatGameCurrency(Math.max(0, tempBalance));
+                        
+                        socket.emit('crash_bet', { betAmount: betAmountUSDT, panelId });
+                        panelStates[panelId].state = 'BET_PLACED'; 
+                        panelStates[panelId].betAmount = betAmountUSDT;
+                        showPanelMessage(panelId, 'Đang gửi cược...', false);
+                    } else { 
+                        showPanelMessage(panelId, 'Số tiền không hợp lệ.', true); 
+                    }
+                } else if (state === 'BET_PLACED') {
+                    if (socket) { socket.emit('crash_cancel_bet', { panelId }); }
+                }
+            } else if (gameState === 'RUNNING') {
+                if (state === 'RUNNING' || state === 'BET_PLACED') { 
+                    if (socket) { socket.emit('crash_cashout', { panelId }); }
+                } else if (state === 'IDLE') {
+                    const betAmountUSDT = getBetAmount(panelId, true); 
+                    const minBetUSDT = 0.1; 
+                    if (betAmountUSDT < minBetUSDT) {
+                        const minBetText = (window.globalCurrency === 'VND') ? 
+                            formatGameCurrency(minBetUSDT) : 
+                            `${minBetUSDT} USDT`;
+                        showPanelMessage(panelId, `Cược tối thiểu là ${minBetText}.`, true);
+                        return;
+                    }
+                    const reserved = getReservedAmount(panelId);
+                    if (betAmountUSDT > (currentBalance - reserved) + 0.00001) {
+                        showPanelMessage(panelId, 'Số dư không đủ.', true);
+                        return;
+                    }
+                    panelStates[panelId].state = 'QUEUED';
+                    panelStates[panelId].betAmount = betAmountUSDT;
+                    showPanelMessage(panelId, '✅ Đã đặt cược cho phiên sau. Hệ thống sẽ tự động cược!', false);
+                    updatePanelButtons();
+                } else if (state === 'QUEUED') {
+                    // Hủy đặt trước
+                    panelStates[panelId].state = 'IDLE';
+                    panelStates[panelId].betAmount = 0;
+                    showPanelMessage(panelId, 'Đã hủy đặt trước.', false);
+                    updatePanelButtons();
+                }
+            } else if (gameState === 'CRASHED') {
+                if (state === 'IDLE') {
+                    const betAmountUSDT = getBetAmount(panelId, true); 
+                    const minBetUSDT = 0.1; 
+                    if (betAmountUSDT < minBetUSDT) {
+                        const minBetText = (window.globalCurrency === 'VND') ? 
+                            formatGameCurrency(minBetUSDT) : 
+                            `${minBetUSDT} USDT`;
+                        showPanelMessage(panelId, `Cược tối thiểu là ${minBetText}.`, true);
+                        return;
+                    }
+                    const reserved = getReservedAmount(panelId);
+                    if (betAmountUSDT > (currentBalance - reserved) + 0.00001) {
+                        showPanelMessage(panelId, 'Số dư không đủ.', true);
+                        return;
+                    }
+                    panelStates[panelId].state = 'QUEUED';
+                    panelStates[panelId].betAmount = betAmountUSDT;
+                    showPanelMessage(panelId, '✅ Đã đặt chờ cược. Sẽ tự động cược ở phiên tiếp theo!', false);
+                    updatePanelButtons();
+                } else if (state === 'QUEUED') {
+                    // Hủy chờ cược
+                    panelStates[panelId].state = 'IDLE';
+                    panelStates[panelId].betAmount = 0;
+                    showPanelMessage(panelId, 'Đã hủy chờ cược.', false);
+                    updatePanelButtons();
+                }
+            }
+        }
+    </script>
+
+</body>
+</html>

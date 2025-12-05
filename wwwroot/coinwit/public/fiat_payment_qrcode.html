@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trang Chuyển Khoản | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-top: 122px; 
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        .header-sticky {
+            position: fixed;
+            top: 0;
+            left: 0; 
+            right: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: fixed;
+            top: 61px; 
+            left: 0;
+            right: 0;
+            z-index: 30;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        .btn-yellow {
+            background-color: var(--yellow-accent);
+            color: #111827;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .copy-btn {
+            background-color: #374151;
+            color: #e0e0e0;
+            border: 1px solid #4b5563;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-width: 80px; /* Thêm độ rộng tối thiểu để nút không bị giật */
+            text-align: center;
+        }
+        .copy-btn:hover { background-color: #4b5563; }
+        .copy-btn:disabled {
+            background-color: #16a34a; /* Màu xanh khi thành công */
+            border-color: #16a34a;
+            color: white;
+            opacity: 1;
+        }
+
+        #qr-code-image {
+            width: 256px; 
+            height: 256px;
+            max-width: 80vw; 
+            max-height: 80vw;
+        }
+        .qr-box-container {
+            padding: 16px; 
+            margin: 16px auto;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="text-2xl font-bold" style="color: var(--yellow-accent);">
+            CoinWit
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="h-[61px] flex items-center px-4 py-3 sub-header-sticky">
+        <a href="deposit" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Trang Chuyển Khoản</h1> 
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <main class="flex-grow py-4">
+        <div class="card max-w-md mx-auto p-6 text-center relative mx-4">
+            
+            <div id="failure-overlay" class="absolute inset-0 bg-black/90 z-20 rounded-2xl flex flex-col items-center justify-center p-6 hidden backdrop-blur-sm">
+                <i class="fa-solid fa-circle-xmark text-6xl text-red-500 mb-4"></i>
+                <h1 class="text-2xl font-bold text-red-400 mb-4">Lệnh Nạp Thất Bại</h1>
+                <p class="text-gray-300 mb-6">Lệnh nạp đã hết hạn hoặc bị từ chối. Vui lòng tạo lệnh mới.</p>
+                <a href="deposit" class="btn-yellow px-6 py-3">Tạo yêu cầu Nạp mới</a>
+            </div>
+
+            <div id="success-overlay" class="absolute inset-0 bg-black/90 z-20 rounded-2xl flex flex-col items-center justify-center p-6 hidden backdrop-blur-sm">
+                <i class="fa-solid fa-circle-check text-6xl text-green-500 mb-4"></i>
+                <h1 class="text-2xl font-bold text-green-400 mb-4">Nạp tiền thành công!</h1>
+                <p class="text-gray-300 mb-6">Tiền đã được cập nhật vào tài khoản của bạn.</p>
+                <a href="index" class="btn-yellow px-6 py-3">Quay về Trang Chủ</a>
+            </div>
+
+            <div id="payment-content-box" class="space-y-4">
+                <p class="font-medium text-red-400 mb-2">Trang chuyển khoản sẽ đóng sau <span id="countdown" class="font-bold text-lg">...</span></p>
+                
+                <div class="bg-white rounded-lg inline-block my-4 border-4 border-gray-700 qr-box-container">
+                    <img id="qr-code-image" src="" onerror="this.src='https://placehold.co/256x256/ff0000/ffffff?text=Lỗi+QR'" alt="Mã QR Chuyển khoản">
+                </div>
+                
+                <a id="download-qr-btn" href="#" download="CoinWit_QR.png" class="inline-block bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-lg text-sm">
+                    <i class="fas fa-download mr-1 5"></i> Tải QR
+                </a>
+
+                <div class="space-y-3 text-left border-t border-gray-700 pt-5">
+                    
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-400">Tên ngân hàng:</span>
+                        <span class="font-semibold text-white" id="bank-name">...</span>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-400">Số tài khoản:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white" id="account-number">...</span>
+                            <button class="copy-btn" onclick="copyValue(this, 'account-number')">Copy</button>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-400">Tên tài khoản:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white" id="account-name">...</span>
+                            <button class="copy-btn" onclick="copyValue(this, 'account-name')">Copy</button>
+                        </div>
+                    </div>
+
+                     <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-400">Số tiền chuyển:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-xl" id="transfer-amount" style="color: var(--yellow-accent);">...</span>
+                            <button class="copy-btn" onclick="copyValue(this, 'transfer-amount', true)">Copy</button>
+                        </div>
+                    </div>
+
+                     <div class="flex justify-between items-center py-2">
+                        <span class="text-sm text-gray-400">Nội dung:</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-semibold text-white" id="transfer-content">...</span>
+                            <button class="copy-btn" onclick="copyValue(this, 'transfer-content')">Copy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 p-4 rounded-lg text-sm text-left border border-red-700/50 bg-red-900/30 text-white space-y-2">
+                    <p class="font-bold text-red-400">Lưu ý:</p>
+                    <ol class="list-decimal list-inside text-gray-300 text-xs space-y-1">
+                        <li>Vui lòng nhập **chính xác nội dung và số tiền** yêu cầu. Thông tin không chính xác sẽ không thể tự động lên điểm.</li>
+                        <li>Nếu không thể sử dụng mã QR Code, vui lòng sao chép tài khoản thanh toán.</li>
+                        <li>Không làm mới trình duyệt khi đang chuyển khoản.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script src="main.js"></script>
+
+    <script>
+        // --- API HELPERS ---
+        // (Đã xóa các hàm mock, chỉ giữ lại helper của trang)
+        function formatCurrency(amount) {
+            const numberAmount = parseFloat(amount);
+            if (isNaN(numberAmount)) {
+                return '0';
+            }
+            return numberAmount.toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+        
+        // --- KẾT THÚC API HELPERS ---
+        
+        const MAX_TIME_LIMIT_MS = 10 * 60 * 1000; // 10 phút
+        let countdownInterval;
+        let mainSocket = null; // Biến giữ kết nối socket
+
+        // Ánh xạ Tên Ngân hàng sang Code VietQR
+        const BANK_CODE_MAP = {
+            "MBBank": "MBBANK"
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => { // Thêm async
+            if (!window.checkLogin()) { 
+                return;
+            }
+
+            const orderData = JSON.parse(localStorage.getItem('paymentOrder'));
+            
+            if (!orderData || !orderData.depositId || !orderData.account) {
+                 document.getElementById('failure-overlay').classList.remove('hidden');
+                 return;
+            }
+            
+            const createdAtISO = orderData.createdAt || new Date().toISOString();
+            
+            // --- XỬ LÝ DỮ LIỆU ĐỂ TẠO QR CODE VIETQR ---
+            const bankCode = BANK_CODE_MAP[orderData.bank] || "970400"; 
+            const rawAmount = orderData.amountVND;
+            const transferContent = orderData.transferCode;
+            
+            const vietqrUrl = `https://img.vietqr.io/image/${bankCode}-${orderData.account}-qr_only.png?amount=${rawAmount}&addInfo=${transferContent}`;
+
+            // Điền thông tin lên trang
+            document.getElementById('bank-name').textContent = orderData.bank;
+            document.getElementById('account-number').textContent = orderData.account;
+            document.getElementById('account-name').textContent = orderData.name;
+            document.getElementById('transfer-amount').textContent = `${formatCurrency(rawAmount)} VND`;
+            document.getElementById('transfer-content').textContent = transferContent;
+            
+            
+            const qrImg = document.getElementById('qr-code-image');
+            qrImg.src = vietqrUrl;
+            
+            // [SỬA LỖI TẢI QR]
+            const downloadBtn = document.getElementById('download-qr-btn');
+            const downloadFileName = `CoinWit_QR_${transferContent}.png`;
+            downloadBtn.download = downloadFileName; // Gán tên file
+
+            try {
+                // Fetch ảnh từ server VietQR
+                const response = await fetch(vietqrUrl);
+                if (!response.ok) throw new Error('Không thể tải ảnh QR');
+                
+                // Chuyển ảnh thành 1 file tạm (blob)
+                const imageBlob = await response.blob();
+                
+                // Tạo một đường dẫn URL nội bộ cho file tạm đó
+                const objectUrl = URL.createObjectURL(imageBlob);
+                
+                // Gán đường dẫn nội bộ cho nút tải
+                downloadBtn.href = objectUrl;
+
+                // Thêm trình dọn dẹp để giải phóng bộ nhớ
+                downloadBtn.addEventListener('click', () => {
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                });
+
+            } catch (error) {
+                // Nếu fetch lỗi (ví dụ: CORS), fallback về hành vi cũ
+                // (sẽ mở ảnh trong tab mới thay vì tải về)
+                downloadBtn.href = vietqrUrl;
+                downloadBtn.target = "_blank"; 
+            }
+            // [KẾT THÚC SỬA LỖI TẢI QR]
+            
+            // BẮT ĐẦU ĐẾM NGƯỢC
+            startCountdown(createdAtISO);
+            
+            // *** BẢN SỬA: THAY THẾ POLLING BẰNG SOCKET.IO ***
+            // startCheckingStatus(orderData.depositId); // XÓA HÀM CŨ
+            await connectSocketAndListen(orderData.depositId); // THÊM HÀM MỚI
+            // ***********************************************
+
+            document.getElementById('failure-overlay').classList.add('hidden');
+        });
+
+
+        // *** BẢN SỬA: HÀM MỚI ĐỂ KẾT NỐI SOCKET.IO ***
+        async function connectSocketAndListen(depositIdToWatch) {
+            try {
+                // 1. Lấy User ID để tham gia "room"
+                // Chúng ta cần User ID để server biết gửi tín hiệu cho ai
+                const profile = await window.fetchAPI('/user/profile');
+                if (!profile || !profile.id) {
+                    // (Tùy chọn: có thể quay lại dùng polling cũ ở đây làm backup)
+                    return;
+                }
+
+                // 2. Kết nối Socket.IO với User ID
+                // Server.js (ở logic io.on('connection')) đang chờ 'user_id' trong query
+                mainSocket = io(window.location.origin, { // SỬA LỖI: Dùng window.location.origin
+                    query: { user_id: profile.id }
+                });
+
+                mainSocket.on("connect", () => {
+                });
+
+                // 3. Lắng nghe sự kiện 'deposit_approved'
+                mainSocket.on('deposit_approved', (data) => {
+                        
+                    // Kiểm tra xem có đúng là lệnh nạp này không
+                    if (data.depositId === depositIdToWatch) {
+                        showSuccessOverlay();
+                    }
+                });
+                    
+                // 4. Lắng nghe sự kiện 'deposit_rejected'
+                mainSocket.on('deposit_rejected', (data) => {
+                    if (data.depositId === depositIdToWatch) {
+                        showFailureOverlay();
+                    }
+                });
+
+            } catch (error) {
+            }
+        }
+
+        // *** BẢN SỬA: XÓA BỎ HOÀN TOÀN HÀM POLLING CŨ ***
+        // function startCheckingStatus(depositId) { ... }
+        
+        // --- Tách logic hiển thị overlay ---
+        function showSuccessOverlay() {
+            clearInterval(countdownInterval);
+            document.getElementById('success-overlay').style.display = 'flex';
+            localStorage.removeItem('paymentOrder');
+            if (mainSocket) mainSocket.disconnect(); // Ngắt kết nối khi xong
+        }
+
+        function showFailureOverlay() {
+            clearInterval(countdownInterval);
+            document.getElementById('failure-overlay').style.display = 'flex';
+            localStorage.removeItem('paymentOrder');
+            if (mainSocket) mainSocket.disconnect(); // Ngắt kết nối khi xong
+        }
+
+        // --- HÀM CŨ (Giữ nguyên) ---
+        function startCountdown(createdAtISO) {
+            const startTime = new Date(createdAtISO).getTime();
+            const countdownElement = document.getElementById('countdown');
+
+            countdownInterval = setInterval(() => {
+                const now = Date.now();
+                const elapsedTime = now - startTime;
+                const timeLeftMS = MAX_TIME_LIMIT_MS - elapsedTime;
+                
+                if (timeLeftMS <= 0) {
+                    countdownElement.textContent = "HẾT THỜI GIAN";
+                    // Tự động kích hoạt overlay thất bại khi hết giờ
+                    showFailureOverlay();
+                    return;
+                }
+                
+                const totalSeconds = Math.floor(timeLeftMS / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                countdownElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        //
+        // [THAY ĐỔI] HÀM SAO CHÉP MỚI
+        //
+        function copyValue(btnElement, elementId, isAmount = false) {
+            let element = document.getElementById(elementId);
+            if (!element) return; 
+
+            let textContent = element.textContent;
+            let value;
+            
+            if (isAmount) {
+                 // Lấy số từ chuỗi "100.000 VND" -> "100000"
+                 value = textContent.replace('VND', '').replace(/[,.]/g, '').trim();
+            } else {
+                 value = textContent.trim();
+            }
+
+            // Sử dụng Clipboard API mới (hiện đại)
+            if (!navigator.clipboard) {
+                alert('Trình duyệt của bạn không hỗ trợ sao chép tự động.');
+                return;
+            }
+
+            navigator.clipboard.writeText(value).then(() => {
+                // THÀNH CÔNG
+                
+                // Thêm phản hồi trực quan cho người dùng
+                const originalText = btnElement.innerHTML;
+                btnElement.innerHTML = '<i class="fas fa-check"></i> Đã copy';
+                btnElement.disabled = true;
+                
+                // Trả lại trạng thái cũ sau 2 giây
+                setTimeout(() => {
+                    btnElement.innerHTML = originalText;
+                    btnElement.disabled = false;
+                }, 2000);
+
+            }).catch(err => {
+                // THẤT BẠI
+                alert('Sao chép thất bại!');
+            });
+        }
+    </script>
+</body>
+</html>

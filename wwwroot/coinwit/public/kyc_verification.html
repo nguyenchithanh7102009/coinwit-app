@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác minh tên thật | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --dark-input: #333333;
+            --text-primary: #ffffff;
+            --warning-bg: #3A1E1E; /* Vẫn giữ cho hộp cảnh báo */
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .accent-color { color: var(--yellow-accent); }
+        .accent-bg { background-color: var(--yellow-accent); }
+    </style>
+</head>
+<body class="bg-dark-bg">
+    
+    <header class="flex items-center p-4 border-b border-[var(--border-color)] bg-[var(--card-bg)] shadow-lg sticky top-0 z-10">
+        <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-semibold text-white flex-grow text-center ml-2">Xác minh tên thật</h1>
+        <div class="w-10 h-10"></div>
+    </header>
+
+    <div class="flex justify-between items-start p-4 bg-dark-bg max-w-md mx-auto">
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">1</span>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Thông tin</p>
+        </div>
+        <div class="flex-1 h-px bg-gray-700 mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full bg-[var(--dark-input)] text-gray-400 flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">2</span>
+            </div>
+            <p class="text-xs mt-1 font-medium text-gray-500">Tải giấy tờ</p>
+        </div>
+        <div class="flex-1 h-px bg-gray-700 mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full bg-[var(--dark-input)] text-gray-400 flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">3</span>
+            </div>
+            <p class="text-xs mt-1 font-medium text-gray-500">Xét duyệt</p>
+        </div>
+    </div>
+
+
+    <main class="p-4 space-y-6">
+        <div class="space-y-2">
+            <label for="full-name" class="text-sm font-medium text-gray-400 block">Họ Tên</label>
+            <input type="text" id="full-name" value="Đang tải..." readonly
+                   class="w-full p-3 rounded-lg bg-[var(--dark-input)] border border-gray-700 text-white font-semibold cursor-default">
+        </div>
+        
+        <div class="space-y-2">
+            <label for="id-number" class="text-sm font-medium text-gray-400 block">Số giấy tờ tùy thân</label>
+            <input type="text" id="id-number" placeholder="Số CMND/CCCD/Hộ chiếu"
+                   class="w-full p-3 rounded-lg bg-[var(--dark-input)] border border-gray-700 focus:border-[var(--yellow-accent)] focus:ring focus:ring-[var(--yellow-accent)] focus:ring-opacity-50 text-white placeholder-gray-500">
+        </div>
+        
+        <button id="next-step-btn"
+                class="w-full py-3 mt-4 rounded-lg font-bold text-black text-lg bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 transition duration-200 shadow-xl shadow-yellow-800/50">
+            Bước tiếp theo
+        </button>
+
+        <div class="kyc-note p-4 rounded-lg bg-warning-bg border border-red-800 text-sm text-red-400 flex items-start gap-2">
+            <i class="fas fa-exclamation-triangle mt-1"></i>
+            <span class="text-gray-300">Nếu bạn cần thay đổi tên, vui lòng liên hệ bộ phận chăm sóc khách hàng.</span>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', checkNameVerification);
+        const API_BASE_URL = 'http://coinwit.net/api'; 
+        
+        async function checkNameVerification() {
+             const fullNameInput = document.getElementById('full-name');
+             const nextBtn = document.getElementById('next-step-btn');
+             const token = localStorage.getItem('authToken');
+
+             if (!token) { window.location.href = 'login'; return; }
+
+             try {
+                 const response = await fetch(`${API_BASE_URL}/user/profile`, { headers: { 'Authorization': `Bearer ${token}` } });
+                 const userData = await response.json();
+                 
+                 // [SỬA] Kiểm tra xem userData.fullName CÓ TỒN TẠI không (thay vì isNameVerified)
+                 if (response.ok && userData.fullName && userData.fullName.length > 0) {
+                     // Đã liên kết ngân hàng (có tên tạm) -> Mở khóa cho đi tiếp
+                     fullNameInput.value = userData.fullName;
+                     fullNameInput.readOnly = true; 
+                 } else {
+                     // Chưa liên kết ngân hàng -> Chặn
+                     fullNameInput.value = ''; 
+                     fullNameInput.placeholder = 'Vui lòng liên kết thẻ ngân hàng trước';
+                     fullNameInput.readOnly = true;
+                     nextBtn.disabled = true;
+                     nextBtn.textContent = 'Vui lòng liên kết Thẻ Ngân hàng';
+                     nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                     nextBtn.onclick = () => {
+                         alert('Bạn cần liên kết thẻ ngân hàng để lấy tên thật trước.');
+                         window.location.href = 'login'; 
+                     };
+                     document.querySelector('.kyc-note').innerHTML = '<i class="fas fa-exclamation-triangle mt-1"></i> <span class="text-gray-300">Vui lòng liên kết thẻ ngân hàng ở Trung tâm cá nhân để tự động điền Họ tên.</span>';
+                 }
+             } catch (error) {
+                 alert('Lỗi kết nối server khi kiểm tra tên thật.');
+                 window.history.back();
+             }
+        }
+
+        window.goToNextStep = function() {
+            const fullName = document.getElementById('full-name').value;
+            const idNumber = document.getElementById('id-number').value;
+            
+            if (document.getElementById('next-step-btn').disabled) return; 
+
+            if (!idNumber || idNumber.length < 9) {
+                alert('Vui lòng nhập số giấy tờ tùy thân hợp lệ (ít nhất 9 ký tự).');
+                return;
+            }
+
+            sessionStorage.setItem('kycFullName', fullName);
+            sessionStorage.setItem('kycIdNumber', idNumber);
+            window.location.href = 'login'; 
+        }
+        
+        document.getElementById('next-step-btn').addEventListener('click', goToNextStep);
+    </script>
+</body>
+</html>

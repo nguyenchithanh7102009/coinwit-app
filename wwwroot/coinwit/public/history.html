@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch Sử Giao Dịch | CoinWit</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e; 
+            color: #e0e0e0;
+            padding-top: 61px;
+        }
+        
+        :root {
+            --yellow-accent: #facc15;
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+
+        .header-sticky {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(8px); 
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        .loader {
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--yellow-accent);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 40px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+    </style>
+</head>
+<body class="min-h-screen antialiased">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="#" onclick="window.history.back(); return false;" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-[var(--text-primary)] hover:bg-[var(--border-color)] transition-colors">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-xl font-bold text-[var(--text-primary)]">Lịch Sử Giao Dịch</h1>
+        <div class="w-10 h-10"></div>
+    </header>
+
+    <main class="max-w-3xl mx-auto p-4 space-y-4">
+        
+        <div id="history-list" class="space-y-3">
+            <div id="loading-indicator" class="text-center p-10">
+                <div class="loader"></div>
+                <p class="text-[var(--text-secondary)]">Đang tải lịch sử...</p>
+            </div>
+            </div>
+
+    </main>
+    
+    <script src="main.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // [SỬA LỖI] Đảm bảo gọi đúng hàm từ main.js
+            if (typeof window.checkLogin !== 'function' || 
+                typeof window.fetchAPI !== 'function' ||
+                typeof window.formatCurrency !== 'function' ||
+                typeof window.initCurrency !== 'function') {
+                
+                document.getElementById('loading-indicator').innerHTML = '<p class="text-red-500 text-center">Lỗi nghiêm trọng: Không tải được main.js.<br>Vui lòng thử lại.</p>';
+                return;
+            }
+
+            // [SỬA LỖI] Phải chạy initCurrency TRƯỚC
+            await window.initCurrency();
+
+            // [SỬA LỖI] Sửa tên hàm checkLoginAndRedirect -> checkLogin
+            const isLoggedIn = window.checkLogin(true); // Yêu cầu đăng nhập
+            if (!isLoggedIn) return; 
+
+            loadHistory();
+        });
+
+        async function loadHistory() {
+            const listContainer = document.getElementById('history-list');
+            const loadingIndicator = document.getElementById('loading-indicator');
+
+            try {
+                // [SỬA LỖI API] Gọi đúng endpoint trong server.js
+                // Đổi từ /api/user/bet-history -> /api/game/bet-history
+                const historyData = await window.fetchAPI('/api/game/bet-history'); 
+                
+                loadingIndicator.remove();
+
+                if (!historyData || historyData.length === 0) {
+                    listContainer.innerHTML = '<p class="text-center text-[var(--text-secondary)] p-10">Bạn chưa có lịch sử giao dịch nào.</p>';
+                    return;
+                }
+
+                // Server đã sắp xếp, không cần sort lại
+                historyData.forEach(bet => {
+                    listContainer.appendChild(createHistoryRow(bet));
+                });
+
+            } catch (error) {
+                // [SỬA LỖI] Hiển thị lỗi từ server (Route API không tồn tại)
+                loadingIndicator.innerHTML = `<p class="text-red-500 text-center">Lỗi: ${error.message}</p>`;
+            }
+        }
+        
+        // [NÂNG CẤP] Hàm tạo hàng lịch sử (Xử lý nhiều game)
+        function createHistoryRow(bet) {
+            const row = document.createElement('div');
+            row.className = 'bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-4 flex items-center space-x-4';
+
+            // 1. Logic Trạng thái (Thắng/Thua)
+            const isWin = bet.status === 'WIN';
+            const statusColorClass = isWin ? 'text-green-400' : (bet.status === 'LOSE' ? 'text-red-400' : 'text-gray-400');
+            // Payout là lợi nhuận (đã trừ vốn)
+            const payoutSign = isWin ? '+' : ''; 
+            const payoutDisplay = window.formatCurrency(bet.payout); // Hiển thị lợi nhuận/thua lỗ
+            
+            // 2. Format thời gian
+            const date = new Date(bet.placedAt);
+            const formattedTime = date.toLocaleString('vi-VN', { 
+                day: '2-digit', month: '2-digit', year: 'numeric', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit' 
+            });
+            
+            // 3. [NÂNG CẤP] Logic Icon và Tên Game
+            let gameIcon = 'fa-dice'; // Mặc định
+            let gameName = bet.betType; 
+            let resultInfo = bet.resultNumber || '';
+
+            if (bet.betType === 'PLINKO') {
+                gameIcon = 'fa-compact-disc';
+                gameName = `Plinko`;
+                resultInfo = `Kết quả: ${bet.resultNumber}`; // vd: Kết quả: x1.5
+            } else if (bet.betType === 'CRASH') {
+                gameIcon = 'fa-rocket';
+                gameName = `Game Du Hành`;
+                resultInfo = `Kết quả: ${bet.resultNumber}`; // vd: Kết quả: Nhảy@2.5x
+            } else if (['XANH', 'ĐỎ', 'TÍM', 'VÀNG', 'CHẴN', 'LẺ'].includes(bet.betType)) {
+                gameIcon = 'fa-dice-d20'; // Đổi icon
+                gameName = `Game 1-20 (Cược ${bet.betType})`;
+                resultInfo = `Kết quả: ${bet.resultNumber}`;
+            } else if (!isNaN(parseInt(bet.betType))) {
+                 gameIcon = 'fa-hashtag';
+                 gameName = `Game 1-20 (Cược Số ${bet.betType})`;
+                 resultInfo = `Kết quả: ${bet.resultNumber}`;
+            }
+
+            row.innerHTML = `
+                <div class="text-2xl ${statusColorClass}">
+                    <i class="fas ${gameIcon}"></i>
+                </div>
+                <div class="flex-grow">
+                    <p class="font-bold text-white">${gameName}</p>
+                    <p class="text-xs text-[var(--text-secondary)]">${formattedTime}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="font-bold ${statusColorClass} text-lg">
+                        ${payoutSign}${payoutDisplay}
+                    </p>
+                    <p class="text-sm text-[var(--text-secondary)]">Cược: ${window.formatCurrency(bet.betAmount)}</p>
+                </div>
+            `;
+            return row;
+        }
+    </script>
+</body>
+</html>

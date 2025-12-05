@@ -1,0 +1,16 @@
+{
+    "users": [
+        {
+            "id": 0,
+            "username": "admin",
+            "password": "123456",
+            "isAdmin": true,
+            "balance": 0,
+            "lifetimeDeposit": 0,
+            "vipLevel": 0,
+            "fullName": "ADMIN HỆ THỐNG",
+            "isNameVerified": true,
+            "email": "admin@coinvid.com",
+            "fundPasswordHash": null,
+            "depositHistory": []
+        },

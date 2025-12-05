@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quay Số May Mắn 1-20 | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+    <script src="api.js" defer></script>
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            /* Màu cược mới */
+            --color-green: #10b981; /* XANH */
+            --color-red: #ef4444; /* ĐỎ */
+            --color-purple: #8b5cf6; /* TÍM */
+            --color-yellow: #f59e0b; /* VÀNG */
+            --color-black: #1f2937; /* ĐEN (Dùng cho Parity) */
+            --color-white: #f3f4f6; /* TRẮNG (Dùng cho Parity) */
+            --color-number-bg: #374151; /* Màu nền xám đậm cho nút số */
+            
+            /* SỬA: Thêm màu cho CHẴN/LẺ */
+            --color-CHẴN: #1f2937;
+            --color-LẺ: #f3f4f6;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-top: 122px; /* Header + Sub-header */
+            box-sizing: border-box;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        main {
+            flex-grow: 1;
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .header-sticky {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: fixed; top: 61px; left: 0; right: 0; z-index: 30;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        .btn-yellow {
+            background-color: var(--yellow-accent);
+            color: #111827;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.2s ease-in-out; 
+        }
+        .btn-yellow:hover:not(:disabled) {
+             transform: scale(1.03);
+             filter: brightness(1.1);
+        }
+        .btn-yellow:active:not(:disabled) {
+             transform: scale(0.98);
+        }
+        .btn-yellow:disabled {
+            background-color: #4b5563;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+        /* [GAME STYLES] */
+        .bet-btn {
+            padding: 0.75rem 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease-in-out; 
+            cursor: pointer;
+            line-height: 1.25; 
+        }
+        .bet-btn:hover {
+            transform: scale(1.05);
+            filter: brightness(1.15);
+        }
+        .bet-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Màu cược */
+        .color-XANH { background-color: var(--color-green); } 
+        .color-ĐỎ { background-color: var(--color-red); }
+        .color-TÍM { background-color: var(--color-purple); }
+        .color-VÀNG { background-color: var(--color-yellow); }
+        /* SỬA: Đổi tên */
+        .color-CHẴN { background-color: var(--color-CHẴN); } 
+        .color-LẺ { background-color: var(--color-LẺ); color: #111; } 
+
+        /* Nút số cụ thể */
+        .number-bet-btn {
+            background-color: var(--color-number-bg);
+            padding: 0.75rem 0;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 8px; 
+            box-shadow: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #countdown-timer {
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 800;
+            color: var(--yellow-accent);
+        }
+
+        #result-display-box {
+            background-color: #1f2937;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        /* CSS Spinner */
+        #spinner-container {
+            background-color: var(--card-bg);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        #spinner-container::before,
+        #spinner-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 60px;
+            z-index: 10;
+        }
+        #spinner-container::before {
+            left: 0;
+            background: linear-gradient(to right, var(--card-bg), transparent);
+        }
+        #spinner-container::after {
+            right: 0;
+            background: linear-gradient(to left, var(--card-bg), transparent);
+        }
+        #spinner-reel {
+            z-index: 5;
+            transition-property: transform;
+        }
+        #spinner-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background-color: white; 
+            opacity: 1; 
+            box-shadow: 0 0 10px white, 0 0 5px white; 
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+        .spinner-cell {
+            width: 50px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white; 
+            flex-shrink: 0;
+            border-right: 1px solid var(--border-color);
+            box-sizing: border-box; 
+        }
+
+        /* SỬA: Lịch sử cầu - THIẾT KẾ MỚI (Bảng Cầu) */
+        #trend-grid {
+             display: grid;
+             /* 7 cột */
+             grid-template-columns: repeat(7, 1fr);
+             /* 3 hàng */
+             grid-template-rows: repeat(3, 1fr);
+             /* Điền theo cột TỪ TRÊN XUỐNG */
+             grid-auto-flow: column;
+             gap: 8px;
+             justify-items: center;
+             width: 100%;
+             padding: 0;
+        }
+        
+        /* ===== [SỬA LỖI] ===== */
+        .trend-cell {
+             /* ĐÃ BÌNH LUẬN: Bỏ width/height cố định để tự co giãn */
+             /* width: 36px; */ /* w-9 */
+             /* height: 36px; */ /* h-9 */
+             
+             /* ĐÃ THÊM: Tự động co giãn theo cột (100% width của 1fr) và giữ tỷ lệ 1:1 (vuông) */
+             width: 100%;
+             aspect-ratio: 1 / 1;
+             
+             border-radius: 50%;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             /* Giảm cỡ chữ một chút để vừa khi ô quá nhỏ */
+             font-size: 0.875rem; /* text-sm */
+             font-weight: 700;
+             flex-shrink: 0;
+             border: 1px solid var(--border-color);
+             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); 
+        }
+        /* ===== [HẾT SỬA LỖI] ===== */
+
+        /* Modal Lịch sử cược */
+        #history-content::-webkit-scrollbar { width: 6px; }
+        #history-content::-webkit-scrollbar-track { background: #111; }
+        #history-content::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+
+        /* CSS CHO MODAL VỚI HIỆU ỨNG */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.3s ease-in-out;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: all;
+        }
+        .modal-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 380px;
+            margin: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.3s ease-in-out;
+        }
+        .modal-overlay.visible .modal-card {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Nút điều chỉnh cược */
+        .mod-btn {
+            background-color: #374151;
+            color: white;
+            font-weight: 700;
+            border-radius: 8px;
+            padding: 0.75rem;
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+        }
+        .mod-btn:hover {
+            background-color: #4b5563;
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        .mod-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Nút chọn nhanh mệnh giá */
+        .quick-bet-btn {
+            background-color: #2b2d35;
+            color: var(--text-primary);
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0.75rem 0.5rem;
+            font-size: 0.875rem;
+            transition: all 0.2s ease-in-out;
+        }
+        .quick-bet-btn:hover {
+            background-color: #374151;
+            color: var(--yellow-accent);
+            transform: scale(1.05);
+        }
+        .quick-bet-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Ô nhập liệu trong modal */
+        #modal-bet-amount {
+            background-color: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            color: var(--yellow-accent);
+            font-weight: 800;
+            font-size: 1.5rem;
+            line-height: 2rem;
+            text-align: center;
+            border-radius: 8px;
+            padding: 0.75rem 0.5rem;
+            width: 100%;
+        }
+        #modal-bet-amount::-webkit-outer-spin-button,
+        #modal-bet-amount::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        #modal-bet-amount {
+            -moz-appearance: textfield; /* Firefox */
+        }
+        
+        /* THÊM CSS CHO LOADER TRONG MODAL */
+        .loader { 
+            border: 4px solid var(--border-color); 
+            border-top: 4px solid var(--yellow-accent); 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
+            display: inline-block;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="text-2xl font-bold" style="color: var(--yellow-accent);">
+            CoinWit
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <div class="h-[61px] flex items-center px-4 py-3 sub-header-sticky">
+        <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Quay Số Chẵn Lẻ</h1>
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <main class="flex-grow p-4 space-y-4 w-full max-w-lg mx-auto">
+        
+        <div class="card p-4 flex justify-between items-center">
+            <div class="flex-grow text-left">
+                <span class="text-gray-400 font-medium text-sm">Số dư khả dụng:</span>
+                <span id="balance-display" class="text-2xl font-bold text-white block">0.00 USDT</span>
+                <span id="user-info-display" class="text-xs text-gray-400">Loading...</span>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                 <button id="currency-toggle-btn" class="text-xs px-3 py-1 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-medium" onclick="toggleCurrency()">
+                   Chuyển sang VND
+                 </button>
+                 <a href="deposit" class="btn-yellow px-4 py-2 text-sm font-bold mt-1" style="background-color: var(--yellow-accent);">
+                     <i class="fa-solid fa-wallet mr-1"></i> NẠP TIỀN
+                 </a>
+            </div>
+        </div>
+
+        <div class="card p-4 md:p-6 text-center space-y-3">
+            <div class="flex justify-between items-center text-sm font-medium">
+                <span>Phiên: <span id="game-round" class="text-white font-bold">#000000</span></span>
+                <span id="game-status" class="text-green-400 font-bold">ĐANG MỞ CƯỢC</span>
+            </div>
+            
+            <div id="result-display-box" class="mt-4 flex items-center justify-between">
+                 <div class="text-left">
+                     <p class="text-gray-400 text-sm">Thời gian còn lại:</p>
+                     <p id="countdown" class="text-4xl font-extrabold text-white">00:50</p>
+                 </div>
+                 <div class="text-right">
+                     <p class="text-gray-400 text-sm">Kết quả phiên trước:</p>
+                     <p id="last-result" class="text-2xl font-bold text-white flex justify-end items-center gap-2">
+                         <span id="result-number-last" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-600 text-sm">?</span>
+                     </p>
+                 </div>
+            </div>
+
+            <div id="spinner-container" class="w-full h-12 rounded-lg overflow-hidden relative">
+                <div id="spinner-reel" class="flex absolute h-full" style="will-change: transform;">
+                    </div>
+                <div id="spinner-line"></div>
+            </div>
+            <p id="result-text" class="text-sm font-semibold text-yellow-400 h-5"></p>
+
+
+            <div class="space-y-2 pt-4 border-t border-gray-700/50">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-gray-400">Lịch Sử Cầu</h3>
+                    <button id="bet-history-btn" class="text-xs px-3 py-1 rounded-full bg-gray-700 hover:bg-gray-600 text-white font-medium">
+                        Lịch sử cược
+                    </button>
+                </div>
+                
+                <div id="trend-grid-container" class="bg-gray-700 p-3 rounded-lg">
+                    <div id="trend-grid" class="">
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4 md:p-6 space-y-4">
+    
+            <h3 class="text-lg font-bold text-white mb-2">CƯỢC CHẴN/LẺ (1:1.95)</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button class="bet-btn text-white" style="background-color: var(--color-CHẴN);" data-type="CHẴN" onclick="selectBetType('CHẴN')">CHẴN</button>
+                <button class="bet-btn" style="background-color: var(--color-LẺ); color: #111827;" data-type="LẺ" onclick="selectBetType('LẺ')">LẺ</button>
+            </div>
+
+            <h3 class="text-lg font-bold text-white mt-4 mb-2">CƯỢC MÀU (1:3.9)</h3>
+            <div class="grid grid-cols-4 gap-2">
+                <button class="bet-btn text-white" style="background-color: var(--color-green);" data-type="XANH" onclick="selectBetType('XANH')">XANH (1-5)</button>
+                <button class="bet-btn text-white" style="background-color: var(--color-red);" data-type="ĐỎ" onclick="selectBetType('ĐỎ')">ĐỎ (6-10)</button>
+                <button class="bet-btn text-white" style="background-color: var(--color-purple);" data-type="TÍM" onclick="selectBetType('TÍM')">TÍM (11-15)</button>
+                <button class="bet-btn text-gray-900" style="background-color: var(--color-yellow);" data-type="VÀNG" onclick="selectBetType('VÀNG')">VÀNG (16-20)</button>
+            </div>
+
+
+            <h3 class="text-lg font-bold text-white mt-4 mb-2">CƯỢC SỐ CỤ THỂ (1:19.5)</h3>
+            <div id="total-bet-grid" class="grid grid-cols-5 gap-2">
+                </div>
+            
+            <p id="bet-message" class="text-sm text-yellow-400 h-5 text-center"></p>
+
+        </div>
+
+    </main>
+    
+    <div id="bet-history-modal" class="modal-overlay">
+        <div class="modal-card max-h-[70vh] flex flex-col">
+            <div class="flex justify-between items-center p-4 border-b border-border-color">
+                <h2 class="text-lg font-bold text-yellow-accent">Lịch Sử Cược (Game 1-20)</h2> <button id="close-history-modal" class="text-2xl text-white">&times;</button>
+            </div>
+            <div id="history-content" class="p-4 overflow-y-auto space-y-3">
+                <p id="history-loading" class="text-center text-gray-400">
+                    <span class="loader"></span> Đang tải...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="bet-modal" class="modal-overlay">
+        <div class="modal-card p-5 space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-bold text-white">Xác Nhận Cược</h2>
+                <button id="close-bet-modal" class="text-3xl text-gray-400 hover:text-white">&times;</button>
+            </div>
+
+            <div class="flex justify-between items-center bg-gray-800 p-3 rounded-lg">
+                <div class="flex flex-col text-left">
+                    <span class="text-sm text-gray-400">Bạn chọn</span>
+                    <div id="modal-bet-type-display" class="w-20 h-12 rounded-lg flex items-center justify-center font-bold text-lg mt-1" 
+                         style="background-color: var(--color-number-bg); color: white;">
+                    </div>
+                </div>
+                <div class="flex flex-col text-right">
+                    <span class="text-sm text-gray-400">Tỷ lệ cược</span>
+                    <span id="modal-bet-odds" class="text-2xl font-bold text-yellow-accent">1:0.00</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <span class="text-sm text-gray-400">Chọn mệnh giá</span>
+                <div class="grid grid-cols-3 gap-3 items-center">
+                    
+                    <div class="flex flex-col space-y-2">
+                        <button id="modal-bet-minus" class="mod-btn text-2xl">-</button>
+                        <button id="modal-bet-half" class="mod-btn text-lg">/2</button>
+                    </div>
+                    
+                    <div class="flex flex-col items-center justify-center">
+                        <span id="modal-currency-label" class="text-sm font-medium text-gray-400 mb-1">USDT</span>
+                        <input type="number" id="modal-bet-amount" placeholder="0.00" class="w-full">
+                    </div>
+
+                    <div class="flex flex-col space-y-2">
+                        <button id="modal-bet-plus" class="mod-btn text-2xl">+</button>
+                        <button id="modal-bet-double" class="mod-btn text-lg">x2</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2">
+                <button class="quick-bet-btn" data-amount="0.1">0.1</button>
+                <button class="quick-bet-btn" data-amount="1">1</button>
+                <button class="quick-bet-btn" data-amount="5">5</button>
+                <button class="quick-bet-btn" data-amount="10">10</button>
+                <button class="quick-bet-btn" data-amount="50">50</button>
+                <button class="quick-bet-btn" data-amount="100">100</button>
+                <button class="quick-bet-btn" data-amount="500">500</button>
+                <button id="modal-bet-max" class="quick-bet-btn font-bold" style="color: var(--yellow-accent);">TẤT CẢ</button>
+            </div>
+            
+            <p id="modal-bet-message" class="text-sm text-yellow-400 h-5 text-center"></p>
+
+            <button id="modal-confirm-bet" class="w-full py-4 btn-yellow text-lg" disabled>
+                XÁC NHẬN
+            </button>
+        </div>
+    </div>
+
+
+    <script>
+        // --- CÀI ĐẶT GAME ---
+        const FULL_TIME = 50; 
+        // [SỬA] Đổi 'const' thành 'let' và đặt giá trị mặc định
+        let VND_EXCHANGE_RATE = 25000; 
+        const MIN_BET_USDT = 0.1; 
+        
+        const COLOR_MAP = {
+            'XANH': '#10b981',
+            'ĐỎ': '#ef4444',
+            'TÍM': '#8b5cf6',
+            'VÀNG': '#f59e0b',
+            'CHẴN': '#1f2937', 
+            'LẺ': '#f3f4f6',    
+            'number-bg': '#374151',
+            'GRAY': '#374151' 
+        };
+
+        // --- BIẾN TRẠẠNG THÁI GAME ---
+        let balance = 0; 
+        let vipLevel = 1;
+        let username = 'User';
+        let displayCurrency = 'USDT';
+        let countdown = FULL_TIME;
+        let isBettingOpen = true;
+        let currentBet = { type: null, amount: 0 };
+        let MY_USER_ID = '';
+        let socket = null;
+        let lastStopPosition = 0; 
+        let pendingResult = null;
+        
+        // --- DOM ELEMENTS ---
+        const balanceDisplay = document.getElementById('balance-display');
+        const userInfoDisplay = document.getElementById('user-info-display');
+        const gameStatus = document.getElementById('game-status');
+        const countdownDisplay = document.getElementById('countdown');
+        const resultText = document.getElementById('result-text');
+        const trendGrid = document.getElementById('trend-grid');
+        const currencyToggleBtn = document.getElementById('currency-toggle-btn');
+        const lastResultNumber = document.getElementById('result-number-last');
+        const spinnerContainer = document.getElementById('spinner-container');
+        const spinnerReel = document.getElementById('spinner-reel');
+        
+        const betMessage = document.getElementById('bet-message');
+        
+        // DOM Modal Lịch sử
+        const betHistoryBtn = document.getElementById('bet-history-btn');
+        const betHistoryModal = document.getElementById('bet-history-modal');
+        const closeHistoryModal = document.getElementById('close-history-modal');
+        const historyContent = document.getElementById('history-content');
+        const historyLoading = document.getElementById('history-loading');
+
+        // DOM Modal Cược
+        const betModal = document.getElementById('bet-modal');
+        const closeBetModal = document.getElementById('close-bet-modal');
+        const modalBetTypeDisplay = document.getElementById('modal-bet-type-display');
+        const modalBetOdds = document.getElementById('modal-bet-odds');
+        const modalBetAmount = document.getElementById('modal-bet-amount');
+        const modalBetMessage = document.getElementById('modal-bet-message');
+        const modalConfirmBet = document.getElementById('modal-confirm-bet');
+        const modalBetMinus = document.getElementById('modal-bet-minus');
+        const modalBetPlus = document.getElementById('modal-bet-plus');
+        const modalBetHalf = document.getElementById('modal-bet-half');
+        const modalBetDouble = document.getElementById('modal-bet-double');
+        const modalBetMax = document.getElementById('modal-bet-max');
+
+
+        // --- CÁC HÀM TIỆN ÍCH ---
+
+        function formatGameCurrency(amount) {
+            let numberAmount = parseFloat(amount);
+            if (isNaN(numberAmount)) { numberAmount = 0; }
+            // [SỬA] Sử dụng biến VND_EXCHANGE_RATE đã được cập nhật
+            const finalAmount = numberAmount * (displayCurrency === 'VND' ? VND_EXCHANGE_RATE : 1);
+            const unit = displayCurrency === 'VND' ? ' ₫' : ' USDT';
+            
+            // Định dạng số
+            const formatted = finalAmount.toLocaleString('en-US', { 
+                minimumFractionDigits: (displayCurrency === 'VND') ? 0 : 2,
+                maximumFractionDigits: (displayCurrency === 'VND') ? 0 : 2
+            }); 
+            return formatted + unit;
+        }
+
+        function updateBalance(newBalance) {
+            balance = newBalance;
+            updateBalanceDisplay();
+        }
+
+        function updateBalanceDisplay() {
+            balanceDisplay.textContent = formatGameCurrency(balance);
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 0) seconds = 0;
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+        
+        function getColorName(number) {
+            if (number >= 1 && number <= 5) return 'XANH';
+            if (number >= 6 && number <= 10) return 'ĐỎ';
+            if (number >= 11 && number <= 15) return 'TÍM';
+            if (number >= 16 && number <= 20) return 'VÀNG';
+            return 'GRAY'; 
+        }
+
+        function getColorHex(colorName) {
+             return COLOR_MAP[colorName] || COLOR_MAP['GRAY'];
+        }
+        
+        function renderNumberButtons() {
+            const container = document.getElementById('total-bet-grid');
+            container.innerHTML = '';
+            for (let i = 1; i <= 20; i++) {
+                const button = document.createElement('button');
+                button.className = 'bet-btn number-bet-btn text-white';
+                button.style.backgroundColor = getColorHex('number-bg'); 
+                
+                button.textContent = i;
+                button.dataset.type = i.toString();
+                button.onclick = () => selectBetType(i.toString());
+                container.appendChild(button);
+            }
+        }
+
+        function createSpinnerReel() {
+            const numbers = [];
+            for (let i = 1; i <= 20; i++) { numbers.push(i); }
+            
+            let reelHTML = '';
+            for (let i = 0; i < 200; i++) {
+                for (const num of numbers) {
+                    const color = getColorName(num);
+                    const colorVar = getColorHex(color);
+                    // ĐÃ THAY ĐỔI: Tất cả các số trong vòng quay là màu trắng
+                    reelHTML += `<div class="spinner-cell" style="background-color: ${colorVar}; color: white;">${num}</div>`;
+                }
+            }
+            spinnerReel.innerHTML = reelHTML;
+        }
+
+        // *** HÀM ĐÃ SỬA LỖI MÀU SẮC TRÊN BẢNG LỊCH SỬ ***
+        function updateHistoryGrid(result) {
+            const { color, number, parity } = result; // 'color' là XANH, ĐỎ, TÍM, VÀNG
+            const cell = document.createElement('div');
+            cell.className = 'trend-cell'; 
+            
+            const bgColorVar = getColorHex(parity); // Nền là CHẴN hoặc LẺ
+            const textColorVar = getColorHex(color); // Màu chữ là XANH, ĐỎ, TÍM, VÀNG
+            
+            cell.style.backgroundColor = bgColorVar;
+            cell.style.color = textColorVar; 
+            
+            // Xử lý trường hợp đặc biệt: Chữ VÀNG (sáng) trên nền LẺ (sáng)
+            if (color === 'VÀNG' && parity === 'LẺ') {
+                 cell.style.color = getColorHex('CHẴN'); // Dùng màu tối (của CHẴN) cho chữ
+            }
+            
+            cell.textContent = number;
+            
+            // Thêm vào ĐẦU (prepend)
+            trendGrid.prepend(cell);
+            
+            // Giới hạn 21 ô (7 cột x 3 hàng)
+            while (trendGrid.children.length > 21) {
+                trendGrid.removeChild(trendGrid.lastChild);
+            }
+        }
+
+        function updateLastResultDisplay(result) {
+            const colorName = result.color;
+            const colorVar = getColorHex(colorName);
+            
+            document.getElementById('result-number-last').textContent = result.number;
+            document.getElementById('result-number-last').style.backgroundColor = colorVar;
+            // ĐÃ THAY ĐỔI: Màu chữ vẫn là màu mặc định (trắng) cho kết quả cuối cùng
+            document.getElementById('result-number-last').style.color = 'white';
+        }
+
+
+        function resetRound() {
+            countdown = FULL_TIME;
+            isBettingOpen = true;
+            currentBet = { type: null, amount: 0 };
+            
+            gameStatus.classList.remove('text-red-400', 'text-yellow-400');
+            gameStatus.classList.add('text-green-400');
+            gameStatus.textContent = 'ĐANG MỞ CƯỢC';
+            
+            resultText.classList.add('hidden');
+            resultText.textContent = "";
+            
+            betMessage.textContent = "";
+            betMessage.className = 'text-sm text-yellow-400 h-5 text-center';
+
+            betModal.classList.remove('visible');
+            
+            document.querySelectorAll('.bet-btn.selected').forEach(btn => btn.classList.remove('selected'));
+        }
+        
+        window.toggleCurrency = function() {
+            displayCurrency = displayCurrency === 'USDT' ? 'VND' : 'USDT';
+            currencyToggleBtn.textContent = `Chuyển sang ${displayCurrency === 'USDT' ? 'VND' : 'USDT'}`;
+            updateBalanceDisplay();
+            
+            document.getElementById('modal-currency-label').textContent = displayCurrency;
+            
+            document.querySelectorAll('.bet-btn.selected').forEach(btn => btn.classList.remove('selected'));
+            currentBet.type = null;
+        }
+        
+        window.selectBetType = function(type) {
+            if (!isBettingOpen) {
+                return;
+            }
+            
+            currentBet.type = type;
+            let odds = "1:0.00";
+            
+            const isNumberBet = !isNaN(parseInt(type));
+            
+            if (isNumberBet) {
+                odds = "1:19.5";
+                modalBetTypeDisplay.textContent = type;
+                modalBetTypeDisplay.style.backgroundColor = getColorHex('number-bg');
+                modalBetTypeDisplay.style.color = 'white';
+            } else {
+                modalBetTypeDisplay.textContent = type;
+                modalBetTypeDisplay.style.backgroundColor = getColorHex(type);
+                modalBetTypeDisplay.style.color = (type === 'LẺ') ? '#111' : 'white';
+
+                if (type === 'CHẴN' || type === 'LẺ') {
+                    odds = "1:1.95";
+                } else if (['XANH', 'ĐỎ', 'TÍM', 'VÀNG'].includes(type)) {
+                    odds = "1:3.9";
+                }
+            }
+
+            modalBetOdds.textContent = odds;
+            
+            document.getElementById('modal-currency-label').textContent = displayCurrency;
+            
+            modalBetAmount.value = '';
+            modalBetMessage.textContent = '';
+            modalBetMessage.classList.remove('text-red-400', 'text-green-400');
+            modalConfirmBet.disabled = true;
+
+            betModal.classList.add('visible');
+            modalBetAmount.focus();
+        }
+
+        function handlePlaceBet() {
+            let amountStr = modalBetAmount.value;
+            let amount = parseFloat(amountStr);
+            const errorEl = modalBetMessage;
+            
+            if (isNaN(amount) || amount <= 0) { 
+                errorEl.textContent = "Số tiền không hợp lệ."; 
+                errorEl.classList.add('text-red-400');
+                return; 
+            }
+            
+            // [SỬA] Sử dụng biến VND_EXCHANGE_RATE đã được cập nhật
+            const betAmountUSDT = displayCurrency === 'VND' ? (amount / VND_EXCHANGE_RATE) : amount;
+            // Làm tròn xuống 4 chữ số thập phân để tránh cộng thêm do làm tròn lên
+            const finalBetAmount = Math.floor(betAmountUSDT * 10000) / 10000;
+            
+            if (finalBetAmount < MIN_BET_USDT) {
+                const minBetDisplay = formatGameCurrency(MIN_BET_USDT); 
+                errorEl.textContent = `Lỗi: Cược tối thiểu là ${minBetDisplay}.`;
+                errorEl.classList.add('text-red-400');
+                return;
+            }
+
+            if (finalBetAmount > balance + 0.0001) { 
+                errorEl.textContent = `Lỗi: Số dư (${formatGameCurrency(balance)}) không đủ.`;
+                errorEl.classList.add('text-red-400');
+                return; 
+            }
+            
+            socket.emit('place_bet', {
+                user_id: MY_USER_ID,
+                amount: finalBetAmount,
+                type: currentBet.type
+            });
+            
+            modalConfirmBet.disabled = true;
+            errorEl.textContent = `Đang xử lý cược...`;
+            errorEl.classList.remove('text-red-400');
+            errorEl.classList.add('text-yellow-400');
+        }
+
+        // ======================================================
+        // === BẮT ĐẦU CHỈNH SỬA LỊCH SỬ CƯỢC (GAME 1-20) ===
+        // ======================================================
+
+        async function loadBetHistory() {
+            historyContent.innerHTML = '';
+            historyLoading.classList.remove('hidden');
+            historyContent.appendChild(historyLoading);
+
+            try {
+                // [SỬA] Đổi tên API endpoint
+                const historyData = await fetchAPI('/api/game/1-20-history'); 
+                historyLoading.classList.add('hidden');
+                historyContent.innerHTML = ''; // Xóa loading
+
+                // --- [SỬA] Không cần lọc nữa vì API đã lọc sẵn ---
+                // const validGameTypes = [ ... ];
+                // const gameHistory = historyData.filter(bet => validGameTypes.includes(bet.betType));
+                const gameHistory = historyData; // Dùng trực tiếp
+                // --- KẾT THÚC LỌC ---
+
+                if (gameHistory.length === 0) { // Sửa: Dùng gameHistory
+                    historyContent.innerHTML = '<p class="text-center text-gray-400">Bạn chưa có lịch sử cược nào cho game này.</p>';
+                    return;
+                }
+
+                gameHistory.forEach(bet => { // Sửa: Dùng gameHistory
+                    historyContent.appendChild(createHistoryRow(bet));
+                });
+
+            } catch (error) {
+                historyContent.innerHTML = `<p class="text-center text-red-400">Lỗi: ${error.message}</p>`;
+            }
+        }
+
+        function createHistoryRow(bet) {
+            const row = document.createElement('div');
+            row.className = 'p-3 rounded-lg flex items-center gap-3';
+            
+            let statusColorClass = 'text-gray-400';
+            let payoutText = 'Đang chờ';
+            let payoutColorClass = 'text-white';
+            
+            if (bet.status === 'WIN') {
+                statusColorClass = 'text-green-400';
+                payoutText = `+${bet.payout.toFixed(4)} USDT`;
+                payoutColorClass = 'text-green-400';
+                row.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            } else if (bet.status === 'LOSE') {
+                statusColorClass = 'text-red-400';
+                // [SỬA] Hiển thị payout âm (số tiền thua)
+                payoutText = `${bet.payout.toFixed(4)} USDT`; 
+                payoutColorClass = 'text-red-400';
+                row.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            } else {
+                 // [SỬA] Đổi màu nền cho PENDING
+                row.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+            }
+
+            const betTime = new Date(bet.placedAt).toLocaleString('vi-VN');
+            let betTypeDisplay = '';
+            
+            let iconClass = 'fa-solid fa-question';
+            let betTypeColor = '#374151'; // default number-bg
+            let textColor = 'white';
+
+            // Logic chính cho game này
+            if (['XANH', 'ĐỎ', 'TÍM', 'VÀNG', 'CHẴN', 'LẺ'].includes(bet.betType)) {
+                betTypeColor = getColorHex(bet.betType);
+                iconClass = `fa-solid ${bet.betType === 'CHẴN' || bet.betType === 'LẺ' ? 'fa-toggle-on' : 'fa-palette'}`;
+                if (bet.betType === 'LẺ') textColor = '#111';
+                
+                 betTypeDisplay = `<div class="w-16 h-12 rounded-lg flex items-center justify-center font-bold text-sm" style="background-color: ${betTypeColor}; color: ${textColor};">
+                                     <i class="${iconClass} fa-lg"></i>
+                                   </div>`;
+                                   
+            } else if (!isNaN(parseInt(bet.betType))) {
+                // Đây là cược SỐ (1-20)
+                betTypeColor = getColorHex('number-bg');
+                betTypeDisplay = `<div class="w-16 h-12 rounded-lg flex items-center justify-center font-bold text-xl text-white" style="background-color: ${betTypeColor};">
+                                    ${bet.betType}
+                                  </div>`;
+            }
+            
+            // --- KẾT THÚC BỔ SUNG LOGIC ---
+
+            row.innerHTML = `
+                ${betTypeDisplay}
+                <div class="flex-grow">
+                    <p class="text-sm font-semibold text-white">Cược: ${bet.betAmount.toFixed(4)} USDT vào ${bet.betType}</p>
+                    <p class="text-xs text-gray-400">${betTime}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm font-bold ${payoutColorClass}">${payoutText}</p>
+                    <p class="text-xs ${statusColorClass}">
+                        ${bet.status} ${bet.resultNumber ? `(Kết quả: ${bet.resultNumber})` : ''}
+                    </p>
+                </div>
+            `;
+            return row;
+        }
+        
+        // ======================================================
+        // === KẾT THÚC CHỈNH SỬA LỊCH SỬ CƯỢC (GAME 1-20) ===
+        // ======================================================
+
+
+        // SỬA: Hàm tìm vị trí dừng (tìm ở giữa dải số)
+        function getStopPosition(winningNumber) {
+            const cells = spinnerReel.querySelectorAll('.spinner-cell');
+            let targetCell = null;
+            
+            // Tìm ở 1/3 giữa của dải số (ví dụ: 40% - 60%)
+            const searchStartIndex = Math.floor(cells.length * 0.4);
+            const searchEndIndex = Math.floor(cells.length * 0.6);
+            
+            for (let i = searchStartIndex; i < searchEndIndex; i++) {
+                if (parseInt(cells[i].textContent) === winningNumber) {
+                    targetCell = cells[i];
+                    break;
+                }
+            }
+            // Fallback nếu không tìm thấy
+            if (!targetCell) {
+                targetCell = cells[searchStartIndex + winningNumber - 1] || cells[cells.length / 2];
+            }
+            
+            const containerWidth = spinnerContainer.offsetWidth;
+            const stopPosition = -targetCell.offsetLeft - (targetCell.offsetWidth / 2) + (containerWidth / 2);
+            
+            return stopPosition;
+        }
+
+        // *** HÀM XOAY MƯỢT (ĐÃ SỬA) ***
+        // Logic quay số
+        function startSpinnerAnimation() {
+            resultText.classList.add('hidden');
+            
+            spinnerReel.style.transition = 'none';
+            spinnerReel.style.transform = `translateX(${lastStopPosition}px)`;
+            
+            setTimeout(() => {
+                spinnerReel.style.filter = 'blur(2px)';
+                spinnerReel.style.transition = 'transform 5s linear, filter 0.5s ease';
+                spinnerReel.style.transform = `translateX(${lastStopPosition - 15000}px)`; 
+            }, 50); 
+        }
+
+        // *** HÀM XOAY MƯỢT (ĐÃ SỬA) ***
+        function stopSpinnerAnimation(result) {
+            const winningNumber = parseInt(result.number);
+            const stopPosition = getStopPosition(winningNumber);
+            
+            lastStopPosition = stopPosition; 
+
+            spinnerReel.style.transition = 'transform 5s cubic-bezier(0.23, 1, 0.32, 1), filter 2s ease 3s';
+            spinnerReel.style.filter = 'blur(0px)';
+            spinnerReel.style.transform = `translateX(${stopPosition}px)`;
+            
+            setTimeout(() => {
+                resultText.classList.remove('hidden');
+                gameStatus.textContent = 'KẾT QUẢ CUỐI CÙNG';
+                gameStatus.classList.remove('text-red-400');
+                gameStatus.classList.add('text-yellow-400');
+                resultText.textContent = `Kết quả: ${result.number} - ${result.color} - ${result.parity}`;
+                updateLastResultDisplay(result);
+            }, 5000); 
+        }
+
+
+        // --- HÀM KHỞI TẠO GAME ---
+        async function initializeGame() {
+            
+             // Kiểm tra token trước
+             const token = getToken();
+             if (!token) {
+                 window.location.href = 'login';
+                 return;
+             }
+             
+             // Phải tạo dải số quay TRƯỚC khi làm bất cứ điều gì
+             renderNumberButtons(); 
+             createSpinnerReel();
+             
+             document.getElementById('modal-currency-label').textContent = displayCurrency;
+
+             // ==================================================
+             // [SỬA THEO YÊU CẦU]
+             // Tải tỷ giá VNĐ động từ server trước
+             try {
+                 const rateData = await fetchAPI('/wallet/deposit-rate'); // Dùng API tỷ giá nạp tiền
+                 if (rateData && rateData.rate) {
+                     VND_EXCHANGE_RATE = rateData.rate;
+                 } else {
+                 }
+             } catch (e) {
+             }
+             // [KẾT THÚC SỬA]
+             // ==================================================
+
+             try {
+                 // [SỬA] Sử dụng hàm fetchAPI đã sửa lỗi
+                 const userData = await fetchAPI('/user/profile'); 
+                 
+                 MY_USER_ID = userData.userId || (userData.id ? userData.id : 'default-user'); 
+                 updateBalance(userData.balance);
+                 vipLevel = userData.vipLevel || 1;
+                 username = userData.username || 'User';
+                 userInfoDisplay.textContent = `VIP ${vipLevel} | User: ${username}`;
+             } catch(e) {
+                 // Nếu fetchAPI ném lỗi (ví dụ: 401), nó đã xử lý chuyển hướng
+                 // Lỗi này chỉ xảy ra nếu server sập
+                 userInfoDisplay.textContent = "Lỗi tải dữ liệu. Tải lại trang...";
+                 return;
+             }
+
+             // [SỬA LỖI] THAY ĐỔI KẾT NỐI SOCKET
+             socket = io(window.location.origin, { query: { user_id: MY_USER_ID } }); 
+
+             socket.on('connect', () => {
+             });
+             
+             // =============================================
+             // [SỬA LỖI 1] Đổi tên event thành 'game_40s_update'
+             // =============================================
+             socket.on('game_40s_update', (data) => {
+                 resetRound();
+                 countdown = data.time_left;
+                 
+                 if (data.round_id) {
+                     document.getElementById('game-round').textContent = `#${data.round_id}`;
+                 }
+                 
+                 if (data.history && data.history.length > 0) {
+                     trendGrid.innerHTML = '';
+                     data.history.forEach(h => updateHistoryGrid(h));
+                     
+                     const lastResult = data.history[data.history.length - 1];
+                     updateLastResultDisplay(lastResult);
+                     
+                     const initialStopPosition = getStopPosition(parseInt(lastResult.number));
+                     lastStopPosition = initialStopPosition;
+                     spinnerReel.style.transition = 'none'; 
+                     spinnerReel.style.transform = `translateX(${initialStopPosition}px)`;
+                 }
+                 
+                 if (data.status === 'SHAKE_ANNOUNCE') {
+                     gameStatus.textContent = 'ĐANG XỬ LÝ KẾT QUẢ...';
+                     countdownDisplay.textContent = '00:00';
+                 }
+             });
+
+             // =============================================
+             // [SỬA LỖI 2] Đổi tên event thành 'game_40s_time_update'
+             // =============================================
+             socket.on('game_40s_time_update', (data) => {
+                 countdown = data.time_left;
+                 countdownDisplay.textContent = formatTime(countdown);
+
+                 if (countdown <= 0) {
+                     gameStatus.textContent = 'ĐÃ ĐÓNG CƯỢC';
+                     countdownDisplay.textContent = '00:00';
+                     isBettingOpen = false; 
+                     betModal.classList.remove('visible');
+                 } else if (countdown > 0) {
+                     isBettingOpen = true;
+                     gameStatus.textContent = 'ĐANG MỞ CƯỢC';
+                 }
+             });
+             
+             // =============================================
+             // [SỬA LỖI 3] Đổi tên event thành 'game_40s_closed'
+             // =============================================
+             socket.on('game_40s_closed', (data) => {
+                 isBettingOpen = false;
+                 gameStatus.textContent = data.message;
+                 gameStatus.classList.add('text-red-400');
+                 betModal.classList.remove('visible');
+                 
+                 startSpinnerAnimation(); 
+
+                 setTimeout(() => {
+                     if (pendingResult) {
+                         stopSpinnerAnimation(pendingResult);
+                         pendingResult = null;
+                     } else {
+                         // Fallback: Dừng ở số 1
+                         stopSpinnerAnimation({number: '1', color: 'XANH', parity: 'LẺ'});
+                     }
+                 }, 5000); 
+             });
+
+             // =============================================
+             // [SỬA LỖI 4] Đổi tên event thành 'game_40s_result_public'
+             // =============================================
+             socket.on('game_40s_result_public', (data) => {
+                  pendingResult = data.result; 
+             });
+             
+             // [GIỮ NGUYÊN] Các event chung
+             socket.on('user_data_update', (data) => {
+                 if(data.balance !== undefined) updateBalance(data.balance);
+                 // [SỬA] Cập nhật logic hiển thị toast
+                 if (data.lastPayout) {
+                     const payout = data.lastPayout;
+                     const betType = payout.betType || "";
+                     
+                     // Chỉ hiển thị toast cho game này (không phải BO)
+                     const validGameTypes = [
+                         'CHẴN', 'LẺ', 'XANH', 'ĐỎ', 'TÍM', 'VÀNG',
+                         '1', '2', '3', '4', '5', '6', '7', '8', '9', '10',
+                         '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'
+                     ];
+                     
+                     if (validGameTypes.includes(betType)) {
+                         let msg = '';
+                         if (payout.type === 'WIN') {
+                             msg = `Chúc mừng! Bạn thắng ${payout.amount.toFixed(2)} USDT.`;
+                             betMessage.className = 'text-sm text-green-400 h-5 text-center';
+                         } else if (payout.type === 'LOSE') {
+                             msg = `Phiên kết thúc. Bạn thua ${payout.amount.toFixed(2)} USDT.`;
+                             betMessage.className = 'text-sm text-red-400 h-5 text-center';
+                         }
+                         betMessage.textContent = msg;
+                     }
+                 }
+             });
+             
+             // [GIỮ NGUYÊN] Event chung
+             socket.on('bet_response', (data) => {
+                 if (data.success) {
+                     modalBetMessage.textContent = data.message;
+                     updateBalance(data.newBalance);
+                     modalBetMessage.classList.remove('text-red-400');
+                     modalBetMessage.classList.add('text-green-400');
+                     
+                     modalConfirmBet.classList.add('bg-green-500', 'border-green-400');
+                     modalConfirmBet.textContent = 'CƯỢC THÀNH CÔNG!';
+
+                     setTimeout(() => {
+                         betModal.classList.remove('visible');
+                         setTimeout(() => {
+                             modalConfirmBet.classList.remove('bg-green-500', 'border-green-400');
+                             modalConfirmBet.textContent = 'XÁC NHẬN';
+                             modalConfirmBet.disabled = true;
+                         }, 300);
+                     }, 1500);
+
+                 } else {
+                     modalBetMessage.textContent = data.message;
+                     modalBetMessage.classList.add('text-red-400');
+                     modalConfirmBet.disabled = !isBettingOpen;
+                 }
+             });
+
+             // --- Gán sự kiện ---
+             
+             betHistoryBtn.addEventListener('click', () => {
+                 betHistoryModal.classList.add('visible');
+                 loadBetHistory();
+             });
+             closeHistoryModal.addEventListener('click', () => {
+                 betHistoryModal.classList.remove('visible');
+             });
+             betHistoryModal.addEventListener('click', (e) => {
+                  if (e.target.id === 'bet-history-modal') {
+                     betHistoryModal.classList.remove('visible');
+                  }
+             });
+             
+             closeBetModal.addEventListener('click', () => {
+                 betModal.classList.remove('visible');
+             });
+             betModal.addEventListener('click', (e) => {
+                 if (e.target.id === 'bet-modal') {
+                     betModal.classList.remove('visible');
+                 }
+             });
+             
+             modalBetAmount.addEventListener('input', () => {
+                 const amount = parseFloat(modalBetAmount.value);
+                 modalConfirmBet.disabled = isNaN(amount) || amount <= 0;
+                 modalBetMessage.textContent = '';
+                 modalBetMessage.classList.remove('text-red-400', 'text-green-400');
+             });
+             
+             // =============================================
+             // [SỬA LỖI 5] Đổi tên event 'place_bet' thành 'game_40s_place_bet'
+             // =============================================
+             function handlePlaceBet() {
+                 let amountStr = modalBetAmount.value;
+                 let amount = parseFloat(amountStr);
+                 const errorEl = modalBetMessage;
+            
+                 if (isNaN(amount) || amount <= 0) { 
+                     errorEl.textContent = "Số tiền không hợp lệ."; 
+                     errorEl.classList.add('text-red-400');
+                     return; 
+                 }
+            
+                 // [SỬA] Đảm bảo dùng tỷ giá đã cập nhật
+                 const betAmountUSDT = displayCurrency === 'VND' ? (amount / VND_EXCHANGE_RATE) : amount;
+                 // Làm tròn xuống 4 chữ số để không bao giờ cộng thêm do làm tròn
+                 const finalBetAmount = Math.floor(betAmountUSDT * 10000) / 10000;
+            
+                 if (finalBetAmount < MIN_BET_USDT) {
+                     const minBetDisplay = formatGameCurrency(MIN_BET_USDT); 
+                     errorEl.textContent = `Lỗi: Cược tối thiểu là ${minBetDisplay}.`;
+                     errorEl.classList.add('text-red-400');
+                     return;
+                 }
+
+                 if (finalBetAmount > balance + 0.0001) { 
+                     errorEl.textContent = `Lỗi: Số dư (${formatGameCurrency(balance)}) không đủ.`;
+                     errorEl.classList.add('text-red-400');
+                     return; 
+                 }
+                 
+                 // [SỬA TẠI ĐÂY]
+                 socket.emit('game_40s_place_bet', {
+                     user_id: MY_USER_ID,
+                     amount: finalBetAmount,
+                     type: currentBet.type
+                 });
+            
+                 modalConfirmBet.disabled = true;
+                 errorEl.textContent = `Đang xử lý cược...`;
+                 errorEl.classList.remove('text-red-400');
+                 errorEl.classList.add('text-yellow-400');
+             }
+             // =============================================
+             // [HẾT SỬA LỖI 5]
+             // =============================================
+             
+             modalConfirmBet.addEventListener('click', handlePlaceBet);
+
+             modalBetMinus.addEventListener('click', () => {
+                 let current = parseFloat(modalBetAmount.value) || 0;
+                 let step = (displayCurrency === 'VND') ? 1000 : 1;
+                 current = Math.max(0, current - step);
+                 modalBetAmount.value = current.toFixed(displayCurrency === 'VND' ? 0 : 2);
+                 modalBetAmount.dispatchEvent(new Event('input'));
+             });
+             modalBetPlus.addEventListener('click', () => {
+                 let current = parseFloat(modalBetAmount.value) || 0;
+                 let step = (displayCurrency === 'VND') ? 1000 : 1;
+                 current += step;
+                 modalBetAmount.value = current.toFixed(displayCurrency === 'VND' ? 0 : 2);
+                 modalBetAmount.dispatchEvent(new Event('input'));
+             });
+             modalBetHalf.addEventListener('click', () => {
+                 let current = parseFloat(modalBetAmount.value) || 0;
+                 current /= 2;
+                 modalBetAmount.value = current.toFixed(displayCurrency === 'VND' ? 0 : 2);
+                 modalBetAmount.dispatchEvent(new Event('input'));
+             });
+             modalBetDouble.addEventListener('click', () => {
+                 let current = parseFloat(modalBetAmount.value) || 0;
+                 if (current === 0) current = (displayCurrency === 'VND') ? 5000 : 0.1;
+                 else current *= 2;
+                 modalBetAmount.value = current.toFixed(displayCurrency === 'VND' ? 0 : 2);
+                 modalBetAmount.dispatchEvent(new Event('input'));
+             });
+
+             modalBetMax.addEventListener('click', () => {
+                 let maxBet = balance;
+                 if (displayCurrency === 'VND') {
+                     // [SỬA] Dùng tỷ giá đã cập nhật
+                     maxBet = (balance * VND_EXCHANGE_RATE);
+                     modalBetAmount.value = maxBet.toFixed(0);
+                 } else {
+                     modalBetAmount.value = maxBet.toFixed(4);
+                 }
+                 modalBetAmount.dispatchEvent(new Event('input'));
+             });
+
+             // SỬA: Logic nút chọn nhanh (CỘNG DỒN)
+             document.querySelectorAll('.quick-bet-btn').forEach(button => {
+                 if(button.id === 'modal-bet-max') return;
+                 
+                 button.addEventListener('click', () => {
+                     const amountToAdd = parseFloat(button.dataset.amount);
+                     let currentAmount = parseFloat(modalBetAmount.value) || 0;
+                     let finalAmount = 0;
+                     
+                     if (displayCurrency === 'VND') {
+                          // [SỬA LỖI] Logic tính tiền VND bị sai, cần dựa trên số tiền cược cơ bản (ví dụ 10k, 100k)
+                          let vndAmountToAdd = 0;
+                          
+                          // [SỬA] Logic cộng tiền VND cho rõ ràng
+                          // data-amount="0.1" -> 10,000 VND
+                          // data-amount="1" -> 100,000 VND
+                          // data-amount="10" -> 1,000,000 VND
+                          // data-amount="100" -> 10,000,000 VND
+                          if(amountToAdd === 0.1) vndAmountToAdd = 10000;
+                          else if(amountToAdd === 1) vndAmountToAdd = 100000;
+                          else if(amountToAdd === 5) vndAmountToAdd = 500000;
+                          else if(amountToAdd === 10) vndAmountToAdd = 1000000;
+                          else if(amountToAdd === 50) vndAmountToAdd = 5000000;
+                          else if(amountToAdd === 100) vndAmountToAdd = 10000000;
+                          else if(amountToAdd === 500) vndAmountToAdd = 50000000;
+                          
+                          finalAmount = currentAmount + vndAmountToAdd;
+                          modalBetAmount.value = finalAmount.toFixed(0);
+                     } else {
+                          finalAmount = currentAmount + amountToAdd;
+                          modalBetAmount.value = finalAmount.toFixed(2);
+                     }
+                     modalBetAmount.dispatchEvent(new Event('input'));
+                 });
+             });
+        }
+
+        window.addEventListener('load', initializeGame);
+    </script>
+</body>
+</html>

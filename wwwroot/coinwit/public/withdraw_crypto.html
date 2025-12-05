@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rút USDT | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15;
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            padding-bottom: 24px;
+            padding-top: 122px; /* 61px header + 61px sub-header */
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+        
+        .header-sticky {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 40;
+            background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: fixed; top: 61px; left: 0; right: 0; z-index: 30;
+            background-color: var(--card-bg); border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Input Styles */
+        .form-input {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--yellow-accent);
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.3);
+        }
+        
+        /* Button Style */
+        .btn-yellow {
+            background-color: var(--yellow-accent);
+            color: #111827;
+            font-weight: 700;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .btn-yellow:disabled {
+            background-color: #4b5563;
+            color: #9ca3af;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1.5 text-sm bg-gray-700/80 px-3 py-1.5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            
+            <a href="notifications" class="relative text-gray-400 hover:text-white">
+                <i class="fas fa-bell text-xl"></i>
+                <span id="notification-badge" 
+                      class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+                      style="display: none;">
+                    0
+                </span>
+            </a>
+        </div>
+    </header>
+
+    <div class="h-[61px] flex items-center px-4 py-3 sub-header-sticky">
+        <a href="withdraw" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition">
+            <i class="fa-solid fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Rút USDT (TRC20)</h1>
+        <a href="placeholder" class="w-10 h-10 flex items-center justify-center text-sm text-gray-300 hover:text-white">
+            <i class="fa-solid fa-scroll text-lg"></i>
+        </a>
+    </div>
+
+    <main class="py-4">
+        <form id="withdraw-form" class="space-y-5 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg p-6 shadow-lg mx-4">
+            
+            <!-- Thẻ Số dư -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-400">Số dư khả dụng</label>
+                <div class="w-full p-3 rounded-lg form-input">
+                    <span id="balance-display" class="text-xl font-bold" style="color: var(--yellow-accent);">...</span>
+                </div>
+            </div>
+
+            <!-- Mạng lưới -->
+            <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-400">Mạng lưới</label>
+                <input type="text" value="TRC20 (Tron)" readonly
+                       class="w-full p-3 rounded-lg form-input font-semibold text-gray-300 cursor-not-allowed">
+            </div>
+
+            <!-- Địa chỉ ví -->
+            <div class="space-y-2">
+                <label for="wallet-address" class="text-sm font-medium text-gray-400">Địa chỉ ví</label>
+                <div class="relative">
+                    <input type="text" id="wallet-address" placeholder="Nhập hoặc dán địa chỉ ví"
+                           class="w-full p-3 pr-10 rounded-lg form-input placeholder-gray-500 text-sm">
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <i class="fa-solid fa-paste"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- SỬA 1: Đổi nhãn và placeholder -->
+            <div class="space-y-2">
+                <label for="amount-usdt" class="text-sm font-medium text-gray-400">Số tiền rút (USDT)</label>
+                <div class="relative">
+                    <input type="number" id="amount-usdt" placeholder="Tổng rút tối thiểu 11 USDT"
+                           class="w-full p-3 pr-16 rounded-lg form-input placeholder-gray-500 text-lg">
+                    <button type="button" id="withdraw-all-btn" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold" style="color: var(--yellow-accent);">Tất cả</button>
+                </div>
+            </div>
+            
+            <!-- Nhập mật khẩu quỹ -->
+            <div class="space-y-2">
+                <label for="fund-password" class="text-sm font-medium text-gray-400">Mật khẩu quỹ</label>
+                <input type="password" id="fund-password" placeholder="Nhập mật khẩu quỹ (6 số)" maxlength="6"
+                       class="w-full p-3 rounded-lg form-input placeholder-gray-500 text-lg tracking-widest text-center">
+            </div>
+
+            <!-- SỬA 2: Đổi "Tổng trừ" thành "Thực nhận" -->
+            <div class="border-t border-[var(--border-color)] pt-4 space-y-2 text-sm">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Phí mạng lưới:</span>
+                    <span id="fee-usdt" class="font-medium text-red-500">1.00 USDT</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">Thực nhận (USDT):</span>
+                    <span id="received-usdt" class="font-medium text-white">0.00 USDT</span>
+                </div>
+            </div>
+
+            <!-- Thông báo lỗi -->
+            <p id="form-message" class="text-center text-red-500 text-sm h-4"></p>
+            
+            <!-- Nút Xác nhận -->
+            <button id="submit-btn" type="submit"
+                    class="w-full py-3 mt-4 rounded-lg font-bold text-black text-lg btn-yellow">
+                Xác nhận rút tiền
+            </button>
+        </form>
+    </main>
+    
+    <script src="main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = window.checkLogin();
+            if (!token) return;
+            
+            await window.initCurrency(); // Tải tỷ giá và cài đặt tiền tệ
+            
+            // Khai báo biến
+            let userBalanceUSDT = 0;
+            const networkFeeUSDT = 1; // Phí mạng cố định 1 USDT
+
+            // Lấy các phần tử DOM
+            const balanceEl = document.getElementById('balance-display');
+            const amountUsdtEl = document.getElementById('amount-usdt');
+            const feeUsdtEl = document.getElementById('fee-usdt');
+            const receivedUsdtEl = document.getElementById('received-usdt');
+            const fundPasswordEl = document.getElementById('fund-password');
+            const walletAddressEl = document.getElementById('wallet-address');
+            const form = document.getElementById('withdraw-form');
+            const submitBtn = document.getElementById('submit-btn');
+            const messageEl = document.getElementById('form-message');
+            const withdrawAllBtn = document.getElementById('withdraw-all-btn');
+
+            // --- SỬA 3: Hàm Cập nhật tính toán (Logic MỚI) ---
+            function updateCalculations() {
+                const amountUSDT = parseFloat(amountUsdtEl.value) || 0; // Đây là TỔNG RÚT
+                let receivedUSDT = amountUSDT - networkFeeUSDT;
+                if (receivedUSDT < 0) receivedUSDT = 0;
+
+                feeUsdtEl.textContent = `${networkFeeUSDT.toFixed(2)} USDT`;
+                receivedUsdtEl.textContent = `${receivedUSDT.toFixed(2)} USDT`;
+            }
+
+            // --- Tải dữ liệu ---
+            try {
+                const userProfile = await window.fetchAPI('/user/profile');
+                userBalanceUSDT = userProfile.balance;
+                
+                // Hiển thị số dư (theo cài đặt của người dùng, lấy từ hàm formatCurrency)
+                balanceEl.textContent = window.formatCurrency(userBalanceUSDT);
+                
+                // --- Gắn sự kiện ---
+                amountUsdtEl.addEventListener('input', updateCalculations);
+                
+                // SỬA 4: Nút "Tất cả" sẽ điền TỔNG số dư
+                withdrawAllBtn.addEventListener('click', () => {
+                    amountUsdtEl.value = userBalanceUSDT.toFixed(2);
+                    updateCalculations();
+                });
+
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // SỬA 5: Lấy TỔNG SỐ TIỀN RÚT từ input
+                    const totalWithdrawAmount = parseFloat(amountUsdtEl.value);
+                    const fundPassword = fundPasswordEl.value;
+                    const walletAddress = walletAddressEl.value;
+                    
+                    // SỬA 6: Kiểm tra TỔNG RÚT (phải >= 11 để thực nhận >= 10)
+                    if (!totalWithdrawAmount || totalWithdrawAmount < 11) {
+                        window.showMessage(messageEl.id, 'Tổng rút tối thiểu là 11 USDT (để nhận 10 USDT).', true);
+                        return;
+                    }
+                    if (totalWithdrawAmount > userBalanceUSDT) {
+                        window.showMessage(messageEl.id, `Số dư không đủ. Cần ${totalWithdrawAmount.toFixed(2)} USDT để rút.`, true);
+                        return;
+                    }
+                     if (!walletAddress) {
+                        window.showMessage(messageEl.id, 'Vui lòng nhập địa chỉ ví.', true);
+                        return;
+                    }
+                    if (!fundPassword || fundPassword.length !== 6) {
+                        window.showMessage(messageEl.id, 'Mật khẩu quỹ phải là 6 chữ số.', true);
+                        return;
+                    }
+                    
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Đang xử lý...';
+                    
+                    try {
+                        // SỬA 7: Gửi TỔNG SỐ TIỀN RÚT lên server
+                        const result = await window.fetchAPI('/api/wallet/withdraw-crypto', {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                amount: totalWithdrawAmount, // Gửi TỔNG RÚT
+                                fundPassword: fundPassword,
+                                walletAddress: walletAddress
+                            })
+                        });
+
+                        // Yêu cầu thành công, chuyển hướng đến lịch sử
+                        window.location.href = 'login';
+
+                    } catch (error) {
+                        window.showMessage(messageEl.id, error.message, true);
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Xác nhận rút tiền';
+                    }
+                });
+
+            } catch (error) {
+                window.showMessage(messageEl.id, error.message, true);
+            }
+        });
+    </script>
+</body>
+</html>

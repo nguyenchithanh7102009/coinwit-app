@@ -1,0 +1,2673 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Admin Command Center (Full API v4)</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" 
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" 
+          crossorigin="anonymous" 
+          referrerpolicy="no-referrer" />
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    <!-- [SỬA LỖI] Bỏ 'defer' để file này tải và thực thi đồng bộ TRƯỚC script nội tuyến -->
+    <script src="api.js"></script> 
+    
+    <link rel="stylesheet" href="admin-styles.css">
+    
+    <style>
+        .bo-mode-btn, .crash-mode-btn {
+            padding: 10px;
+            border: 2px solid #374151; /* dark-700 */
+            border-radius: 8px;
+            background-color: #1f2937; /* dark-800 */
+            color: #d1d5db; /* gray-300 */
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .bo-mode-btn:hover, .crash-mode-btn:hover {
+            border-color: #4b5563; /* dark-600 */
+        }
+        .bo-mode-btn.active, .crash-mode-btn.active {
+            background-color: #3b82f6; /* primary */
+            color: #ffffff;
+            border-color: #3b82f6; /* primary */
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': {
+                            'DEFAULT': '#3b82f6', // Xanh dương (Blue-500)
+                            'dark': '#2563eb',  // Blue-700 (hover)
+                        },
+                        'dark': {
+                            '900': '#111827', // Màu nền chính (Gray-900)
+                            '800': '#1f2937', // Màu nền sidebar/card (Gray-800)
+                            '700': '#374151', // Màu viền/hover (Gray-700)
+                            '600': '#4b5563', // Gray-600
+                        },
+                        'success': '#22c55e',
+                        'danger': '#ef4444',
+                        'warning': '#eab308',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="text-gray-200 flex min-h-screen antialiased">
+    
+    <div id="toast-container"></div>
+    
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()" style="display:none;">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="mobile-overlay" id="mobile-overlay" onclick="toggleMobileMenu()"></div>
+    
+    <aside class="w-64 bg-dark-800 p-5 flex-shrink-0 flex flex-col shadow-lg" id="admin-sidebar">
+        <div class="text-2xl font-bold text-white mb-8 flex items-center gap-3">
+            <i class="fas fa-shield-halved text-primary"></i>
+            <span>Admin Center</span>
+        </div>
+        
+        <nav class="flex-1 flex flex-col gap-2">
+            <a href="#" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="overview">
+                <i class="fas fa-tachometer-alt w-5 text-center"></i>
+                <span>Tổng Quan</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="activity">
+                <i class="fas fa-bolt w-5 text-center"></i>
+                <span>Hoạt động Trực tiếp</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="risk">
+                <i class="fas fa-chart-pie w-5 text-center"></i>
+                <span>Quản lý Rủi ro</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="players">
+                <i class="fas fa-users w-5 text-center"></i>
+                <span>Người Dùng</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="kyc">
+                <i class="fas fa-id-card w-5 text-center"></i>
+                <span>Quản lý KYC</span>
+                <span id="kyc-pending-badge" class="ml-auto bg-yellow-500 text-black text-xs font-bold px-2 py-0.5 rounded-full" style="display: none;">0</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="deposits">
+                <i class="fas fa-arrow-down w-5 text-center"></i>
+                <span>Lệnh Nạp</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="withdrawals">
+                <i class="fas fa-arrow-up w-5 text-center"></i>
+                <span>Lệnh Rút</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="game-control">
+				<i class="fas fa-dice w-5 text-center"></i>
+				<span>Chỉnh Cầu</span>
+			</a>
+
+			<a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="mailbox">
+				<i class="fas fa-envelope w-5 text-center"></i>
+				<span>Hòm Thư</span>
+			</a>
+			<a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="settings">
+				<i class="fas fa-cog w-5 text-center"></i>
+                <span>Cài Đặt Hệ Thống</span>
+            </a>
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-dark-700 hover:text-white transition-all" data-content="password">
+                <i class="fas fa-key w-5 text-center"></i>
+                <span>Đổi Mật khẩu</span>
+            </a>
+        </nav>
+        
+        <div class="mt-auto">
+            <a href="#" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-red-600 hover:text-white transition-all" id="logout-admin-btn" data-content="logout">
+                <i class="fas fa-sign-out-alt w-5 text-center"></i>
+                <span>Đăng Xuất</span>
+            </a>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-6 lg:p-8 overflow-auto">
+        <h2 class="text-3xl font-bold text-white mb-6" id="content-title">Tổng Quan Hệ Thống</h2>
+        
+        <div id="overview-content" class="tab-content" style="display:block;">
+            <p class="text-lg text-gray-300 mb-6">Chào mừng Admin. Vui lòng chọn chức năng bên trái!</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
+                <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-400">Đang Online</span>
+                        <i class="fas fa-globe text-lg text-blue-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-white mt-2" id="online-users-card">...</p>
+                </div>
+                <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-400">Tổng Người Dùng</span>
+                        <i class="fas fa-users text-lg text-yellow-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-white mt-2" id="total-users-card">...</p>
+                </div>
+                <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-400">Tổng số dư (USDT)</span>
+                        <i class="fas fa-money-bill-alt text-lg text-green-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-white mt-2" id="total-balance-card">...</p>
+                </div>
+                <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-400">Lệnh Nạp Chờ</span>
+                        <i class="fas fa-arrow-down text-lg text-cyan-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-white mt-2" id="pending-deposits-card">...</p>
+                </div>
+                <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-400">Lệnh Rút Chờ</span>
+                        <i class="fas fa-arrow-up text-lg text-red-500"></i>
+                    </div>
+                    <p class="text-3xl font-bold text-white mt-2" id="pending-withdrawals-card">...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="activity-content" class="tab-content">
+            <div class="bg-dark-800 rounded-lg shadow-lg p-5">
+                <p class="text-gray-300 mb-4">Luồng hoạt động cược của toàn bộ người dùng theo thời gian thực. (Cần server gửi sự kiện `live_activity`)</p>
+                <div id="live-activity-feed" class="h-[60vh] overflow-y-auto bg-dark-900 rounded-lg p-4 space-y-2">
+                    <p class="text-center text-gray-500">Đang chờ hoạt động mới...</p>
+                    </div>
+            </div>
+        </div>
+        
+        <div id="risk-content" class="tab-content">
+            <div class="api-placeholder mb-6">
+                <i class="fas fa-cogs"></i>
+                <h4>Tính năng này đang chờ API</h4>
+                <p>Bạn cần lập trình viên Backend cung cấp API (ví dụ: `/api/admin/risk-summary`) để tự động cập nhật các thẻ này.</p>
+            </div>
+        </div>
+        
+        <div id="players-content" class="tab-content">
+            <div class="bg-dark-800 p-4 rounded-lg shadow-lg mb-5">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="player-search" class="block text-sm font-medium text-gray-300 mb-1">Tìm kiếm (Tên, SĐT)</label>
+                        <input type="text" id="player-search" class="form-input" placeholder="Nhập tên đăng nhập hoặc SĐT...">
+                    </div>
+                    <div>
+                        <label for="player-filter-vip" class="block text-sm font-medium text-gray-300 mb-1">Lọc theo VIP</label>
+                        <select id="player-filter-vip" class="form-select">
+                            <option value="">Tất cả VIP</option>
+                            <option value="0">VIP0</option>
+                            <option value="1">VIP1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="player-filter-kyc" class="block text-sm font-medium text-gray-300 mb-1">Lọc theo KYC</label>
+                        <select id="player-filter-kyc" class="form-select">
+                            <option value="">Tất cả KYC</option>
+                            <option value="VERIFIED">Đã Xác minh</option>
+                            <option value="NOT_SUBMITTED">Chưa Xác minh</option>
+                            <option value="PENDING">Đang chờ</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="player-filter-btn" class="mt-4 px-5 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow transition-all">
+                    <i class="fas fa-filter mr-2"></i> Lọc Dữ Liệu
+                </button>
+            </div>
+            
+            <div id="players-loading-message" class="p-3 text-yellow-400">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
+            </div>
+            <p class="mb-4">Tổng số Người dùng: <span id="user-count" class="font-bold text-primary">0</span></p>
+            <div class="bg-dark-800 rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full" id="user-table">
+                    <thead class="bg-dark-700">
+                        <tr>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">ID</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Tên đăng nhập</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">SĐT</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Số dư (USDT)</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Tích lũy Nạp</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">VIP</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">KYC</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Ngày ĐK</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body" class="divide-y divide-dark-700"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="kyc-content" class="tab-content">
+            <div class="api-placeholder mb-6">
+                <i class="fas fa-cogs"></i>
+                <h4>Đang tải danh sách KYC...</h4>
+            </div>
+            
+            <div class="bg-dark-800 rounded-lg shadow-lg overflow-hidden" style="display: none;">
+                <table class="w-full">
+                    <thead class="bg-dark-700">
+                        <tr>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">User ID/Tên</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Tên Thật</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Số ID (CCCD)</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Ngày Nộp</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Ảnh</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-dark-700">
+                        <!-- Dữ liệu KYC sẽ được chèn vào đây bởi JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="deposits-content" class="tab-content">
+            <div class="flex border-b border-dark-700 mb-4">
+                <a class="tab-link nav-link active py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" id="deposit-tab-fiat" href="#" data-type="fiat">Tiền Ngân Hàng (Fiat)</a>
+                <a class="tab-link nav-link py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" id="deposit-tab-crypto" href="#" data-type="crypto">Tiền Điện Tử (Crypto)</a>
+            </div>
+            <div class="bg-dark-800 p-4 rounded-lg shadow-lg mb-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="deposit-search" class="block text-sm font-medium text-gray-300 mb-1">Tìm kiếm (User ID, Mã lệnh)</label>
+                        <input type="text" id="deposit-search" class="form-input" placeholder="Nhập ID người dùng hoặc mã lệnh...">
+                    </div>
+                    <div>
+                        <label for="deposit-filter-status" class="block text-sm font-medium text-gray-300 mb-1">Lọc theo Trạng thái</label>
+                        <select id="deposit-filter-status" class="form-select">
+                            <option value="">Tất cả Trạng thái</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value="APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Đã từ chối</option>
+                        </select>
+                    </div>
+                </div>
+                 <button id="deposit-filter-btn" class="mt-4 px-5 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow transition-all">
+                    <i class="fas fa-filter mr-2"></i> Lọc Dữ Liệu
+                </button>
+            </div>
+            <div id="deposit-loading-message" class="p-3 text-yellow-400">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải lệnh nạp...
+            </div>
+            <div class="bg-dark-800 rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full" id="deposit-table">
+                    <thead class="bg-dark-700">
+                        <tr>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">ID Lệnh</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">User ID/Username</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Số tiền (VND)</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Nhận (USDT)</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Thời gian</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Trạng thái</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deposit-table-body" class="divide-y divide-dark-700"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="withdrawals-content" class="tab-content">
+            <div class="flex border-b border-dark-700 mb-4">
+                <a class="tab-link nav-link active py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" id="withdrawal-tab-fiat" href="#" data-type="fiat">Tiền Ngân Hàng (Fiat)</a>
+                <a class="tab-link nav-link py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" id="withdrawal-tab-crypto" href="#" data-type="crypto">Tiền Điện Tử (Crypto)</a>
+            </div>
+            <div class="bg-dark-800 p-4 rounded-lg shadow-lg mb-5">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="withdrawal-search" class="block text-sm font-medium text-gray-300 mb-1">Tìm kiếm (User ID, Địa chỉ)</label>
+                        <input type="text" id="withdrawal-search" class="form-input" placeholder="Nhập ID người dùng hoặc địa chỉ ví/STK...">
+                    </div>
+                    <div>
+                        <label for="withdrawal-filter-status" class="block text-sm font-medium text-gray-300 mb-1">Lọc theo Trạng thái</label>
+                        <select id="withdrawal-filter-status" class="form-select">
+                            <option value="">Tất cả Trạng thái</option>
+                            <option value="PENDING">Chờ duyệt</option>
+                            <option value-"APPROVED">Đã duyệt</option>
+                            <option value="REJECTED">Đã từ chối</option>
+                        </select>
+                    </div>
+                </div>
+                 <button id="withdrawal-filter-btn" class="mt-4 px-5 py-2 bg-primary hover:bg-primary-dark text-white font-semibold rounded-lg shadow transition-all">
+                    <i class="fas fa-filter mr-2"></i> Lọc Dữ Liệu
+                </button>
+            </div>
+             <div id="withdrawal-loading-message" class="p-3 text-yellow-400">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải lệnh rút...
+            </div>
+            <div class="bg-dark-800 rounded-lg shadow-lg overflow-hidden">
+                <table class="w-full" id="withdrawal-table">
+                    <thead class="bg-dark-700">
+                        <tr>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">ID Lệnh</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">User ID/Username</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Số tiền (USDT)</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Tài khoản/Địa chỉ ví</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Thời gian</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Trạng thái</th>
+                            <th class="p-4 text-left text-sm font-semibold text-gray-300 uppercase">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="withdrawal-table-body" class="divide-y divide-dark-700"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- [SỬA LỖI LAYOUT] Đưa phần Panic Mode ra khỏi Grid con -->
+        <div id="game-control-content" class="tab-content">
+            
+            <!-- Phần Cắt Lỗ Tự Động (Full Width) -->
+            <div class="bg-dark-800 p-6 rounded-lg shadow-lg mb-6 border border-red-900/30 w-full">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="fas fa-shield-alt text-red-500"></i> 
+                            Hệ Thống Cắt Lỗ Tự Động (Panic Mode)
+                        </h3>
+                        <p class="text-sm text-gray-400 mt-1">
+                            Khi tổng lợi nhuận của sàn (All-time) bị âm vượt quá mức này, hệ thống sẽ kích hoạt chế độ 
+                            <strong class="text-red-400">GỠ VỐN</strong> (Tăng độ khó, Bẻ cầu 1-20 & BO) để thu hồi vốn.
+                        </p>
+                    </div>
+                    <div class="flex items-end gap-3 w-full md:w-auto">
+                        <div class="flex-1 md:w-48">
+                            <label class="block text-xs font-bold text-red-500 mb-1 uppercase">Ngưỡng Âm Cho Phép ($)</label>
+                            <div class="relative">
+                                <input type="number" id="setting-max-loss-control" class="form-input border-red-500 bg-dark-900 text-white font-bold pl-8" placeholder="500" min="1">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-red-500"><i class="fas fa-minus"></i></span>
+                            </div>
+                        </div>
+                        <button id="save-max-loss-btn" class="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-all shadow-lg hover:shadow-red-900/50 whitespace-nowrap">
+                            <i class="fas fa-save mr-2"></i> Lưu Cài Đặt
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Grid cho các thẻ game -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div id="game-card-120" class="game-card clickable bg-dark-800 p-5 rounded-lg shadow-lg transition-all border border-dark-800 hover:border-primary cursor-pointer">
+                    <h5 class="text-lg font-semibold text-white mb-2"><i class="fas fa-star mr-2 text-primary"></i>Quay Số 1-20</h5>
+                    <p class="text-sm text-gray-400 mb-3">Can thiệp kết quả cho game Quay số 1-20.</p>
+                    <p class="mb-1 text-sm"><strong>Người chơi: <span id="game-120-players" class="text-primary-dark">0</span></strong></p>
+                    <span id="game-120-status-display" class="status status-auto text-sm font-medium">Trạng thái: Tự động</span>
+                </div>
+                <div id="game-card-crash" class="game-card clickable bg-dark-800 p-5 rounded-lg shadow-lg transition-all border border-dark-800 hover:border-primary cursor-pointer">
+                    <h5 class="text-lg font-semibold text-white mb-2"><i class="fas fa-rocket mr-2 text-primary"></i>Game Du Hành (Crash)</h5>
+                    <p class="text-sm text-gray-400 mb-3">Can thiệp điểm nổ (multiplier) cho game Du Hành.</p>
+                    <p class="mb-1 text-sm"><strong>Người chơi: <span id="game-crash-players" class="text-primary-dark">0</span></strong></p>
+                    <span id="game-crash-status-display" class="status status-auto text-sm font-medium">Trạng thái: Tự động</span>
+                </div>
+                <div id="game-card-mines" class="game-card bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <h5 class="text-lg font-semibold text-white mb-2"><i class="fas fa-bomb mr-2 text-gray-400"></i>Dò Mìn (Mines)</h5>
+                    <p class="mb-3 text-sm"><strong>Người chơi: <span id="game-mines-players" class="text-primary-dark">0</span></strong></p>
+                    <div class="game-stats-display bg-dark-900 rounded p-3 text-sm" id="mines-stats-display">Đang tải...</div>
+                </div>
+                <div id="game-card-hilo" class="game-card bg-dark-800 p-5 rounded-lg shadow-lg">
+                    <h5 class="text-lg font-semibold text-white mb-2"><i class="fas fa-sort-amount-up mr-2 text-gray-400"></i>Hi-Lo</h5>
+                    <p class="mb-3 text-sm"><strong>Người chơi: <span id="game-hilo-players" class="text-primary-dark">0</span></strong></p>
+                    <div class="game-stats-display bg-dark-900 rounded p-3 text-sm" id="hilo-stats-display">Đang tải...</div>
+                </div>
+                <div id="game-card-bo" class="game-card clickable bg-dark-800 p-5 rounded-lg shadow-lg transition-all border border-dark-800 hover:border-primary cursor-pointer">
+                    <h5 class="text-lg font-semibold text-white mb-2"><i class="fas fa-chart-line mr-2 text-primary"></i>Giao Dịch BO</h5>
+                    <p class="text-sm text-gray-400 mb-3">Can thiệp kết quả (Mua/Bán) cho game BO.</p>
+                    <p class="mb-1 text-sm"><strong>Người chơi: <span id="game-bo-players" class="text-primary-dark">0</span></strong></p>
+                    <span id="game-bo-status-display" class="status status-auto text-sm font-medium">Trạng thái: Đang tải...</span>
+                </div>
+                <div class="game-card bg-dark-800 p-5 rounded-lg shadow-lg opacity-50">
+                     <h5 class="text-lg font-semibold text-gray-400 mb-2"><i class="fas fa-puzzle-piece mr-2 text-gray-500"></i>Game 6</h5>
+                    <p class="text-sm text-gray-500">(Chưa hỗ trợ)</p>
+                </div>
+            </div>
+        </div>
+		
+		<div id="mailbox-content" class="tab-content">
+			<div class="bg-dark-800 p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
+				<h3 class="text-xl font-semibold text-white mb-5">Gửi Thông Báo (Hòm Thư)</h3>
+				<form id="send-notification-form" class="space-y-4">
+					<div>
+						<label for="notification-target" class="block text-sm font-medium text-gray-300 mb-1">Gửi đến (User ID)</label>
+						<input type="text" id="notification-target" class="form-input" placeholder="Nhập User ID, hoặc gõ 'all' để gửi cho tất cả">
+						<p class="text-sm text-gray-400 mt-1">Gõ <strong class="text-yellow-400">'all'</strong> để gửi thông báo toàn hệ thống.</p>
+					</div>
+					<div>
+						<label for="notification-title" class="block text-sm font-medium text-gray-300 mb-1">Tiêu đề</label>
+						<input type="text" id="notification-title" class="form-input" required placeholder="Ví dụ: Chào mừng bạn mới!">
+					</div>
+					<div>
+						<label for="notification-content" class="block text-sm font-medium text-gray-300 mb-1">Nội dung</label>
+						<textarea id="notification-content" class="form-input" rows="5" required placeholder="Nhập nội dung chi tiết..."></textarea>
+					</div>
+					<button type="submit" id="send-notification-btn" class="w-full px-5 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all">
+						<i class="fas fa-paper-plane mr-2"></i> Gửi Thông Báo
+					</button>
+				</form>
+			</div>
+		</div>
+        
+        <!-- === [BẮT ĐẦU SỬA LỖI] === -->
+        <!-- Đã xóa thẻ <div id="settings-content" class="tab-content"> rỗng bị trùng lặp ở đây -->
+        <!-- === [KẾT THÚC SỬA LỖI] === -->
+        
+        <div id="settings-content" class="tab-content">
+            <div class="max-w-3xl mx-auto space-y-6">
+                <div class="bg-dark-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold text-white mb-4">Cài đặt Chung</h3>
+                    <div class="space-y-4">
+                        <div class="form-check form-switch text-base flex items-center justify-between p-4 bg-dark-700 rounded-lg">
+                            <div>
+                                <label class="form-check-label text-white" for="maintenance-switch">Chế độ Bảo trì</label>
+                                <p class="text-sm text-gray-400 mt-1 mb-0">Khi bật, toàn bộ trang web sẽ hiển thị thông báo bảo trì.</p>
+                            </div>
+                            <input class="form-check-input" type="checkbox" role="switch" id="maintenance-switch">
+                        </div>
+                        <div class="form-check form-switch text-base flex items-center justify-between p-4 bg-dark-700 rounded-lg">
+                            <div>
+                                <label class="form-check-label text-white" for="kyc-switch">Bắt buộc KYC</label>
+                                <p class="text-sm text-gray-400 mt-1 mb-0">Khi bật, người dùng phải KYC mới được rút tiền.</p>
+                            </div>
+                            <input class="form-check-input" type="checkbox" role="switch" id="kyc-switch" checked>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-dark-800 p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold text-white mb-4">Cài đặt Giao dịch</h3>
+                    <div class="space-y-4">
+                        <!-- [THAY ĐỔI] Hợp nhất tỷ giá -->
+                        <div>
+                            <label for="setting-manual-usdt-rate" class="block text-sm font-medium text-gray-300 mb-1">Set giá USDT thủ công (VND)</label>
+                            <input type="number" id="setting-manual-usdt-rate" class="form-input" value="0" min="0">
+                            <p class="text-sm text-gray-400 mt-1">Nhập 0 để dùng giá tự động (Live API). Giá trị hiện tại: <span id="current-rate-display" class="font-bold text-yellow-400">Đang tải...</span></p>
+                        </div>
+                        <!-- Phí rút và Cảnh báo -->
+                        <div>
+                            <label for="setting-withdraw-fee" class="block text-sm font-medium text-gray-300 mb-1">Phí Rút Tiền (%)</label>
+                            <input type="number" id="setting-withdraw-fee" class="form-input" value="1" min="-1" max="100" step="0.1">
+                            <p class="text-sm text-gray-400 mt-1">Nhập -1 để dùng phí theo VIP, hoặc nhập % phí toàn cục (0-100)</p>
+                        </div>
+                        <div>
+                            <label for="setting-whale-threshold" class="block text-sm font-medium text-gray-300 mb-1">Ngưỡng "Cảnh Báo Cá Voi" (USDT)</label>
+                            <input type="number" id="setting-whale-threshold" class="form-input" value="100" min="1">
+                            <p class="text-sm text-gray-400 mt-1">Cảnh báo khi có cược lớn hơn ngưỡng này</p>
+                        </div>						
+                    </div>
+                </div>
+                <!-- [THAY ĐỔI] Nút lưu giờ sẽ hoạt động -->
+                <button id="save-settings-btn" class="w-full px-6 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all text-lg">
+                    <i class="fas fa-save mr-2"></i> Lưu Tất Cả Cài Đặt
+                </button>
+            </div>
+        </div>
+        
+        <div id="password-content" class="tab-content">
+            <div class="bg-dark-800 p-6 rounded-lg shadow-lg max-w-lg mx-auto">
+                <h3 class="text-xl font-semibold text-white mb-5">Đổi Mật khẩu Admin</h3>
+                <form id="change-password-form" class="space-y-4">
+                    <div>
+                        <label for="old-password" class="block text-sm font-medium text-gray-300 mb-1">Mật khẩu Cũ</label>
+                        <input type="password" id="old-password" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="new-password" class="block text-sm font-medium text-gray-300 mb-1">Mật khẩu Mới</label>
+                        <input type="password" id="new-password" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="confirm-password" class="block text-sm font-medium text-gray-300 mb-1">Xác nhận Mật khẩu Mới</label>
+                        <input type="password" id="confirm-password" class="form-input" required>
+                    </div>
+                    <button type="submit" class="w-full px-5 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all">
+                        <i class="fas fa-key mr-2"></i> Xác nhận Thay đổi
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Chi tiết Người dùng -->
+    <div id="user-detail-modal" class="modal fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-80 p-4">
+        <div class="modal-content bg-dark-800 rounded-lg shadow-2xl w-full max-w-4xl relative animate-fade-in max-h-[90vh] flex flex-col">
+            <span class="close-btn absolute top-4 right-5 text-gray-400 hover:text-white text-3xl cursor-pointer" onclick="closeModal('user-detail-modal')">&times;</span>
+            <h2 class="text-2xl font-bold text-primary mb-4 p-6 pb-0">
+                Chi tiết Người dùng: <span id="detail-username"></span>
+            </h2>
+            
+            <div class="border-b border-dark-700 px-6">
+                <nav class="flex -mb-px">
+                    <a href="#" class="modal-tab-link active" data-tab="info">
+                        <i class="fas fa-user-cog mr-2"></i>Thông tin & Công cụ
+                    </a>
+                    <a href="#" class="modal-tab-link" data-tab="bets">
+                        <i class="fas fa-dice mr-2"></i>Lịch sử Cược
+                    </a>
+                    <a href="#" class="modal-tab-link" data-tab="tx">
+                        <i class="fas fa-exchange-alt mr-2"></i>Lịch sử Giao dịch
+                    </a>
+                    <a href="#" class="modal-tab-link" data-tab="log">
+                        <i class="fas fa-history mr-2"></i>Nhật ký Admin
+                    </a>
+                </nav>
+            </div>
+
+            <div class="overflow-y-auto p-6 flex-1">
+                
+                <div id="user-tab-info" class="modal-tab-content" style="display: block;">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-white mb-3">Thông tin Cơ bản</h3>
+                            <div id="user-info-display" class="space-y-2 text-sm">
+                                <p><strong>ID:</strong> <span id="detail-id" class="text-gray-300"></span></p>
+                                <p><strong>SĐT:</strong> <span id="detail-phone" class="text-gray-300"></span></p>
+                                <p><strong>VIP:</strong> <span id="detail-vip" class="text-gray-300"></span></p>
+                                <p><strong>KYC:</strong> <span id="detail-kyc-status" class="text-gray-300"></span></p>
+                                <p><strong>Tên thật:</strong> <span id="detail-kyc-name" class="text-gray-300"></span></p>
+                                <p><strong>Tổng nạp:</strong> <span id="detail-deposit" class="font-bold text-cyan-400"></span> USDT</p>
+                                <p class="text-base"><strong>Số dư hiện tại:</strong> <span id="detail-balance" class="text-2xl font-bold text-green-500"></span> USDT</p>
+                            </div>
+                            
+                            <hr class="border-dark-700 my-4">
+                            
+                            <h3 class="text-lg font-semibold text-white mb-3">Công cụ Quản lý</h3>
+                            <div class="admin-tools-group flex flex-wrap gap-3">
+                                <button id="btn-reset-login-pass" onclick="resetPassword('login')" class="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-all text-sm">
+                                    <i class="fas fa-key mr-1"></i> Reset MK Đăng nhập
+                                </button>
+                                <button id="btn-reset-fund-pass" onclick="resetPassword('fund')" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-medium transition-all text-sm">
+                                    <i class="fas fa-lock mr-1"></i> Reset MK Quỹ
+                                </button>
+                                <button id="btn-delete-user" onclick="confirmDeleteUser()" class="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-all text-sm">
+                                    <i class="fas fa-trash-alt mr-1"></i> Xóa Tài khoản
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="border-l border-dark-700 pl-6">
+                            <h3 class="text-lg font-semibold text-white mb-3">Điều chỉnh Số dư</h3>
+                            <div class="adjustment-type-group my-3 flex gap-3">
+                                <button id="btn-add-money" data-type="add" class="flex-1 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-all border-2 border-transparent focus:border-white focus:outline-none">
+                                    <i class="fas fa-plus mr-2"></i> Cộng tiền
+                                </button>
+                                <button id="btn-subtract-money" data-type="subtract" class="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-all border-2 border-transparent focus:border-white focus:outline-none">
+                                    <i class="fas fa-minus mr-2"></i> Trừ tiền
+                                </button>
+                            </div>
+                            <div id="adjustment-fields" class="adjustment-field-group space-y-3" style="display: none;">
+                                <input type="number" id="adjustment-amount" placeholder="Nhập số tiền" required class="form-input">
+                                <input type="text" id="adjustment-reason" placeholder="Lý do điều chỉnh (Tùy chọn)" class="form-input">
+                                <button id="adjust-balance-btn" onclick="adjustBalance()" class="w-full px-4 py-3 rounded-lg bg-primary hover:bg-primary-dark text-white font-bold transition-all disabled:opacity-50" disabled>Xác nhận Điều chỉnh</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="user-tab-bets" class="modal-tab-content">
+                    <div class="api-placeholder"><i class="fas fa-cogs"></i><h4>Chờ API...</h4><p>Cần API (ví dụ: `/api/admin/user/bet-history/:id`)</p></div>
+                </div>
+                
+                <div id="user-tab-tx" class="modal-tab-content">
+                    <div class="api-placeholder"><i class="fas fa-cogs"></i><h4>Chờ API...</h4><p>Cần API (ví dụ: `/api/admin/user/transactions/:id`)</p></div>
+                </div>
+                
+                <div id="user-tab-log" class="modal-tab-content">
+                    <div class="api-placeholder"><i class="fas fa-cogs"></i><h4>Chờ API...</h4><p>Cần API (ví dụ: `/api/admin/user/admin-log/:id`)</p></div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Xác nhận Xóa -->
+    <div id="confirm-delete-modal" class="modal fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-80 p-4">
+        <div class="modal-content bg-dark-800 rounded-lg shadow-2xl w-full max-w-md p-6 text-center">
+            <h3 class="text-2xl font-bold text-red-500 mb-3"><i class="fas fa-exclamation-triangle mr-2"></i> CẢNH BÁO</h3>
+            <p class="text-gray-300 mb-6">Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản <strong id="delete-username-display" class="text-white"></strong> (ID: <span id="delete-id-display" class="text-white"></span>) không? Hành động này không thể hoàn tác.</p>
+            <div class="confirm-actions flex justify-center gap-4">
+                <button id="cancel-delete-btn" onclick="closeModal('confirm-delete-modal')" class="px-6 py-2 rounded-lg bg-dark-700 hover:bg-dark-600 text-white font-medium transition-all">Hủy bỏ</button>
+                <button id="execute-delete-btn" class="px-6 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-all">Xóa Vĩnh viễn (Chưa hỗ trợ)</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Game 1-20 -->
+    <div id="game-control-modal" class="modal fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-80 p-4">
+        <div class="modal-content bg-dark-800 rounded-lg shadow-2xl w-full max-w-lg p-6 relative">
+            <span class="close-btn absolute top-4 right-5 text-gray-400 hover:text-white text-3xl cursor-pointer" onclick="closeModal('game-control-modal')">&times;</span>
+            <h2 class="text-2xl font-bold text-primary mb-4"><i class="fas fa-star mr-2"></i>Can thiệp Game Quay Số 1-20</h2>
+            <p class="text-gray-400 mb-4">Chọn loại can thiệp cho phiên tiếp theo.</p>
+            <div id="game-countdown-display" class="text-center p-4 bg-dark-900 rounded-lg mb-4">
+                <span class="text-white text-lg">Thời gian phiên: <span class="font-bold text-primary text-2xl" id="game-timer-display">--:--</span></span>
+                <p class="text-sm text-gray-400 mt-1" id="game-status-display">Đang tải...</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="intervention-type-select" class="block text-sm font-medium text-gray-300 mb-1">Loại can thiệp thủ công:</label>
+                    <select id="intervention-type-select" class="form-select">
+                        <option value="number">Chỉnh Số Cụ Thể</option>
+                        <option value="parity">Chỉnh Chẵn / Lẻ</option>
+                        <option value="color">Chỉnh Màu</option>
+                    </select>
+                </div>
+                <div id="group-number" class="intervention-group bg-dark-700 p-4 rounded-lg" style="display: block;">
+                    <label for="specific-number" class="block text-sm font-medium text-gray-300 mb-1">Chọn số (1-20):</label>
+                    <input type="number" id="specific-number" class="form-input" min="1" max="20" value="5">
+                </div>
+                <div id="group-parity" class="intervention-group bg-dark-700 p-4 rounded-lg" style="display: none;">
+                    <label for="specific-parity" class="block text-sm font-medium text-gray-300 mb-1">Chọn:</label>
+                    <select id="specific-parity" class="form-select">
+                        <option value="CHẴN">CHẴN</option>
+                        <option value="LẺ">LẺ</option>
+                    </select>
+                </div>
+                <div id="group-color" class="intervention-group bg-dark-700 p-4 rounded-lg" style="display: none;">
+                    <label for="specific-color" class="block text-sm font-medium text-gray-300 mb-1">Chọn:</label>
+                    <select id="specific-color" class="form-select">
+                        <option value="XANH">XANH (1-5)</option>
+                        <option value="ĐỎ">ĐỎ (6-10)</option>
+                        <option value-="TÍM">TÍM (11-15)</option>
+                        <option value="VÀNG">VÀNG (16-20)</option>
+                    </select>
+                </div>
+                <button id="save-intervention-btn" class="w-full px-4 py-3 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-bold transition-all disabled:opacity-50">Lưu Can Thiệp Thủ Công</button>
+            </div>
+            <hr class="border-dark-700 my-5">
+            <div>
+                <h5 class="text-lg font-semibold text-white mb-3">Can thiệp Tự động (Bẻ Cầu)</h5>
+                <div class="form-check form-switch text-base p-4 bg-dark-700 rounded-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" id="anti-majority-switch">
+                    <label class="form-check-label text-white" for="anti-majority-switch">Bẻ cầu (Kết quả về bên cược ít nhất)</label>
+                    <p class="text-sm text-gray-400 mt-2 mb-0">Khi bật, game sẽ tự động tính toán và cho kết quả vào bên (Chẵn/Lẻ) có tổng cược thấp nhất.</p>
+                </div>
+            </div>
+            <hr class="border-dark-700 my-5">
+            <button id="set-auto-btn" class="w-full px-4 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-bold transition-all disabled:opacity-50">Chuyển về Tự Động (Ngẫu nhiên)</button>
+        </div>
+    </div>
+    
+    <!-- Modal Game Crash -->
+    <div id="crash-control-modal" class="modal fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-80 p-4">
+        <div class="modal-content bg-dark-800 rounded-lg shadow-2xl w-full max-w-lg p-6 relative">
+            <span class="close-btn absolute top-4 right-5 text-gray-400 hover:text-white text-3xl cursor-pointer" onclick="closeModal('crash-control-modal')">&times;</span>
+            <h2 class="text-2xl font-bold text-primary mb-4"><i class="fas fa-rocket mr-2"></i>Can thiệp Game Du Hành</h2>
+            <div id="crash-countdown-display" class="text-center my-3 p-4 bg-dark-900 rounded-lg">
+                <span class="text-white d-block mb-1">
+                    Trạng thái: 
+                    <span class="font-bold text-primary" id="crash-status-display">Đang tải...</span>
+                </span>
+                <p class="text-4xl font-bold text-white my-2" id="crash-timer-display">--:--</p>
+                <p class="text-sm text-gray-400 mb-0 mt-1" id="crash-time-mode-display">Chế độ: Đang tải...</p>
+            </div>
+            <hr class="border-dark-700 my-5">
+            <div class="space-y-3 mb-5">
+                <h5 class="text-lg font-semibold text-white">1. Can thiệp Thủ công (1 Phiên Tới)</h5>
+                <div class="intervention-group bg-dark-700 p-4 rounded-lg" style="display: block;">
+                    <label for="specific-multiplier" class="block text-sm font-medium text-gray-300 mb-2">Chỉnh điểm nổ (VD: 2.5 hoặc 1.00):</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="specific-multiplier" class="form-input flex-1 w-full" min="1.00" step="0.1" value="2.0">
+                        <button id="save-crash-manual-btn" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-bold whitespace-nowrap">Đặt `x` Phiên Tới</button>
+                    </div>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <h5 class="text-lg font-semibold text-white">2. Can thiệp Trực tiếp (Khi đang bay)</h5>
+                <button id="force-crash-now-btn" class="w-full px-4 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold transition-all disabled:opacity-50" disabled>
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    BUỘC NỔ NGAY LẬP TỨC
+                </button>
+                <p class="text-sm text-gray-400 mt-1 text-center">Nút này chỉ sáng lên khi máy bay đang bay.</p>
+            </div>
+
+            <hr class="border-dark-700 my-5">
+            <div class="space-y-3">
+                <h5 class="text-lg font-semibold text-white">3. Can thiệp Tự động (Thông minh)</h5>
+                <div id="crash-mode-group" class="intervention-group bg-dark-700 p-4 rounded-lg space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="crash-mode-btn active" data-mode="auto">
+                            Tự Động (Mặc định)
+                        </button>
+                        <button class="crash-mode-btn" data-mode="anti-player">
+                            Bẻ Cầu (Chống Player)
+                        </button>
+                        <button class="crash-mode-btn" data-mode="pro-player">
+                            Thả Mồi (Tỷ lệ cao)
+                        </button>
+                        <button class="crash-mode-btn" data-mode="extreme">
+                            Siêu Bịp (Toàn 1.00x)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
+    </div>
+    
+    <!-- Modal Game BO -->
+    <div id="bo-control-modal" class="modal fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-80 p-4">
+        <div class="modal-content bg-dark-800 rounded-lg shadow-2xl w-full max-w-lg p-6 relative">
+            <span class="close-btn absolute top-4 right-5 text-gray-400 hover:text-white text-3xl cursor-pointer" onclick="closeModal('bo-control-modal')">&times;</span>
+            <h2 class="text-2xl font-bold text-primary mb-4"><i class="fas fa-chart-line mr-2"></i>Can thiệp Game Giao Dịch BO</h2>
+            <div class="flex border-b border-dark-700 mb-4">
+                <a id="bo-tab-control" class="tab-link nav-link active py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" href="#">Điều Khiển</a>
+                <a id="bo-tab-stats" class="tab-link nav-link py-3 px-5 border-b-2 border-transparent text-gray-400 hover:text-white" href="#">Thống Kê Lãi/Lỗ</a>
+            </div>
+            <div id="bo-control-content-main">
+                <div id="bo-countdown-display" class="text-center my-3 p-4 bg-dark-900 rounded-lg">
+                    <span class="text-white d-block mb-1">
+                        Trạng thái: 
+                        <span class="font-bold text-primary" id="bo-status-text">Đang tải...</span>
+                    </span>
+                    <p class="text-4xl font-bold text-white my-2" id="bo-timer-text">--:--</p>
+                    <p class="text-sm text-gray-400 mb-0 mt-1">Lệnh can thiệp tiếp theo: <span id="bo-next-rig-display" class="font-bold text-yellow-400">Không có</span></p>
+                </div>
+                <hr class="border-dark-700 my-5">
+                <div class="space-y-3 mb-5">
+                    <h5 class="text-lg font-semibold text-white">1. Can thiệp Thủ công (1 Phiên Tới)</h5>
+                    <div class="intervention-group bg-dark-700 p-4 rounded-lg" style="display: block;">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Chọn kết quả cho phiên tới:</label>
+                        <div class="flex gap-2">
+                            <select id="bo-manual-select" class="form-select flex-1 w-full">
+                                <option value="BO_MUA">MUA (BUY)</option>
+                                <option value="BO_BAN">BÁN (SELL)</option>
+                            </select>
+                            <button id="save-bo-manual-btn" class="px-4 py-2 rounded-lg bg-yellow-500 hover:bg-yellow-600 text-black font-bold whitespace-nowrap">Đặt Lệnh Phiên Tới</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <h5 class="text-lg font-semibold text-white">2. Can thiệp Tự động (Thông minh)</h5>
+                    
+                    <!-- === [BẮT ĐẦU SỬA LỖI HTML] === -->
+                    <!-- Thay thế các input radio bằng các nút button -->
+                    <div id="bo-mode-group" class="intervention-group bg-dark-700 p-4 rounded-lg space-y-3" style="display: block;">
+                        <div class="grid grid-cols-2 gap-3">
+                            <button class="bo-mode-btn active" data-mode="auto">
+                                Tự Động (100%)
+                            </button>
+                            <button class="bo-mode-btn" data-mode="anti-majority">
+                                Bẻ Cầu (Bên ít)
+                            </button>
+                            <button class="bo-mode-btn" data-mode="day">
+                                Ban Ngày (Gỡ/Mồi)
+                            </button>
+                            <button class="bo-mode-btn" data-mode="night">
+                                Ban Đêm (Siêu Bịp)
+                            </button>
+                        </div>
+                    </div>
+                    <!-- === [KẾT THÚC SỬA LỖI HTML] === -->
+                    
+                </div>
+            </div>
+            <!-- [THAY ĐỔI] Tab này sẽ được JS lấp đầy -->
+            <div id="bo-control-content-stats" style="display: none;">
+                <p class="text-gray-400 mb-4">Thống kê Lãi/Lỗ (P/L) của nhà cái từ game Giao Dịch BO.</p>
+                <div id="bo-stats-display" class="game-stats-display bg-dark-700 rounded-lg p-4 space-y-3">
+                    <p class="stat-row">Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- [SỬA LỖI] Toàn bộ script nội tuyến được di chuyển vào đây -->
+    <script>
+        // [SỬA LỖI] Kiểm tra xem api.js đã tải thành công chưa (nó được tải ở <head>)
+        if (typeof window.API === 'undefined') {
+            alert('Lỗi nghiêm trọng: Không tải được api.js. Vui lòng kiểm tra console và tải lại trang.');
+            console.error('window.API is undefined. api.js did not load correctly.');
+            // Dừng script nếu API không tải được
+            throw new Error('API failed to load.'); 
+        }
+
+        // [✅ ĐÃ SỬA] Không khai báo lại const nữa, dùng trực tiếp window.API
+        
+        // Hàm này là CỤ THỂ cho admin panel
+        function checkAdminLogin(redirectToLogin = true) {
+            const token = window.API.getAdminToken();
+            if (!token && redirectToLogin) {
+                const targetPage = window.location.pathname + window.location.search;
+                sessionStorage.setItem('redirectAfterLogin', targetPage);
+                window.location.href = 'login'; 
+                return null;
+            }
+            return token;
+        }
+        
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            if (sidebar && overlay) {
+                const isOpen = sidebar.classList.contains('open');
+                if (isOpen) {
+                    sidebar.classList.remove('open');
+                    overlay.classList.remove('active');
+                } else {
+                    sidebar.classList.add('open');
+                    overlay.classList.add('active');
+                }
+            }
+        }
+        
+        // Close mobile menu when clicking on nav items
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            if (window.innerWidth <= 768 && sidebar && sidebar.classList.contains('open')) {
+                const navItem = e.target.closest('.nav-item');
+                if (navItem) {
+                    setTimeout(() => {
+                        sidebar.classList.remove('open');
+                        if (overlay) overlay.classList.remove('active');
+                    }, 200);
+                }
+            }
+        });
+        
+        // Close menu on window resize
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('admin-sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            if (window.innerWidth > 768) {
+                if (sidebar) sidebar.classList.remove('open');
+                if (overlay) overlay.classList.remove('active');
+            }
+        });
+        
+        
+        // --- HỆ THỐNG TOAST ---
+        function showToast(message, type = 'success', duration = 4000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            let iconClass = 'fa-check';
+            if (type === 'danger') iconClass = 'fa-exclamation-triangle';
+            if (type === 'warning') iconClass = 'fa-exclamation-circle';
+
+            toast.innerHTML = `
+                <span class="toast-icon"><i class="fas ${iconClass}"></i></span>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.add('show'); }, 100); 
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                toast.classList.add('hide');
+                toast.addEventListener('transitionend', () => { toast.remove(); });
+            }, duration);
+        }
+        
+        // --- HỆ THỐNG MODAL ---
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'flex';
+        }
+        
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+             
+            if (modalId === 'user-detail-modal') {
+                // Reset form điều chỉnh
+                document.getElementById('adjustment-fields').style.display = 'none';
+                document.getElementById('btn-add-money').classList.remove('ring-2', 'ring-white');
+                document.getElementById('btn-subtract-money').classList.remove('ring-2', 'ring-white');
+                document.getElementById('adjustment-amount').value = '';
+                document.getElementById('adjustment-reason').value = '';
+                // Reset về tab đầu tiên
+                switchModalTab('info');
+            }
+        }
+        
+        // [MỚI] Hàm chuyển tab bên trong Modal
+        function switchModalTab(tabName) {
+            const modal = document.getElementById('user-detail-modal');
+            if (!modal) return;
+            
+            // Ẩn tất cả content
+            modal.querySelectorAll('.modal-tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            // Xóa active khỏi tất cả link
+            modal.querySelectorAll('.modal-tab-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Hiển thị content được chọn
+            const activeContent = modal.querySelector(`#user-tab-${tabName}`);
+            if (activeContent) activeContent.style.display = 'block';
+            
+            // Thêm active cho link được chọn
+            const activeLink = modal.querySelector(`.modal-tab-link[data-tab="${tabName}"]`);
+            if (activeLink) activeLink.classList.add('active');
+
+            // [THAY ĐỔI] Tải dữ liệu khi click tab
+            const userId = document.getElementById('detail-id').textContent;
+            if (!userId) return; // Not fully loaded
+            
+            if (tabName === 'bets' && !modalDataCache.bets) {
+                loadUserBetHistory(userId);
+            } else if (tabName === 'tx' && !modalDataCache.tx) {
+                loadUserTransactions(userId);
+            } else if (tabName === 'log' && !modalDataCache.log) {
+                loadUserAdminLog(userId);
+            }
+        }
+
+        // =================================
+        // KHỞI TẠO VÀ BIẾN TOÀN CỤC
+        // =================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // [SỬA LỖI] Bỏ try...catch ở đây, vì chúng ta đã kiểm tra window.API ở trên
+            // Nếu script chạy đến đây, nghĩa là api.js đã tải thành công.
+            initializeDashboard();
+        });
+        
+        let currentUserIdToAdjust = null;
+        let currentUsernameToDelete = '';
+        let currentAdjustmentSign = 0;
+        let adminSocket = null;
+        let currentDepositFilter = 'fiat';
+        let currentWithdrawalFilter = 'fiat';
+        let allUsersCache = []; 
+        let boStatsLoaded = false; 
+        let modalDataCache = {}; // [MỚI] Cache cho user modal
+        let currentBoMode = 'auto'; 
+        let current_CRASH_Mode = 'auto'; // <-- [THÊM MỚI]
+
+        // --- Helpers Định dạng ---
+        function formatVND(amount) {
+             const numberAmount = parseFloat(amount);
+             if (isNaN(numberAmount)) return '0 VND';
+             return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(numberAmount).replace('₫', ' VND');
+        }
+        function formatUSDT(amount, decimals=2) {
+             const numberAmount = parseFloat(amount);
+             if (isNaN(numberAmount)) return '0.00 USDT';
+             return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(numberAmount) + ' USDT';
+        }
+        
+        // --- Helpers Cập nhật Game (Giữ nguyên) ---
+        function updateGameControlPlayerCounts(data) {
+            const game120El = document.getElementById('game-120-players');
+            const gameCrashEl = document.getElementById('game-crash-players');
+            const gameMinesEl = document.getElementById('game-mines-players');
+            const gameHiloEl = document.getElementById('game-hilo-players');
+            const gameBoEl = document.getElementById('game-bo-players');
+
+            if (game120El && data.game120Players !== undefined) game120El.textContent = data.game120Players.toLocaleString();
+            if (gameCrashEl && data.realCrashPlayers !== undefined) gameCrashEl.textContent = data.realCrashPlayers.toLocaleString();
+            if (gameMinesEl && data.minesPlayers !== undefined) gameMinesEl.textContent = data.minesPlayers.toLocaleString();
+            if (gameHiloEl && data.hiloPlayers !== undefined) gameHiloEl.textContent = data.hiloPlayers.toLocaleString();
+            if (gameBoEl && data.boPlayers !== undefined) gameBoEl.textContent = data.boPlayers.toLocaleString();
+        }
+
+        async function fetchGameStats() {
+            const minesStatsEl = document.getElementById('mines-stats-display');
+            const hiloStatsEl = document.getElementById('hilo-stats-display');
+            const formatStat = (amount) => {
+                const val = parseFloat(amount);
+                const className = val > 0 ? 'text-success' : (val < 0 ? 'text-danger' : '');
+                return `<span class="${className}">${formatUSDT(val, 2)}</span>`;
+            };
+            try {
+                const stats = await window.API.fetchAdmin('/admin/game-stats');
+                if (stats.mines) {
+                    minesStatsEl.innerHTML = `
+                        <p class="stat-row flex justify-between"><span>24h:</span> ${formatStat(stats.mines.profit24h)}</p>
+                        <p class="stat-row flex justify-between"><span>1 Tháng:</span> ${formatStat(stats.mines.profit1m)}</p>
+                        <p class="stat-row flex justify-between"><span>All-time:</span> ${formatStat(stats.mines.profitAllTime)}</p>
+                    `;
+                }
+                // [THAY ĐỔI] Sửa HiLo
+                if (stats.hilo) {
+                    hiloStatsEl.innerHTML = `
+                        <p class="stat-row flex justify-between"><span>24h:</span> ${formatStat(stats.hilo.profit24h)}</p>
+                        <p class="stat-row flex justify-between"><span>1 Tháng:</span> ${formatStat(stats.hilo.profit1m)}</p>
+                        <p class="stat-row flex justify-between"><span>All-time:</span> ${formatStat(stats.hilo.profitAllTime)}</p>
+                    `;
+                }
+            } catch (error) {
+                minesStatsEl.innerHTML = `<p class="stat-row"><span class="text-danger">Lỗi tải P/L</span></p>`;
+                hiloStatsEl.innerHTML = `<p class="stat-row"><span class="text-danger">Lỗi tải P/L</span></p>`;
+            }
+        }
+
+        // --- KHỞI TẠO CHÍNH ---
+        function initializeDashboard() {
+            if (!checkAdminLogin(true)) {
+                // Hàm checkAdminLogin đã xử lý chuyển hướng
+                return;
+            } 
+            
+            // Ghi đè alert mặc định
+            window.alert = (message) => { 
+                showToast(message, 'warning', 5000);
+            }; 
+            const nativeConfirm = window.confirm;
+            
+            // Logic chuyển tab chính (Sidebar)
+            const navItems = document.querySelectorAll('aside .nav-item');
+            if (navItems.length === 0) {
+                showToast('Lỗi: Không tìm thấy menu navigation', 'danger');
+                return;
+            }
+            navItems.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const target = link.dataset.content;
+                    if (!target) {
+                        showToast('Lỗi: Menu item không có data-content', 'danger');
+                        return;
+                    }
+                    if (target === 'logout') {
+                        if (nativeConfirm('Bạn có chắc chắn muốn đăng xuất Admin?')) {
+                            localStorage.removeItem('adminAuthToken'); 
+                            localStorage.removeItem('authToken'); 
+                            showToast('Đã đăng xuất.', 'success');
+                            setTimeout(() => window.location.href = 'login', 1000);
+                        }
+                        return;
+                    }
+                    document.querySelectorAll('aside .nav-item').forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+                    loadTab(target);
+                });
+            });
+            
+            // Setup các modal
+            setupAdjustmentModalLogic();
+            const deleteBtn = document.getElementById('execute-delete-btn');
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', executeDeleteUser);
+            }
+            
+            // [MỚI] Gán sự kiện cho các tab bên trong User Modal
+            document.querySelectorAll('.modal-tab-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchModalTab(link.dataset.tab);
+                });
+            });
+            
+            // Chức năng filter người dùng
+            document.getElementById('player-filter-btn').onclick = () => {
+                fetchUserList(); // Reload với filter
+            };
+            
+            // Chức năng filter lệnh nạp
+            document.getElementById('deposit-filter-btn').onclick = () => {
+                fetchDeposits(); // Reload với filter
+            };
+            
+            // Chức năng filter lệnh rút
+            document.getElementById('withdrawal-filter-btn').onclick = () => {
+                fetchWithdrawals(); // Reload với filter
+            };
+            // Đổi mật khẩu admin
+            document.getElementById('change-password-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const oldPassword = document.getElementById('old-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+                
+                if (!oldPassword || !newPassword || !confirmPassword) {
+                    showToast('Vui lòng điền đầy đủ thông tin.', 'danger');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    showToast('Mật khẩu mới phải có ít nhất 6 ký tự.', 'danger');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    showToast('Mật khẩu mới và xác nhận không khớp.', 'danger');
+                    return;
+                }
+                
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...';
+                
+                try {
+                    const response = await window.API.fetchAdmin('/admin/change-password', {
+                        method: 'POST',
+                        body: JSON.stringify({ oldPassword, newPassword })
+                    });
+                    
+                    showToast(response.message || 'Đổi mật khẩu thành công!', 'success');
+                    // Xóa form
+                    document.getElementById('old-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    
+                    // Thông báo đăng nhập lại sau 2 giây
+                    setTimeout(() => {
+                        showToast('Vui lòng đăng nhập lại với mật khẩu mới.', 'warning');
+                    }, 2000);
+                } catch (error) {
+                    showToast(`Lỗi: ${error.message}`, 'danger');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Xác nhận Thay đổi';
+                }
+            };
+
+            // Nút Lưu ở tab Cài Đặt Hệ Thống (Settings) - Logic An Toàn
+			document.getElementById('save-settings-btn').onclick = async () => {
+				// 1. Lấy giá trị từ giao diện (Tab Cài đặt hệ thống)
+				const newRate = parseFloat(document.getElementById('setting-manual-usdt-rate').value);
+				const maintenanceMode = document.getElementById('maintenance-switch').checked;
+				const requireKyc = document.getElementById('kyc-switch').checked;
+				const withdrawFee = parseFloat(document.getElementById('setting-withdraw-fee').value);
+				const whaleThreshold = parseFloat(document.getElementById('setting-whale-threshold').value);
+
+				// 2. Validate dữ liệu
+				if (isNaN(newRate) || newRate < 0) {
+					showToast('Giá USDT không hợp lệ.', 'danger');
+					return;
+				}
+				if (isNaN(withdrawFee) || withdrawFee < -1 || withdrawFee > 100) {
+					showToast('Phí rút tiền không hợp lệ. Nhập -1 để dùng theo VIP hoặc 0-100 cho phí toàn cục.', 'danger');
+					return;
+				}
+				if (isNaN(whaleThreshold) || whaleThreshold < 1) {
+					showToast('Ngưỡng cá voi không hợp lệ.', 'danger');
+					return;
+				}
+
+				showToast('Đang lưu cài đặt...', 'warning');
+
+				try {
+					// 3. QUAN TRỌNG: Lấy cài đặt hiện tại từ Server trước
+					// Mục đích: Để lấy giá trị 'maxLossThreshold' hiện tại (vì ô nhập liệu đó đã chuyển sang tab Chỉnh Cầu)
+					// Nếu không làm bước này, maxLossThreshold sẽ bị gửi lên là undefined/null và bị mất.
+					const currentSettings = await window.API.fetchAdmin('/admin/settings');
+
+					// 4. Gửi dữ liệu cập nhật lên Server
+					const response = await window.API.fetchAdmin('/admin/settings', {
+						method: 'POST',
+						body: JSON.stringify({
+							manualRate: newRate,
+							isMaintenance: maintenanceMode,
+							requireKyc: requireKyc,
+							withdrawFee: withdrawFee,
+							whaleThreshold: whaleThreshold,
+							// Giữ nguyên giá trị maxLossThreshold cũ từ server, KHÔNG GHI ĐÈ
+							maxLossThreshold: currentSettings.maxLossThreshold 
+						})
+					});
+
+					showToast(response.message || 'Lưu thành công!', 'success');
+					
+					// 5. Tải lại hiển thị để đảm bảo đồng bộ
+					loadCurrentSettings();
+					
+				} catch (error) {
+					showToast(`Lỗi: ${error.message}`, 'danger');
+				}
+			};
+            
+            // Logic chuyển tab Lệnh Nạp
+            document.getElementById('deposit-tab-fiat').addEventListener('click', (e) => {
+                e.preventDefault(); currentDepositFilter = 'fiat';
+                document.getElementById('deposit-tab-fiat').classList.add('active');
+                document.getElementById('deposit-tab-crypto').classList.remove('active');
+                fetchDeposits(); 
+            });
+            document.getElementById('deposit-tab-crypto').addEventListener('click', (e) => {
+                e.preventDefault(); currentDepositFilter = 'crypto';
+                document.getElementById('deposit-tab-fiat').classList.remove('active');
+                document.getElementById('deposit-tab-crypto').classList.add('active');
+                fetchDeposits(); 
+            });
+            
+            // Logic chuyển tab Lệnh Rút
+            document.getElementById('withdrawal-tab-fiat').addEventListener('click', (e) => {
+                e.preventDefault(); currentWithdrawalFilter = 'fiat';
+                document.getElementById('withdrawal-tab-fiat').classList.add('active');
+                document.getElementById('withdrawal-tab-crypto').classList.remove('active');
+                fetchWithdrawals(); 
+            });
+            document.getElementById('withdrawal-tab-crypto').addEventListener('click', (e) => {
+                e.preventDefault(); currentWithdrawalFilter = 'crypto';
+                document.getElementById('withdrawal-tab-fiat').classList.remove('active');
+                document.getElementById('withdrawal-tab-crypto').classList.add('active');
+                fetchWithdrawals(); 
+            });
+            
+            // Logic chuyển tab trong Modal BO
+            document.getElementById('bo-tab-control').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('bo-tab-control').classList.add('active');
+                document.getElementById('bo-tab-stats').classList.remove('active');
+                document.getElementById('bo-control-content-main').style.display = 'block';
+                document.getElementById('bo-control-content-stats').style.display = 'none';
+            });
+            document.getElementById('bo-tab-stats').addEventListener('click', (e) => {
+                e.preventDefault();
+                document.getElementById('bo-tab-control').classList.remove('active');
+                document.getElementById('bo-tab-stats').classList.add('active');
+                document.getElementById('bo-control-content-main').style.display = 'none';
+                document.getElementById('bo-control-content-stats').style.display = 'block';
+                boStatsLoaded = false; 
+                loadBoStatsForModal();
+            });
+            
+            loadTab('overview');
+            
+            // --- Kết nối WebSocket ---
+            adminSocket = io(window.location.origin, { query: { admin: "true" } }); 
+
+            adminSocket.on("connect", () => {
+                showToast('Đã kết nối với máy chủ!', 'success');
+            });
+            
+            // --- CÁC LISTENER MỚI ---
+            
+            // [MỚI] Listener cho Cảnh Báo Cá Voi
+            adminSocket.on("whale_alert", (betData) => {
+                // betData = { game: 'Game Crash', username: 'user123', amount: 150, choice: 'N/A' }
+                const message = `
+                    <i class="fas fa-fish mr-2"></i>
+                    <strong>[${betData.game}]</strong> User <strong>${betData.username}</strong>
+                    vừa cược ${formatUSDT(betData.amount, 2)}
+                `;
+                // Hiển thị toast MÀU VÀNG (warning) để thu hút sự chú ý, 10 giây
+                showToast(message, 'warning', 10000); 
+            });
+
+            // [MỚI] Listener cho Luồng Hoạt Động
+            adminSocket.on("live_activity", (betData) => {
+                // betData = { timestamp: new Date(), game: 'Game 1-20', username: 'user_A', amount: 5, choice: 'LẺ' }
+                const feedElement = document.getElementById('live-activity-feed');
+                if (!feedElement) return;
+
+                // Xóa placeholder
+                const placeholder = feedElement.querySelector('.text-gray-500');
+                if (placeholder) placeholder.remove();
+
+                const logEntry = document.createElement('div');
+                logEntry.className = 'text-sm text-gray-400 border-b border-dark-700 pb-2';
+                logEntry.innerHTML = `
+                    <div>
+                        <span class="text-primary font-medium">[${new Date(betData.timestamp).toLocaleTimeString('vi-VN')}]</span>
+                        <span class="font-bold text-yellow-400 ml-2">[${betData.game}]</span>
+                    </div>
+                    <div class="pl-4">
+                        <span class="font-medium text-white">${betData.username}</span>
+                        <span> đã cược ${formatUSDT(betData.amount, 2)} vào <strong>${betData.choice}</strong></span>
+                    </div>
+                `;
+                // Thêm vào đầu danh sách
+                feedElement.prepend(logEntry);
+                
+                // Giới hạn số lượng log
+                if (feedElement.children.length > 100) {
+                    feedElement.removeChild(feedElement.lastChild);
+                }
+            });
+
+            // --- CÁC LISTENER CŨ ---
+            adminSocket.on("new_deposit", (newDepositData) => {
+                showToast(`User ${newDepositData.username} vừa tạo lệnh nạp ${formatVND(newDepositData.amountVND)}.`, 'success', 10000);
+                fetchSummary();
+                if (document.getElementById('deposits-content').style.display === 'block') {
+                    fetchDeposits();
+                }
+            });
+            
+            adminSocket.on("admin_stats_update", (data) => {
+                if (document.getElementById('online-users-card')) {
+                    document.getElementById('online-users-card').textContent = data.onlineUsers.toLocaleString();
+                }
+                
+                // [ĐÃ SỬA LỖI] Đã xóa 'if' và '}' thừa
+                // Giờ hàm này sẽ luôn chạy và cập nhật số liệu ngầm
+                updateGameControlPlayerCounts(data);
+                
+                // [HẾT SỬA]
+
+                // [MỚI] Cập nhật badge KYC
+                const kycBadge = document.getElementById('kyc-pending-badge');
+                if (kycBadge && data.pendingKyc !== undefined) {
+                    if (data.pendingKyc > 0) {
+                        kycBadge.textContent = data.pendingKyc;
+                        kycBadge.style.display = 'inline-block';
+                    } else {
+                        kycBadge.style.display = 'none';
+                    }
+                }
+            });
+            
+            // Listener Game 1-20
+            const timerDisplay = document.getElementById('game-timer-display');
+            const statusDisplay = document.getElementById('game-status-display');
+            const saveBtn = document.getElementById('save-intervention-btn');
+            const setAutoBtn = document.getElementById('set-auto-btn'); 
+            const antiMajoritySwitch = document.getElementById('anti-majority-switch'); 
+
+            adminSocket.on('game_40s_time_update', (data) => {
+                 if (timerDisplay && statusDisplay && saveBtn && setAutoBtn) { 
+                     const mins = Math.floor(data.time_left / 60).toString().padStart(2, '0');
+                     const secs = (data.time_left % 60).toString().padStart(2, '0');
+                     timerDisplay.textContent = `${mins}:${secs}`;
+                     const canIntervene = data.time_left > 0;
+                     statusDisplay.textContent = canIntervene ? 'Đang mở cược. Có thể can thiệp.' : 'ĐÃ ĐÓNG CƯỢC. Vui lòng chờ phiên mới.';
+                     statusDisplay.className = canIntervene ? 'text-sm text-green-500 mt-1' : 'text-sm text-red-500 mt-1';
+                     saveBtn.disabled = !canIntervene;
+                     setAutoBtn.disabled = !canIntervene;
+                     antiMajoritySwitch.disabled = !canIntervene;
+                 }
+            });
+            
+            adminSocket.on('game_40s_update', (data) => {
+                 const game120StatusEl = document.getElementById('game-120-status-display');
+                 if (timerDisplay && statusDisplay && saveBtn && setAutoBtn) { 
+                     const mins = Math.floor(data.time_left / 60).toString().padStart(2, '0');
+                     const secs = (data.time_left % 60).toString().padStart(2, '0');
+                     timerDisplay.textContent = `${mins}:${secs}`;
+                     const isOpen = data.status === 'OPEN';
+                     statusDisplay.textContent = isOpen ? 'Phiên mới đã bắt đầu. Có thể can thiệp.' : 'ĐANG XỬ LÝ KẾT QUẢ...';
+                     statusDisplay.className = isOpen ? 'text-sm text-green-500 mt-1' : 'text-sm text-yellow-400 mt-1';
+                     saveBtn.disabled = !isOpen;
+                     setAutoBtn.disabled = !isOpen;
+                     antiMajoritySwitch.disabled = !isOpen;
+                     
+                     if(game120StatusEl) {
+                         const isManual = data.current_mode !== 'auto';
+                         game120StatusEl.textContent = isManual ? 'Trạng thái: Can thiệp' : 'Trạng thái: Tự động';
+                         game120StatusEl.className = isManual ? 'status status-manual text-sm font-medium' : 'status status-auto text-sm font-medium';
+                     }
+                 }
+            });
+            
+            // Listener Crash
+            const crashModal = document.getElementById('crash-control-modal');
+            // [THAY THẾ TOÀN BỘ HÀM NÀY]
+            adminSocket.on('crash_update', (data) => {
+                // [THÊM MỚI] Lưu trữ chế độ hiện tại
+                current_CRASH_Mode = data.current_mode || 'auto';
+                
+                // [THAY ĐỔI] Cập nhật text thẻ
+                const crashCardStatusEl = document.getElementById('game-crash-status-display');
+                if(crashCardStatusEl) {
+                     // [SỬA] Kiểm tra cả chế độ tự động VÀ lệnh can thiệp thủ công (next_rig)
+                     const isManual = (data.current_mode && data.current_mode !== 'auto') || data.next_rig;
+                     crashCardStatusEl.textContent = isManual ? 'Trạng thái: Can thiệp' : 'Trạng thái: Tự động';
+                     crashCardStatusEl.className = isManual ? 'status status-manual text-sm font-medium' : 'status status-auto text-sm font-medium';
+                }
+                
+                if (!crashModal || crashModal.style.display !== 'flex') return; 
+                
+                const crashStatusDisplay = document.getElementById('crash-status-display');
+                const crashTimerDisplay = document.getElementById('crash-timer-display');
+                const crashTimeModeDisplay = document.getElementById('crash-time-mode-display'); 
+                const saveManualBtn = document.getElementById('save-crash-manual-btn');
+                const multiplierInput = document.getElementById('specific-multiplier');
+                const forceCrashNowBtn = document.getElementById('force-crash-now-btn');
+                let manualControls = [saveManualBtn, multiplierInput];
+
+                // [THÊM MỚI] Cập nhật nút active
+                const modeGroup = document.getElementById('crash-mode-group');
+                if (modeGroup) {
+                    modeGroup.querySelectorAll('.crash-mode-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.mode === current_CRASH_Mode);
+                    });
+                }
+                
+                // [THÊM MỚI] Lấy nút lưu chế độ
+                const saveModeBtn = document.getElementById('save-crash-mode-btn');
+
+                crashTimeModeDisplay.textContent = 'Chế độ: ' + current_CRASH_Mode.toUpperCase();
+                
+                if (data.state === 'WAITING') {
+                    crashStatusDisplay.textContent = 'ĐANG CHỜ';
+                    crashStatusDisplay.className = 'font-bold text-green-500';
+                    crashTimerDisplay.textContent = `${data.countdown}s`;
+                    crashTimerDisplay.className = 'text-4xl font-bold text-green-500 my-2';
+                    manualControls.forEach(btn => btn.disabled = false);
+                    if (saveModeBtn) saveModeBtn.disabled = false; // [THÊM]
+                    forceCrashNowBtn.disabled = true;
+                } else if (data.state === 'RUNNING') {
+                    crashStatusDisplay.textContent = 'ĐANG BAY';
+                    crashStatusDisplay.className = 'font-bold text-cyan-400';
+                    crashTimerDisplay.textContent = `${data.multiplier.toFixed(2)}x`;
+                    crashTimerDisplay.className = 'text-4xl font-bold text-cyan-400 my-2';
+                    manualControls.forEach(btn => btn.disabled = true);
+                    if (saveModeBtn) saveModeBtn.disabled = true; // [THÊM]
+                    forceCrashNowBtn.disabled = false;
+                } else if (data.state === 'CRASHED') {
+                    crashStatusDisplay.textContent = 'ĐÃ NỔ';
+                    crashStatusDisplay.className = 'font-bold text-red-500';
+                    crashTimerDisplay.textContent = `${data.multiplier.toFixed(2)}x`;
+                    crashTimerDisplay.className = 'text-4xl font-bold text-red-500 my-2';
+                    manualControls.forEach(btn => btn.disabled = true);
+                    if (saveModeBtn) saveModeBtn.disabled = true; // [THÊM]
+                    forceCrashNowBtn.disabled = true;
+                }
+            });
+            
+            // === [BẮT ĐẦU SỬA LỖI] Listener BO ===
+            adminSocket.on('bo_time_update', (data) => {
+                // [SỬA 1] Luôn cập nhật trạng thái mode vào biến toàn cục
+                currentBoMode = data.current_mode || 'auto';
+                
+                // Chỉ cập nhật UI của modal NẾU nó đang mở
+                if (document.getElementById('bo-control-modal').style.display === 'flex') {
+                    updateBoControlUI(data); 
+                }
+                // Luôn cập nhật trạng thái thẻ bên ngoài
+                updateBoCardStatus(data);
+            });
+			// Nút Lưu ở tab Chỉnh Cầu (MỚI)
+			const saveMaxLossBtn = document.getElementById('save-max-loss-btn');
+			if (saveMaxLossBtn) {
+				saveMaxLossBtn.addEventListener('click', async () => {
+					const maxLossInput = document.getElementById('setting-max-loss-control');
+					const newVal = parseFloat(maxLossInput.value);
+
+					if (isNaN(newVal) || newVal < 0) {
+						showToast('Vui lòng nhập số tiền hợp lệ.', 'danger');
+						return;
+					}
+
+					showToast('Đang cập nhật ngưỡng cắt lỗ...', 'warning');
+					
+					try {
+						// 1. Lấy cài đặt hiện tại
+						const currentSettings = await window.API.fetchAdmin('/admin/settings');
+
+						// 2. Gửi cập nhật (MAP LẠI ĐÚNG TÊN BIẾN MÀ SERVER YÊU CẦU)
+						const response = await window.API.fetchAdmin('/admin/settings', {
+							method: 'POST',
+							body: JSON.stringify({ 
+								// Server POST yêu cầu: manualRate, isMaintenance...
+								// Server GET trả về: manualUsdToVndRate, isMaintenanceMode...
+								// -> Cần map lại thủ công như sau:
+								
+								manualRate: currentSettings.manualUsdToVndRate, 
+								isMaintenance: currentSettings.isMaintenanceMode,
+								requireKyc: currentSettings.requireKyc,
+								withdrawFee: currentSettings.withdrawFee,
+								whaleThreshold: currentSettings.whaleThreshold,
+								
+								// Giá trị mới cần cập nhật
+								maxLossThreshold: newVal 
+							})
+						});
+
+						showToast('✅ Đã cập nhật Ngưỡng Cắt Lỗ!', 'success');
+					} catch (error) {
+						showToast(`Lỗi: ${error.message}`, 'danger');
+					}
+				});
+			}
+            // === [KẾT THÚC SỬA LỖI] ===
+        }
+        
+        // --- LOGIC TẢI TAB ---
+
+        function loadTab(targetId) {
+             const titleMap = {
+                'overview': 'Tổng Quan Hệ Thống',
+                'activity': 'Hoạt động Trực tiếp', // [MỚI]
+                'risk': 'Quản lý Rủi ro', // [MỚI]
+                'players': 'Danh Sách Người Dùng',
+                'kyc': 'Quản lý KYC', // [MỚI]
+                'deposits': 'Quản lý Lệnh Nạp',
+                'withdrawals': 'Quản lý Lệnh Rút',
+                'game-control': 'Công cụ Chỉnh Cầu',
+				'mailbox': 'Quản lý Hòm Thư', // <-- [SỬA 1] THÊM DÒNG NÀY
+                'settings': 'Cài Đặt Hệ Thống',
+                'password': 'Đổi Mật khẩu Admin'
+            };
+             
+             const titleEl = document.getElementById('content-title');
+             if (titleEl) {
+                 titleEl.textContent = titleMap[targetId] || 'Không xác định';
+             }
+             document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+             const targetContent = document.getElementById(targetId + '-content');
+             if (!targetContent) {
+                 showToast(`Lỗi: Không tìm thấy tab ${targetId}`, 'danger');
+                 return;
+             }
+             targetContent.style.display = 'block';
+             
+             if (targetId === 'overview') fetchSummary(); 
+             else if (targetId === 'players') fetchUserList(); 
+             else if (targetId === 'deposits') fetchDeposits(); 
+             else if (targetId === 'withdrawals') fetchWithdrawals(); 
+             else if (targetId === 'game-control') {
+                 initializeGameControlUI();
+                 fetchGameStats(); 
+				 loadGameControlSettings();
+             }
+             // [THAY ĐỔI] Tải các tab mới
+             else if (targetId === 'risk') loadRiskTab();
+             else if (targetId === 'kyc') loadKycTab();
+             else if (targetId === 'settings') loadCurrentSettings();
+             // <-- [SỬA 2] THÊM ELSE IF NÀY
+             else if (targetId === 'mailbox') {
+                 loadMailboxTab();
+             }
+        }
+
+		// Hàm tải cài đặt riêng cho tab Chỉnh Cầu
+		async function loadGameControlSettings() {
+			try {
+				const settings = await window.API.fetchAdmin('/admin/settings');
+				const input = document.getElementById('setting-max-loss-control');
+				if (input) {
+					input.value = settings.maxLossThreshold || 500;
+				}
+			} catch (error) {
+				console.error('Lỗi tải max loss:', error);
+			}
+		}
+        // [MỚI] Tải cài đặt hiện tại
+        // [THAY THẾ HÀM NÀY]
+		async function loadCurrentSettings() {
+			const rateDisplay = document.getElementById('current-rate-display');
+			const rateInput = document.getElementById('setting-manual-usdt-rate');
+			const maxLossInput = document.getElementById('setting-max-loss');
+
+			// [SỬA] DOM Elements mới
+			const maintenanceSwitch = document.getElementById('maintenance-switch');
+			const kycSwitch = document.getElementById('kyc-switch');
+			const feeInput = document.getElementById('setting-withdraw-fee');
+			const whaleInput = document.getElementById('setting-whale-threshold');
+
+			try {
+				// Lấy tỷ giá live (API cũ)
+				const rateData = await window.API.fetchAdmin('/wallet/exchange-rate');
+				rateDisplay.textContent = `${formatVND(rateData.rate)} (${rateData.source})`;
+
+				// Lấy TẤT CẢ cài đặt từ API admin
+				const settingsData = await window.API.fetchAdmin('/admin/settings');
+
+				// Populate data
+				rateInput.value = settingsData.manualUsdToVndRate || 0;
+				maintenanceSwitch.checked = !!settingsData.isMaintenanceMode;
+				kycSwitch.checked = !!settingsData.requireKyc;
+				// Nếu là -1 (theo VIP), ta hiển thị 0 hoặc để trống
+				feeInput.value = (settingsData.withdrawFee >= 0) ? settingsData.withdrawFee : 0; 
+				whaleInput.value = settingsData.whaleThreshold || 100;
+				maxLossInput.value = settingsData.maxLossThreshold || 500;
+
+			} catch (error) {
+				rateDisplay.textContent = `Lỗi: ${error.message}`;
+				showToast(`Lỗi tải cài đặt: ${error.message}`, 'danger');
+			}
+		}
+        
+        // [MỚI] Tải tab Rủi ro
+        async function loadRiskTab() {
+            const contentEl = document.getElementById('risk-content');
+            const placeholder = contentEl.querySelector('.api-placeholder');
+            placeholder.innerHTML = '<p class="text-yellow-400">Đang tải dữ liệu rủi ro...</p>';
+            try {
+                const data = await window.API.fetchAdmin('/admin/risk-summary');
+                
+                // Xóa placeholder và chèn HTML mới
+                contentEl.innerHTML = `
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="bg-dark-800 p-5 rounded-lg shadow-lg text-center">
+                            <span class="text-sm font-medium text-gray-400 uppercase">Lãi/Lỗ (24 Giờ)</span>
+                            <p class="text-4xl font-bold ${data.pl_24h >= 0 ? 'text-success' : 'text-danger'} mt-2">${data.pl_24h >= 0 ? '+' : ''} ${formatUSDT(data.pl_24h)}</p>
+                        </div>
+                        <div class="bg-dark-800 p-5 rounded-lg shadow-lg text-center">
+                            <span class="text-sm font-medium text-gray-400 uppercase">Lãi/Lỗ (Tổng)</span>
+                            <p class="text-4xl font-bold ${data.pl_all_time >= 0 ? 'text-success' : 'text-danger'} mt-2">${data.pl_all_time >= 0 ? '+' : ''} ${formatUSDT(data.pl_all_time)}</p>
+                        </div>
+                        <div class="bg-dark-800 p-5 rounded-lg shadow-lg text-center">
+                            <span class="text-sm font-medium text-gray-400 uppercase">P/L Game 40s (24h)</span>
+                            <p class="text-4xl font-bold ${data.allGameStats.game40s.profit24h >= 0 ? 'text-success' : 'text-danger'} mt-2">${data.allGameStats.game40s.profit24h >= 0 ? '+' : ''} ${formatUSDT(data.allGameStats.game40s.profit24h)}</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                        <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                            <h4 class="text-lg font-semibold text-white mb-3">Top 5 Người Chơi Thắng (24h)</h4>
+                            <ul id="top-winners-list" class="divide-y divide-dark-700"></ul>
+                        </div>
+                        <div class="bg-dark-800 p-5 rounded-lg shadow-lg">
+                            <h4 class="text-lg font-semibold text-white mb-3">Top 5 Người Chơi Thua (24h)</h4>
+                            <ul id="top-losers-list" class="divide-y divide-dark-700"></ul>
+                        </div>
+                    </div>
+                `;
+
+                const winnersList = document.getElementById('top-winners-list');
+                if (data.topWinners.length === 0) winnersList.innerHTML = '<li class="py-2 text-gray-500">Không có dữ liệu</li>';
+                data.topWinners.forEach(p => {
+                    winnersList.innerHTML += `<li class="py-2 flex justify-between"><span class="text-gray-300">${p.username}</span><span class="font-bold text-success">+ ${formatUSDT(p.totalProfit)}</span></li>`;
+                });
+
+                const losersList = document.getElementById('top-losers-list');
+                if (data.topLosers.length === 0) losersList.innerHTML = '<li class="py-2 text-gray-500">Không có dữ liệu</li>';
+                data.topLosers.forEach(p => {
+                    losersList.innerHTML += `<li class="py-2 flex justify-between"><span class="text-gray-300">${p.username}</span><span class="font-bold text-danger">${formatUSDT(p.totalProfit)}</span></li>`;
+                });
+
+            } catch (error) {
+                // Nếu lỗi, khôi phục placeholder
+                contentEl.innerHTML = `<div class="api-placeholder mb-6">
+                                            <i class="fas fa-cogs"></i>
+                                            <h4>Lỗi tải dữ liệu</h4>
+                                            <p class="text-danger">${error.message}</p>
+                                        </div>`;
+            }
+        }
+        
+        // [MỚI] Tải tab KYC
+        async function loadKycTab() {
+            const contentEl = document.getElementById('kyc-content');
+            const placeholder = contentEl.querySelector('.api-placeholder');
+            // [SỬA LỖI] Đảm bảo table và tbody được tìm thấy chính xác
+            const table = contentEl.querySelector('div.bg-dark-800 > table');
+            if (!table) {
+                console.error("Không tìm thấy bảng KYC");
+                return;
+            }
+            const tbody = table.querySelector('tbody');
+            if (!tbody) {
+                console.error("Không tìm thấy tbody của bảng KYC");
+                return;
+            }
+            
+            placeholder.style.display = 'block';
+            placeholder.innerHTML = '<h4><i class="fas fa-spinner fa-spin"></i> Đang tải danh sách KYC...</h4>';
+            table.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-yellow-400">Đang tải danh sách KYC...</td></tr>';
+
+            try {
+                const queue = await window.API.fetchAdmin('/admin/kyc-queue');
+                tbody.innerHTML = '';
+                if (queue.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Không có hồ sơ KYC nào đang chờ.</td></tr>';
+                }
+                
+                queue.forEach(item => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td class="p-4 text-sm" data-label="User ID/Tên">${item.userId} / ${item.username}</td>
+                        <td class="p-4 text-sm font-medium text-white" data-label="Tên Thật">${item.fullName}</td>
+                        <td class="p-4 text-sm" data-label="Số ID (CCCD)">${item.idNumber}</td>
+                        <td class="p-4 text-sm" data-label="Ngày Nộp">${new Date(item.submittedAt).toLocaleString('vi-VN')}</td>
+                        <td class="p-4 text-sm" data-label="Ảnh">
+                            <a href="${item.photo1 || '#'}" target="_blank" class="text-primary hover:underline" onclick="event.stopPropagation()">Ảnh 1</a> |
+                            <a href="${item.photo2 || '#'}" target="_blank" class="text-primary hover:underline" onclick="event.stopPropagation()">Ảnh 2</a>
+                        </td>
+                        <td class="p-4 text-sm" data-label="Thao tác">
+                            <div class="flex flex-col gap-2">
+                                <button class="px-3 py-2 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium" onclick="processKyc(event, ${item.userId}, 'approve')">✅ Duyệt</button>
+                                <button class="px-3 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium" onclick="processKyc(event, ${item.userId}, 'reject')">❌ Từ chối</button>
+                            </div>
+                        </td>
+                    `;
+                });
+                
+                placeholder.style.display = 'none';
+                table.style.display = 'table';
+            } catch (error) {
+                placeholder.style.display = 'block';
+                placeholder.innerHTML = `<p class="text-danger">Lỗi tải danh sách KYC: ${error.message}</p>`;
+                table.style.display = 'none';
+            }
+        }
+
+        async function processKyc(event, userId, action) {
+            event.stopPropagation();
+            if (!window.confirm(`Xác nhận ${action === 'approve' ? 'DUYỆT' : 'TỪ CHỐI'} KYC cho user ID ${userId}?`)) return;
+            try {
+                const data = await window.API.fetchAdmin('/admin/kyc-process', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId, action })
+                });
+                showToast(data.message, 'success');
+                loadKycTab(); // Refresh list
+                if (adminSocket) adminSocket.emit('admin_request_stats'); // Refresh badge
+            } catch (error) {
+                showToast(`Lỗi xử lý: ${error.message}`, 'danger');
+            }
+        }
+
+        async function fetchSummary() {
+            try {
+                const summary = await window.API.fetchAdmin('/admin/summary');
+                if (!summary) {
+                    throw new Error('Không nhận được dữ liệu từ server');
+                }
+                document.getElementById('total-users-card').textContent = summary.totalUsers.toLocaleString();
+                document.getElementById('total-balance-card').textContent = formatUSDT(summary.totalBalance, 2);
+                document.getElementById('pending-deposits-card').textContent = summary.pendingDeposits.toLocaleString();
+                document.getElementById('pending-withdrawals-card').textContent = summary.pendingWithdrawals.toLocaleString();
+            } catch (error) {
+                showToast(`Lỗi tải Tổng quan: ${error.message}`, 'danger');
+                document.getElementById('total-users-card').textContent = 'Lỗi API';
+            }
+        }
+        
+        async function fetchUserList() {
+            const loadingMsg = document.getElementById('players-loading-message');
+            const table = document.getElementById('user-table');
+            const tbody = document.getElementById('user-table-body');
+            loadingMsg.style.display = 'block';
+            table.style.display = 'none';
+            tbody.innerHTML = '';
+            try {
+                const allUsers = await window.API.fetchAdmin('/admin/users');
+                allUsersCache = allUsers;
+                
+                // Áp dụng filter
+                const searchTerm = document.getElementById('player-search')?.value.toLowerCase() || '';
+                const vipFilter = document.getElementById('player-filter-vip')?.value || '';
+                const kycFilter = document.getElementById('player-filter-kyc')?.value || '';
+                
+                let users = allUsers.filter(user => {
+                    const matchSearch = !searchTerm || 
+                        user.username.toLowerCase().includes(searchTerm) || 
+                        (user.phone && user.phone.includes(searchTerm)) ||
+                        user.id.toString().includes(searchTerm);
+                    const matchVip = !vipFilter || user.vipLevel.toString() === vipFilter;
+                    const matchKyc = !kycFilter || user.kycStatus === kycFilter;
+                    return matchSearch && matchVip && matchKyc;
+                });
+                
+                document.getElementById('user-count').textContent = users.length;
+                users.forEach(user => {
+                    const row = tbody.insertRow();
+                    row.className = 'hover:bg-dark-700 transition-colors cursor-pointer';
+                    row.onclick = () => openUserDetailModal(user);
+                    
+                    let kycStatusText, kycStatusClass;
+                    switch(user.kycStatus) {
+                        case 'VERIFIED':
+                            kycStatusText = 'Đã XM'; kycStatusClass = 'status-verified'; break;
+                        case 'PENDING':
+                            kycStatusText = 'Đang chờ'; kycStatusClass = 'status-pending'; break;
+                        case 'REJECTED':
+                            kycStatusText = 'Từ chối'; kycStatusClass = 'status-rejected'; break;
+                        default:
+                            kycStatusText = 'Chưa XM'; kycStatusClass = 'status-unverified';
+                    }
+
+                    row.innerHTML = `
+                        <td class="p-4 text-sm" data-label="ID">${user.id}</td>
+                        <td class="p-4 text-sm font-medium text-white" data-label="Tên đăng nhập">${user.username}</td>
+                        <td class="p-4 text-sm" data-label="SĐT">${user.phone || 'N/A'}</td>
+                        <td class="p-4 text-sm font-bold text-green-500" data-label="Số dư (USDT)">${user.balance.toFixed(4)}</td>
+                        <td class="p-4 text-sm" data-label="Tích lũy Nạp">${user.lifetimeDeposit.toFixed(4)}</td>
+                        <td class="p-4 text-sm" data-label="VIP">VIP${user.vipLevel}</td>
+                        <td class="p-4 text-sm" data-label="KYC"><span class="${kycStatusClass}">${kycStatusText}</span></td>
+                        <td class="p-4 text-sm" data-label="Ngày ĐK">${new Date(user.createdAt).toLocaleDateString('vi-VN')}</td>
+                    `;
+                });
+                loadingMsg.style.display = 'none';
+                table.style.display = 'table';
+            } catch (error) {
+                loadingMsg.innerHTML = `<span class="text-danger">Lỗi: Không thể kết nối với API (${error.message}).</span>`;
+            }
+        }
+        
+        async function fetchDeposits() {
+            const loadingMsg = document.getElementById('deposit-loading-message');
+            const tbody = document.getElementById('deposit-table-body');
+            loadingMsg.style.display = 'block';
+            tbody.innerHTML = '';
+            try {
+                const allDeposits = await window.API.fetchAdmin('/admin/deposits');
+                
+                // Filter theo loại (fiat/crypto)
+                let deposits = allDeposits.filter(d => {
+                    const isCrypto = d.channelName && d.channelName.toUpperCase().includes('USDT'); 
+                    return (currentDepositFilter === 'fiat') ? !isCrypto : isCrypto;
+                });
+                
+                // Áp dụng filter tìm kiếm và trạng thái
+                const searchTerm = document.getElementById('deposit-search')?.value.toLowerCase() || '';
+                const statusFilter = document.getElementById('deposit-filter-status')?.value || '';
+                
+                deposits = deposits.filter(d => {
+                    const matchSearch = !searchTerm || 
+                        d.id.toString().includes(searchTerm) ||
+                        d.userId.toString().includes(searchTerm) ||
+                        (d.username && d.username.toLowerCase().includes(searchTerm)) ||
+                        (d.paymentInfo && d.paymentInfo.content && d.paymentInfo.content.toLowerCase().includes(searchTerm));
+                    const matchStatus = !statusFilter || d.status === statusFilter;
+                    return matchSearch && matchStatus;
+                });
+                
+                if (deposits.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Không có lệnh nạp nào.</td></tr>`;
+                } else {
+                    const now = Date.now();
+                    const EXPIRE_MS = 10 * 60 * 1000; // 10 phút
+
+                    deposits.forEach(d => {
+                        const row = tbody.insertRow();
+                        row.className = 'hover:bg-dark-700 transition-colors';
+
+                        const createdTime = new Date(d.createdAt).getTime();
+                        const isClientExpired = d.status === 'PENDING' && (now - createdTime) > EXPIRE_MS;
+
+                        const statusLabel = isClientExpired ? 'EXPIRED' : d.status;
+                        const statusClass = statusLabel === 'PENDING'
+                            ? 'status-pending'
+                            : (statusLabel === 'APPROVED' ? 'status-verified' : 'status-rejected');
+
+                        const actionButton = (!isClientExpired && d.status === 'PENDING') ? `
+                            <div class="flex flex-col gap-2">
+                                <button class="px-3 py-2 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium" onclick="processDeposit(event, ${d.id}, 'approve')">✅ Duyệt</button>
+                                <button class="px-3 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium" onclick="processDeposit(event, ${d.id}, 'reject')">❌ Từ chối</button>
+                            </div>
+                        ` : `<span class="${statusClass} font-bold">${statusLabel}</span>`;
+
+                        const contentDisplay = d.paymentInfo ? d.paymentInfo.content : 'N/A';
+                        row.innerHTML = `
+                            <td class="p-4 text-sm" data-label="ID Lệnh">${d.id} - ${contentDisplay}</td>
+                            <td class="p-4 text-sm font-medium text-white hover:text-primary transition-all cursor-pointer" data-label="User ID/Username" onclick="openModalForUser(event, ${d.userId})">${d.userId} / ${d.username}</td>
+                            <td class="p-4 text-sm font-bold text-cyan-400" data-label="Số tiền (VND)">${formatVND(d.amountVND || 0)}</td>
+                            <td class="p-4 text-sm font-bold text-green-500" data-label="Nhận (USDT)">${d.amount.toFixed(4)}</td>
+                            <td class="p-4 text-sm" data-label="Thời gian">${new Date(d.createdAt).toLocaleString('vi-VN')}</td>
+                            <td class="p-4 text-sm" data-label="Trạng thái"><span class="${statusClass}">${statusLabel}</span></td>
+                            <td class="p-4 text-sm" data-label="Thao tác">${actionButton}</td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-danger">Lỗi: Không thể tải lệnh nạp.</td></tr>`;
+            } finally {
+                loadingMsg.style.display = 'none';
+            }
+        }
+        
+        async function processDeposit(event, depositId, action) {
+            event.stopPropagation();
+            if (!window.confirm(`Xác nhận ${action === 'approve' ? 'DUYỆT' : 'TỪ CHỐI'} lệnh nạp ID ${depositId}?`)) return;
+            try {
+                const data = await window.API.fetchAdmin('/admin/deposits/process', {
+                    method: 'POST',
+                    body: JSON.stringify({ depositId, action })
+                });
+                showToast(data.message, 'success');
+                fetchDeposits(); 
+                fetchSummary(); 
+            } catch (error) {
+                showToast(`Lỗi xử lý: ${error.message}`, 'danger');
+            }
+        }
+        
+        async function fetchWithdrawals() {
+            const loadingMsg = document.getElementById('withdrawal-loading-message');
+            const tbody = document.getElementById('withdrawal-table-body');
+            loadingMsg.style.display = 'block';
+            tbody.innerHTML = '';
+            try {
+                const allWithdrawals = await window.API.fetchAdmin('/admin/withdrawals');
+                
+                // Filter theo loại (fiat/crypto)
+                let withdrawals = allWithdrawals.filter(w => {
+                    const isCrypto = w.bankInfo && (w.bankInfo.startsWith('T') || w.bankInfo.startsWith('0x')); 
+                    return (currentWithdrawalFilter === 'fiat') ? !isCrypto : isCrypto;
+                });
+                
+                // Áp dụng filter tìm kiếm và trạng thái
+                const searchTerm = document.getElementById('withdrawal-search')?.value.toLowerCase() || '';
+                const statusFilter = document.getElementById('withdrawal-filter-status')?.value || '';
+                
+                withdrawals = withdrawals.filter(w => {
+                    const matchSearch = !searchTerm || 
+                        w.id.toString().includes(searchTerm) ||
+                        w.userId.toString().includes(searchTerm) ||
+                        (w.username && w.username.toLowerCase().includes(searchTerm)) ||
+                        (w.bankInfo && w.bankInfo.toLowerCase().includes(searchTerm));
+                    const matchStatus = !statusFilter || w.status === statusFilter;
+                    return matchSearch && matchStatus;
+                });
+                if (withdrawals.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">Không có lệnh rút nào.</td></tr>`;
+                } else {
+                    withdrawals.forEach(w => {
+                        const row = tbody.insertRow();
+                        row.className = 'hover:bg-dark-700 transition-colors';
+                        const statusClass = w.status === 'PENDING' ? 'status-pending' : (w.status === 'APPROVED' ? 'status-verified' : 'status-rejected');
+                        const actionButton = w.status === 'PENDING' ? `
+                            <div class="flex flex-col gap-2">
+                                <button class="px-3 py-2 text-sm rounded-md bg-green-600 hover:bg-green-700 text-white font-medium" onclick="processWithdrawal(event, ${w.id}, 'approve')">✅ Duyệt</button>
+                                <button class="px-3 py-2 text-sm rounded-md bg-red-600 hover:bg-red-700 text-white font-medium" onclick="processWithdrawal(event, ${w.id}, 'reject')">❌ Từ chối</button>
+                            </div>
+                        ` : `<span class="${statusClass} font-bold">${w.status}</span>`;
+                        row.innerHTML = `
+                            <td class="p-4 text-sm" data-label="ID Lệnh">${w.id}</td>
+                            <td class="p-4 text-sm font-medium text-white hover:text-primary transition-all cursor-pointer" data-label="User ID/Username" onclick="openModalForUser(event, ${w.userId})">${w.userId} / ${w.username}</td>
+                            <td class="p-4 text-sm font-bold text-red-500" data-label="Số tiền (USDT)">${w.amount.toFixed(4)}</td>
+                            <td class="p-4 text-sm" data-label="Tài khoản/Địa chỉ ví">${w.bankInfo || 'Chưa liên kết'}</td>
+                            <td class="p-4 text-sm" data-label="Thời gian">${new Date(w.createdAt).toLocaleString('vi-VN')}</td>
+                            <td class="p-4 text-sm" data-label="Trạng thái"><span class="${statusClass}">${w.status}</span></td>
+                            <td class="p-4 text-sm" data-label="Thao tác">${actionButton}</td>
+                        `;
+                    });
+                }
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-danger">Lỗi: Không thể tải lệnh rút.</td></tr>`;
+            } finally {
+                loadingMsg.style.display = 'none';
+            }
+        }
+
+        async function processWithdrawal(event, withdrawalId, action) {
+             event.stopPropagation();
+             if (!window.confirm(`Xác nhận ${action === 'approve' ? 'DUYỆT' : 'TỪ CHỐI'} lệnh rút ID ${withdrawalId}?`)) return;
+            try {
+                const data = await window.API.fetchAdmin('/admin/withdrawals/process', {
+                    method: 'POST',
+                    body: JSON.stringify({ withdrawalId, action })
+                });
+                showToast(data.message, 'success');
+                fetchWithdrawals(); 
+                fetchSummary(); 
+            } catch (error) {
+                showToast(`Lỗi xử lý: ${error.message}`, 'danger');
+            }
+        }
+        
+        // --- LOGIC MODAL NGƯỜI DÙNG ---
+
+        function setupAdjustmentModalLogic() {
+            const fieldsGroup = document.getElementById('adjustment-fields');
+            const addButton = document.getElementById('btn-add-money');
+            const subtractButton = document.getElementById('btn-subtract-money');
+            const amountInput = document.getElementById('adjustment-amount');
+            const confirmBtn = document.getElementById('adjust-balance-btn');
+            
+            const toggleAdjustmentType = (isAdd) => {
+                currentAdjustmentSign = isAdd ? 1 : -1;
+                fieldsGroup.style.display = 'block';
+                addButton.classList.toggle('ring-2', isAdd);
+                addButton.classList.toggle('ring-white', isAdd);
+                subtractButton.classList.toggle('ring-2', !isAdd);
+                subtractButton.classList.toggle('ring-white', !isAdd);
+                amountInput.placeholder = isAdd ? 'Nhập số tiền cần cộng' : 'Nhập số tiền cần trừ';
+                amountInput.focus();
+                confirmBtn.disabled = !(parseFloat(amountInput.value) > 0);
+            };
+            
+            addButton.onclick = () => toggleAdjustmentType(true);
+            subtractButton.onclick = () => toggleAdjustmentType(false);
+
+            document.getElementById('user-detail-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'user-detail-modal' || e.target.classList.contains('close-btn')) {
+                    closeModal('user-detail-modal');
+                }
+            });
+
+            amountInput.addEventListener('input', () => {
+                confirmBtn.disabled = !(parseFloat(amountInput.value) > 0);
+            });
+        }
+
+        function openModalForUser(event, userId) {
+            event.stopPropagation(); 
+            if (allUsersCache.length === 0) {
+                showToast('Vui lòng mở tab "Người Dùng" ít nhất 1 lần để tải cache.', 'warning');
+                return;
+            }
+            const user = allUsersCache.find(u => u.id === userId);
+            if (user) {
+                openUserDetailModal(user);
+            } else {
+                showToast(`Không tìm thấy người dùng ID ${userId} trong cache.`, 'danger');
+            }
+        }
+
+        function openUserDetailModal(user) {
+            currentUserIdToAdjust = user.id;
+            currentUsernameToDelete = user.username;
+            document.getElementById('detail-username').textContent = user.username;
+            document.getElementById('detail-id').textContent = user.id;
+            document.getElementById('detail-balance').textContent = user.balance.toFixed(4);
+            document.getElementById('detail-deposit').textContent = user.lifetimeDeposit.toFixed(4);
+            document.getElementById('detail-vip').textContent = `VIP${user.vipLevel}`;
+            document.getElementById('detail-phone').textContent = user.phone || 'N/A';
+            
+            let kycStatusText, kycStatusClass;
+            switch(user.kycStatus) {
+                case 'VERIFIED':
+                    kycStatusText = 'Đã Xác minh'; kycStatusClass = 'status-verified'; break;
+                case 'PENDING':
+                    kycStatusText = 'Đang chờ'; kycStatusClass = 'status-pending'; break;
+                case 'REJECTED':
+                    kycStatusText = 'Từ chối'; kycStatusClass = 'status-rejected'; break;
+                default:
+                    kycStatusText = 'Chưa XM'; kycStatusClass = 'status-unverified';
+            }
+            const kycStatusEl = document.getElementById('detail-kyc-status');
+            kycStatusEl.textContent = kycStatusText;
+            kycStatusEl.className = kycStatusClass;
+            document.getElementById('detail-kyc-name').textContent = user.fullName || 'N/A';
+            
+            // [MỚI] Reset về tab 1
+            switchModalTab('info');
+            
+            // [MỚI] Reset tab content
+            document.getElementById('user-tab-bets').innerHTML = '<div class="api-placeholder"><i class="fas fa-spinner fa-spin"></i><p>Đang tải lịch sử cược...</p></div>';
+            document.getElementById('user-tab-tx').innerHTML = '<div class="api-placeholder"><i class="fas fa-spinner fa-spin"></i><p>Đang tải lịch sử giao dịch...</p></div>';
+            document.getElementById('user-tab-log').innerHTML = '<div class="api-placeholder"><i class="fas fa-spinner fa-spin"></i><p>Đang tải nhật ký admin...</p></div>';
+            
+            // [MỚI] Clear old cache
+            modalDataCache = {};
+            
+            openModal('user-detail-modal'); 
+        }
+
+        // [MỚI] Các hàm tải dữ liệu cho User Modal
+        async function loadUserBetHistory(userId) {
+            const container = document.getElementById('user-tab-bets');
+            try {
+                const bets = await window.API.fetchAdmin(`/admin/user/bet-history/${userId}`);
+                modalDataCache.bets = bets;
+                if (bets.length === 0) {
+                    container.innerHTML = '<div class="api-placeholder"><i class="fas fa-dice"></i><p>Người dùng này chưa cược.</p></div>';
+                    return;
+                }
+                let tableHTML = `
+                    <div class="overflow-y-auto max-h-[50vh]">
+                    <table class="w-full text-sm">
+                    <thead class="bg-dark-700 sticky top-0"><tr>
+                        <th class="p-2 text-left">Thời gian</th>
+                        <th class="p-2 text-left">Game</th>
+                        <th class="p-2 text-left">Cược</th>
+                        <th class="p-2 text-left">Kết quả</th>
+                        <th class="p-2 text-left">Lãi/Lỗ</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-dark-700">`;
+                bets.forEach(b => {
+                    const profitClass = b.payout > 0 ? 'text-success' : (b.payout < 0 ? 'text-danger' : '');
+                    tableHTML += `
+                        <tr class="hover:bg-dark-700">
+                            <td class="p-2">${new Date(b.placedAt).toLocaleString('vi-VN')}</td>
+                            <td class="p-2 font-medium">${b.betType}</td>
+                            <td class="p-2">${formatUSDT(b.betAmount)}</td>
+                            <td class="p-2">${b.resultNumber || 'N/A'}</td>
+                            <td class="p-2 font-bold ${profitClass}">${b.payout >= 0 ? '+' : ''}${formatUSDT(b.payout)}</td>
+                        </tr>
+                    `;
+                });
+                tableHTML += '</tbody></table></div>';
+                container.innerHTML = tableHTML;
+            } catch (error) {
+                container.innerHTML = `<div class="api-placeholder"><i class="fas fa-exclamation-triangle text-danger"></i><p class="text-danger">Lỗi tải lịch sử cược: ${error.message}</p></div>`;
+            }
+        }
+
+        async function loadUserTransactions(userId) {
+            const container = document.getElementById('user-tab-tx');
+            try {
+                const txs = await window.API.fetchAdmin(`/admin/user/transactions/${userId}`);
+                modalDataCache.tx = txs;
+                if (txs.length === 0) {
+                    container.innerHTML = '<div class="api-placeholder"><i class="fas fa-exchange-alt"></i><p>Không có giao dịch nào.</p></div>';
+                    return;
+                }
+                let tableHTML = `
+                    <div class="overflow-y-auto max-h-[50vh]">
+                    <table class="w-full text-sm">
+                    <thead class="bg-dark-700 sticky top-0"><tr>
+                        <th class="p-2 text-left">Thời gian</th>
+                        <th class="p-2 text-left">Loại</th>
+                        <th class="p-2 text-left">Số tiền</th>
+                        <th class="p-2 text-left">Trạng thái</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-dark-700">`;
+                txs.forEach(t => {
+                    const isDeposit = t.type === 'DEPOSIT';
+                    const amount = isDeposit ? t.amount : (t.amount + t.fee);
+                    const statusClass = t.status === 'PENDING' ? 'text-yellow-400' : (t.status === 'APPROVED' ? 'text-success' : 'text-danger');
+                    tableHTML += `
+                        <tr class="hover:bg-dark-700">
+                            <td class="p-2">${new Date(t.createdAt).toLocaleString('vi-VN')}</td>
+                            <td class="p-2 font-medium ${isDeposit ? 'text-success' : 'text-danger'}">${isDeposit ? 'NẠP TIỀN' : 'RÚT TIỀN'}</td>
+                            <td class="p-2 font-bold ${isDeposit ? 'text-success' : 'text-danger'}">${isDeposit ? '+' : '-'}${formatUSDT(amount)}</td>
+                            <td class="p-2 font-bold ${statusClass}">${t.status}</td>
+                        </tr>
+                    `;
+                });
+                tableHTML += '</tbody></table></div>';
+                container.innerHTML = tableHTML;
+            } catch (error) {
+                container.innerHTML = `<div class="api-placeholder"><i class="fas fa-exclamation-triangle text-danger"></i><p class="text-danger">Lỗi tải giao dịch: ${error.message}</p></div>`;
+            }
+        }
+
+        async function loadUserAdminLog(userId) {
+            const container = document.getElementById('user-tab-log');
+            try {
+                const logs = await window.API.fetchAdmin(`/admin/user/admin-log/${userId}`);
+                modalDataCache.log = logs;
+                    if (logs.length === 0) {
+                    container.innerHTML = '<div class="api-placeholder"><i class="fas fa-history"></i><p>Không có nhật ký nào.</p></div>';
+                    return;
+                }
+                let listHTML = '<div class="overflow-y-auto max-h-[50vh] space-y-2">';
+                logs.forEach(log => {
+                    listHTML += `
+                        <div class="p-2 bg-dark-700 rounded">
+                            <p class="text-sm text-gray-300">${log.action}</p>
+                            <span class="text-xs text-gray-500">${new Date(log.timestamp).toLocaleString('vi-VN')} - bởi <strong>${log.admin}</strong></span>
+                        </div>
+                    `;
+                });
+                listHTML += '</div>';
+                container.innerHTML = listHTML;
+            } catch (error) {
+                container.innerHTML = `<div class="api-placeholder"><i class="fas fa-exclamation-triangle text-danger"></i><p class="text-danger">Lỗi tải nhật ký: ${error.message}</p></div>`;
+            }
+        }
+        // Kết thúc [MỚI] Các hàm tải dữ liệu
+
+        async function adjustBalance() {
+            const amountInput = document.getElementById('adjustment-amount').value;
+            const reason = document.getElementById('adjustment-reason').value;
+            const amount = parseFloat(amountInput) * currentAdjustmentSign;
+            
+            if (!currentUserIdToAdjust || isNaN(amount) || parseFloat(amountInput) <= 0) {
+                showToast('Vui lòng nhập số tiền hợp lệ (> 0).', 'danger');
+                return;
+            }
+            
+            try {
+                const data = await window.API.fetchAdmin('/admin/adjust-balance', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: currentUserIdToAdjust, amount, reason })
+                });
+                
+                showToast(`Thành công! Số dư mới: ${data.newBalance.toFixed(4)} USDT`, 'success');
+                document.getElementById('detail-balance').textContent = data.newBalance.toFixed(4);
+                if (currentAdjustmentSign > 0 && data.newLifetimeDeposit !== undefined) {
+                     document.getElementById('detail-deposit').textContent = data.newLifetimeDeposit.toFixed(4);
+                }
+                fetchUserList(); 
+                
+                // Reset form
+                document.getElementById('adjustment-amount').value = '';
+                document.getElementById('adjustment-reason').value = '';
+                document.getElementById('adjustment-fields').style.display = 'none';
+                document.getElementById('btn-add-money').classList.remove('ring-2', 'ring-white');
+                document.getElementById('btn-subtract-money').classList.remove('ring-2', 'ring-white');
+                    
+            } catch (error) {
+                showToast(`Lỗi kết nối Server: ${error.message}`, 'danger');
+            }
+        }
+        
+        function confirmDeleteUser() {
+             document.getElementById('delete-username-display').textContent = currentUsernameToDelete;
+             document.getElementById('delete-id-display').textContent = currentUserIdToAdjust;
+             // Giữ modal user mở, hiển thị modal confirm đè lên
+             openModal('confirm-delete-modal');
+        }
+        
+        async function executeDeleteUser() {
+             const userId = currentUserIdToAdjust;
+             closeModal('confirm-delete-modal');
+             try {
+                 showToast(`[GIẢ LẬP] Tài khoản ${currentUsernameToDelete} (ID: ${userId}) đã được xóa vĩnh viễn.`, 'success');
+                 // await window.API.fetchAdmin('/admin/delete-user', { method: 'POST', body: JSON.stringify({ userId }) }); // API thật
+                 closeModal('user-detail-modal');
+                 fetchUserList();
+             } catch (error) {
+                 showToast(`Lỗi kết nối Server khi thực hiện xóa: ${error.message}`, 'danger');
+             }
+        }
+        
+        // [THAY ĐỔI] Reset mật khẩu gọi API
+        async function resetPassword(type) {
+            const action = type === 'login' ? 'Mật khẩu Đăng nhập' : 'Mật khẩu Quỹ';
+            const username = document.getElementById('detail-username').textContent;
+            const userId = document.getElementById('detail-id').textContent;
+            if (!window.confirm(`Bạn có chắc chắn muốn RESET ${action} của user ${username} về 123456 không?`)) {
+                return;
+            }
+            showToast(`Đang reset ${action}...`, 'warning');
+            try {
+                const response = await window.API.fetchAdmin('/admin/reset-password', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: parseInt(userId), type: type })
+                });
+                showToast(response.message, 'success');
+            } catch (error) {
+                showToast(`Lỗi: ${error.message}`, 'danger');
+            }
+        }
+        
+        // --- LOGIC CHỈNH CẦU ---
+        
+        function initializeGameControlUI() {
+            if (adminSocket && adminSocket.connected) {
+                adminSocket.emit('admin_request_stats');
+            }
+            
+            // Game 1-20
+            const gameCard = document.getElementById('game-card-120');
+            if (!gameCard.dataset.listenerAttached) {
+                gameCard.addEventListener('click', () => openModal('game-control-modal'));
+                gameCard.dataset.listenerAttached = 'true';
+            }
+            
+            const interventionTypeSelect = document.getElementById('intervention-type-select');
+            const saveBtn = document.getElementById('save-intervention-btn');
+            const setAutoBtn = document.getElementById('set-auto-btn'); 
+            const antiMajoritySwitch = document.getElementById('anti-majority-switch');
+
+            if (interventionTypeSelect) {
+                interventionTypeSelect.onchange = () => {
+                    document.getElementById('group-number').style.display = 'none';
+                    document.getElementById('group-parity').style.display = 'none';
+                    document.getElementById('group-color').style.display = 'none';
+                    document.getElementById(`group-${interventionTypeSelect.value}`).style.display = 'block';
+                };
+            }
+
+            if (saveBtn && !saveBtn.dataset.listenerAttached) {
+                saveBtn.addEventListener('click', async () => {
+                    const interventionType = interventionTypeSelect.value;
+                    let type, value;
+                    if (interventionType === 'number') {
+                        type = 'setNumber';
+                        value = document.getElementById('specific-number').value;
+                    } else {
+                        // [SỬA] API server.js chỉ hỗ trợ 'setNumber'
+                        // Tôi sẽ gửi một số đại diện cho lựa chọn
+                        type = 'setNumber';
+                        if (interventionType === 'parity') {
+                             value = (document.getElementById('specific-parity').value === 'CHẴN') ? 2 : 1; // Gửi 1 (Lẻ) hoặc 2 (Chẵn)
+                        }
+                        else if (interventionType === 'color') {
+                            const color = document.getElementById('specific-color').value;
+                            if(color === 'XANH') value = 1; // Gửi 1 (Xanh)
+                            else if(color === 'ĐỎ') value = 6; // Gửi 6 (Đỏ)
+                            else if(color === 'TÍM') value = 11; // Gửi 11 (Tím)
+                            else value = 16; // Gửi 16 (Vàng)
+                        }
+                    }
+                    if (!value) {
+                        showToast('Lỗi: Vui lòng chọn giá trị.', 'danger'); return;
+                    }
+                    showToast('Đang lưu can thiệp...', 'warning');
+                    try {
+                        // [SỬA] Gửi đúng 'type' mà server.js mong đợi
+                        const response = await window.API.fetchAdmin('/admin/game-control', {
+                            method: 'POST',
+                            body: JSON.stringify({ mode: 'manual', type: 'setNumber', value: parseInt(value) })
+                        });
+                        showToast(response.message, 'success');
+                        antiMajoritySwitch.checked = false;
+                        setTimeout(() => closeModal('game-control-modal'), 1500);
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                    }
+                });
+                saveBtn.dataset.listenerAttached = 'true';
+            }
+            
+            if (setAutoBtn && !setAutoBtn.dataset.listenerAttached) {
+                setAutoBtn.addEventListener('click', async () => {
+                    showToast('Đang chuyển về Tự động...', 'warning');
+                    try {
+                        const response = await window.API.fetchAdmin('/admin/game-control', {
+                            method: 'POST',
+                            body: JSON.stringify({ mode: 'auto' })
+                        });
+                        showToast(response.message, 'success');
+                        antiMajoritySwitch.checked = false;
+                        setTimeout(() => closeModal('game-control-modal'), 1500);
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                    }
+                });
+                setAutoBtn.dataset.listenerAttached = 'true';
+            }
+            
+            if (antiMajoritySwitch && !antiMajoritySwitch.dataset.listenerAttached) {
+                antiMajoritySwitch.addEventListener('change', async () => {
+                    const isEnabled = antiMajoritySwitch.checked;
+                    const mode = isEnabled ? 'anti-majority' : 'auto';
+                    showToast(isEnabled ? 'Đang BẬT bẻ cầu...' : 'Đang TẮT bẻ cầu...', 'warning');
+                    try {
+                        const response = await window.API.fetchAdmin('/admin/game-control', {
+                            method: 'POST',
+                            body: JSON.stringify({ mode })
+                        });
+                        showToast(response.message, 'success');
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                        antiMajoritySwitch.checked = !isEnabled;
+                    }
+                });
+                antiMajoritySwitch.dataset.listenerAttached = 'true';
+            }
+            
+            // Game Crash
+            const crashGameCard = document.getElementById('game-card-crash');
+            if (!crashGameCard.dataset.listenerAttached) {
+                crashGameCard.addEventListener('click', () => {
+                    openModal('crash-control-modal');
+                    if (adminSocket && adminSocket.connected) {
+                         adminSocket.emit('request_crash_update_admin'); 
+                    }
+                });
+                crashGameCard.dataset.listenerAttached = 'true';
+            }
+            
+            setupCrashControlModal();
+            
+            // Game BO
+            const boGameCard = document.getElementById('game-card-bo');
+            if (boGameCard && !boGameCard.dataset.listenerAttached) {
+                boGameCard.addEventListener('click', () => openBoControlModal());
+                boGameCard.dataset.listenerAttached = 'true';
+            }
+            
+            setupBoControlModal();
+        }
+        
+        function setupCrashControlModal() {
+            const saveManualBtn = document.getElementById('save-crash-manual-btn');
+            const forceCrashNowBtn = document.getElementById('force-crash-now-btn'); 
+            const multiplierInput = document.getElementById('specific-multiplier');
+            
+            // ... (Logic của saveManualBtn và forceCrashNowBtn vẫn giữ nguyên y hệt) ...
+            if (saveManualBtn && !saveManualBtn.dataset.listenerAttached) {
+                saveManualBtn.addEventListener('click', async () => {
+                    const value = parseFloat(multiplierInput.value);
+                    if (isNaN(value) || value < 1.00) {
+                        showToast('Lỗi: Giá trị nổ phải là số >= 1.00', 'danger');
+                        return;
+                    }
+                    showToast('Đang lưu cho phiên tới...', 'warning');
+                    try {
+                        const response = await window.API.fetchAdmin('/admin/crash-set-next', {
+                            method: 'POST',
+                            body: JSON.stringify({ value: value })
+                        });
+                        showToast(response.message, 'success');
+                        setTimeout(() => closeModal('crash-control-modal'), 1500);
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                    }
+                });
+                saveManualBtn.dataset.listenerAttached = 'true';
+            }
+            
+            if (forceCrashNowBtn && !forceCrashNowBtn.dataset.listenerAttached) {
+                forceCrashNowBtn.addEventListener('click', async () => {
+                    if (!window.confirm('Bạn có chắc chắn muốn BUỘC NỔ máy bay ngay lập tức không?')) return;
+                    showToast('Đang gửi lệnh buộc nổ...', 'warning');
+                    try {
+                        const response = await window.API.fetchAdmin('/admin/crash-force-now', {
+                            method: 'POST'
+                        });
+                        showToast(response.message, 'success');
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                    }
+                });
+                forceCrashNowBtn.dataset.listenerAttached = 'true';
+            }
+            
+            // === [LOGIC MỚI] BẤM NÚT LÀ LƯU NGAY ===
+            const modeGroup = document.getElementById('crash-mode-group');
+            if (modeGroup && !modeGroup.dataset.listenerAttached) {
+                modeGroup.querySelectorAll('.crash-mode-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const mode = button.dataset.mode;
+                        
+                        // 1. Cập nhật UI ngay lập tức
+                        modeGroup.querySelectorAll('.crash-mode-btn').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        showToast('Đang lưu chế độ...', 'warning');
+
+                        // 2. Gọi API để lưu
+                        try {
+                            const response = await window.API.fetchAdmin('/api/admin/crash-set-mode', {
+                                method: 'POST',
+                                body: JSON.stringify({ mode })
+                            });
+                            showToast(response.message, 'success');
+                            current_CRASH_Mode = mode; // Cập nhật local state
+                        } catch (error) {
+                            showToast(`Lỗi: ${error.message}`, 'danger');
+                            // Trả lại nút active cũ nếu lỗi
+                            modeGroup.querySelectorAll('.crash-mode-btn').forEach(btn => 
+                                btn.classList.toggle('active', btn.dataset.mode === current_CRASH_Mode)
+                            );
+                        }
+                    });
+                });
+                modeGroup.dataset.listenerAttached = 'true';
+            }
+        }
+
+        // === [BẮT ĐẦU SỬA LỖI] ===
+        // Thêm hàm openBoControlModal
+        function openBoControlModal() {
+            openModal('bo-control-modal');
+            // Giao diện modal sẽ được tự động cập nhật
+            // bởi listener 'bo_time_update' của socket
+            // trong vòng 1 giây.
+            
+            // Cập nhật trạng thái nút bấm chế độ
+            const modeGroup = document.getElementById('bo-mode-group');
+            if (modeGroup) {
+                modeGroup.querySelectorAll('.bo-mode-btn').forEach(btn => 
+                    btn.classList.toggle('active', btn.dataset.mode === currentBoMode)
+                );
+            }
+            
+            // Tải P/L cho tab thống kê
+            if (!boStatsLoaded) {
+                 loadBoStatsForModal();
+            }
+        }
+
+        // (Thay thế toàn bộ hàm setupBoControlModal, khoảng dòng 1709)
+        // Hàm này sẽ sửa lỗi không lưu được chế độ
+        function setupBoControlModal() {
+            // Listener cho nút "Đặt Lệnh Phiên Tới" (Thủ công)
+            const saveManualBtn = document.getElementById('save-bo-manual-btn');
+            if (saveManualBtn && !saveManualBtn.dataset.listenerAttached) {
+                saveManualBtn.addEventListener('click', async () => {
+                    const value = document.getElementById('bo-manual-select').value;
+                    showToast('Đang lưu lệnh can thiệp...', 'warning');
+                    try {
+                        const response = await window.API.fetchAdmin('/admin/bo-control', {
+                            method: 'POST',
+                            body: JSON.stringify({ mode: 'manual', type: 'boResult', value })
+                        });
+                        showToast(response.message, 'success');
+                        const nextRigDisplay = document.getElementById('bo-next-rig-display');
+                        nextRigDisplay.textContent = (value === 'BO_MUA') ? 'MUA (BUY)' : 'BÁN (SELL)';
+                        nextRigDisplay.className = (value === 'BO_MUA') ? 'font-bold text-green-500' : 'font-bold text-red-500';
+                    } catch (error) {
+                        showToast(`Lỗi: ${error.message}`, 'danger');
+                    }
+                });
+                saveManualBtn.dataset.listenerAttached = 'true';
+            }
+            
+            // Listener cho các nút "Chế Độ" (Tự động)
+            const modeGroup = document.getElementById('bo-mode-group');
+            if (modeGroup && !modeGroup.dataset.listenerAttached) {
+                modeGroup.querySelectorAll('.bo-mode-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        const mode = button.dataset.mode;
+
+                        // 1. Cập nhật UI ngay lập tức
+                        modeGroup.querySelectorAll('.bo-mode-btn').forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        showToast('Đang lưu chế độ...', 'warning');
+                        
+                        // 2. Gọi API để lưu
+                        try {
+                            const response = await window.API.fetchAdmin('/admin/bo-control', {
+                                method: 'POST',
+                                body: JSON.stringify({ mode })
+                            });
+                            showToast(response.message, 'success');
+                            currentBoMode = mode; // Cập nhật local state
+                        } catch (error) {
+                            showToast(`Lỗi: ${error.message}`, 'danger');
+                            // Trả lại nút active cũ nếu lỗi
+                             modeGroup.querySelectorAll('.bo-mode-btn').forEach(btn => 
+                                btn.classList.toggle('active', btn.dataset.mode === currentBoMode)
+                            );
+                        }
+                    });
+                });
+                modeGroup.dataset.listenerAttached = 'true';
+            }
+        }
+        // === [KẾT THÚC SỬA LỖI] ===
+        
+        // === [BẮT ĐẦU SỬA LỖI] Hàm cập nhật UI BO ===
+        function updateBoControlUI(data) {
+            const statusText = document.getElementById('bo-status-text');
+            const timerText = document.getElementById('bo-timer-text');
+            const nextRigDisplay = document.getElementById('bo-next-rig-display');
+            const manualBtn = document.getElementById('save-bo-manual-btn');
+            
+            // [SỬA] Loại bỏ nút không tồn tại
+            // const modeBtn = document.getElementById('save-bo-mode-btn'); 
+            
+            if (!statusText || !timerText) return; 
+
+            const isOpen = data.status === 'OPEN';
+            statusText.textContent = isOpen ? 'ĐANG CƯỢC' : 'ĐANG CHỜ';
+            statusText.className = isOpen ? 'font-bold text-green-500' : 'font-bold text-yellow-400';
+            timerText.textContent = isOpen ? `${data.time_left}s` : `Chờ ${data.time_left}s`;
+            timerText.className = isOpen ? 'text-4xl font-bold text-green-500 my-2' : 'text-4xl font-bold text-yellow-400 my-2';
+            
+            if (manualBtn) manualBtn.disabled = false;
+            // [SỬA] Loại bỏ nút không tồn tại
+            // if (modeBtn) modeBtn.disabled = false;
+            
+            if (data.next_rig) {
+                nextRigDisplay.textContent = (data.next_rig === 'BO_MUA') ? 'MUA (BUY)' : 'BÁN (SELL)';
+                nextRigDisplay.className = (data.next_rig === 'BO_MUA') ? 'font-bold text-green-500' : 'font-bold text-red-500';
+            } else {
+                nextRigDisplay.textContent = 'Không có';
+                nextRigDisplay.className = 'font-bold text-yellow-400';
+            }
+            
+            // [SỬA] Xóa khối if (data.current_mode) gây lỗi "nhảy nút"
+        }
+        // === [KẾT THÚC SỬA LỖI] ===
+        
+        function updateBoCardStatus(data) {
+            const boCardStatusEl = document.getElementById('game-bo-status-display');
+            if (boCardStatusEl) {
+                const isManual = data.next_rig || (data.current_mode && data.current_mode !== 'auto');
+                boCardStatusEl.textContent = isManual ? 'Trạng thái: Can thiệp' : 'Trạng thái: Tự động';
+                boCardStatusEl.className = isManual ? 'status status-manual text-sm font-medium' : 'status status-auto text-sm font-medium';
+            }
+        }
+
+        // [THAY ĐỔI] Tải P/L cho BO
+        async function loadBoStatsForModal() {
+            if (boStatsLoaded) return; 
+            const statsDisplay = document.getElementById('bo-stats-display');
+            statsDisplay.innerHTML = `<p class="stat-row flex justify-between"><span>Đang tải dữ liệu...</span></p>`;
+            
+            const formatStat = (amount) => {
+                const val = parseFloat(amount);
+                const className = val > 0 ? 'text-success' : (val < 0 ? 'text-danger' : '');
+                return `<span class="${className}">${formatUSDT(val, 2)}</span>`;
+            };
+
+            try {
+                const stats = await window.API.fetchAdmin('/admin/game-stats');
+                if (stats.bo) {
+                    statsDisplay.innerHTML = `
+                        <p class="stat-row flex justify-between"><span>Lãi/Lỗ (24 Giờ):</span> ${formatStat(stats.bo.profit24h)}</p>
+                        <p class="stat-row flex justify-between"><span>Lãi/Lỗ (1 Tháng):</span> ${formatStat(stats.bo.profit1m)}</p>
+                        <p class="stat-row flex justify-between"><span>Lãi/Lỗ (Tổng):</span> ${formatStat(stats.bo.profitAllTime)}</p>
+                    `;
+                    boStatsLoaded = true;
+                } else {
+                    throw new Error("Không có dữ liệu 'bo' trong phản hồi.");
+                }
+            } catch (error) {
+                statsDisplay.innerHTML = `<p class="stat-row"><span class="text-danger">Lỗi tải P/L: ${error.message}</span></p>`;
+            }
+        }
+        
+        // --- [MỚI] LOGIC HÒM THƯ ---
+        function loadMailboxTab() {
+            const form = document.getElementById('send-notification-form');
+            const btn = document.getElementById('send-notification-btn');
+            
+            // Chỉ gán listener một lần
+            if (form.dataset.listenerAttached) return;
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const targetUserId = document.getElementById('notification-target').value.trim();
+                const title = document.getElementById('notification-title').value.trim();
+                const content = document.getElementById('notification-content').value.trim();
+
+                if (!targetUserId || !title || !content) {
+                    showToast('Vui lòng nhập đầy đủ thông tin.', 'danger');
+                    return;
+                }
+                
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang gửi...';
+
+                try {
+                    // Gọi API đã có sẵn trong server.js
+                    const response = await window.API.fetchAdmin('/admin/send-notification', {
+                        method: 'POST',
+                        body: JSON.stringify({ targetUserId, title, content })
+                    });
+                    showToast(response.message || 'Gửi thông báo thành công!', 'success');
+                    // Xóa form
+                    form.reset();
+                } catch (error) {
+                    showToast(`Lỗi: ${error.message}`, 'danger');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Gửi Thông Báo';
+                }
+            });
+            
+            form.dataset.listenerAttached = 'true';
+        }
+        
+    </script>
+</body>
+</html>

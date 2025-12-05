@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-R">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao Dịch BO - CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@^2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@^1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@^0.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@^3.0.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@^2.0.1"></script>
+
+    <script src="main.js"></script> 
+
+    <style>
+        /* === [THÊM MỚI] CSS CHO FLUID SCALING === */
+        html {
+            /* - Kích thước nhỏ nhất là 14px.
+              - Kích thước lớn nhất là 16px (mặc định của Tailwind).
+              - Ở giữa, nó sẽ tự động tính toán (1vw + 0.7rem) 
+                để co dãn mượt mà theo chiều rộng màn hình.
+            */
+            font-size: clamp(14px, 1vw + 0.7rem, 16px);
+        }
+        /* === [KẾT THÚC THÊM MỚI] === */
+        
+        /* === [THÊM MỚI] CSS CHO THANH CUỘN ĐẸP HƠN === */
+        /* Áp dụng cho Firefox */
+        .sidebar-scroll {
+            scrollbar-width: thin; /* Làm mỏng */
+            scrollbar-color: var(--bg-dark-tertiary) var(--card-bg); /* Màu con trượt / Màu nền */
+        }
+        
+        /* Áp dụng cho Chrome, Safari, Edge (WebKit) */
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px; /* Làm cho nó thật mỏng */
+            height: 6px;
+        }
+        
+        /* Phần nền của thanh cuộn (track) */
+        .sidebar-scroll::-webkit-scrollbar-track {
+            background: var(--card-bg); /* Dùng màu nền của card */
+            border-radius: 3px;
+        }
+        
+        /* Phần con trượt (thumb) */
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: var(--bg-dark-tertiary); /* Màu con trượt */
+            border-radius: 3px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+            background-color: #4a4d5e; /* Màu khi rê chuột vào */
+        }
+        /* === [KẾT THÚC] CSS SCROLLBAR === */
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+            padding-top: 61px;
+            overflow: hidden; 
+        }
+        :root {
+            --yellow-accent: #facc15;
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0e0;
+            --green: #22c55e;
+            --red: #ef4444;
+            --ma-fast: #3498db; 
+            --ma-slow: #f1c40f; 
+            
+            --bg-dark-primary: #1a1b20;      
+            --bg-dark-secondary: #2b2d35;    
+            --bg-dark-tertiary: #393c50;     
+            --bg-glass-panel: rgba(43, 45, 53, 0.7); 
+            --border-glass: rgba(255, 255, 255, 0.1); 
+            --text-light: #e0e0e0;
+            --text-dark: #a0a0e0;
+        }
+
+        .header-sticky { position: fixed; top: 0; left: 0; right: 0; z-index: 40; background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        
+        .trade-panel-sticky { 
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 40; 
+            padding: 0.75rem; 
+            animation: slideUp 0.3s ease-out; 
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .btn-trade { 
+            transition: all 0.2s ease-in-out; border: none; color: white; 
+            font-weight: 700; display: flex; align-items: center; 
+            justify-content: center; height: 100%; min-height: 50px; 
+            border-radius: 0.75rem; /* 12px */
+        }
+
+        .btn-preset {
+            flex: 1;
+            font-size: 0.875rem; 
+            font-weight: 600;
+            color: var(--text-primary);
+            background-color: var(--bg-dark-tertiary); 
+            border-radius: 0.75rem; /* 12px */
+            padding: 0.75rem 0.5rem;
+            transition: all 0.2s ease-out;
+            border: none; /* Không viền */
+        }
+        .btn-preset:hover {
+            background-color: #4a4d5e; 
+            color: var(--text-primary);
+        }
+
+        .mod-btn { 
+            background-color: var(--bg-dark-tertiary); 
+            color: var(--text-light, #e0e0e0); 
+            font-weight: 600; transition: all 0.2s ease-in-out; 
+            border: none; cursor: pointer; height: 100%;
+        }
+        .mod-btn:hover:not(:disabled) { background-color: #4a4d5e; }
+
+        #btn-buy-desktop, #btn-buy-mobile {
+            background-image: linear-gradient(to top, #b8860b, #facc15); 
+            color: #1a1b20; 
+            box-shadow: 0 4px 0 0 #8c6400; 
+        }
+        #btn-buy-desktop:active:not(:disabled), #btn-buy-mobile:active:not(:disabled) { 
+            box-shadow: 0 2px 0 0 #8c6400; transform: translateY(2px); 
+        }
+        #btn-buy-desktop:disabled, #btn-buy-mobile:disabled { 
+            opacity: 0.5; cursor: not-allowed; 
+        }
+
+        #btn-sell-desktop, #btn-sell-mobile {
+            background-image: linear-gradient(to top, #6c757d, #adb5bd); 
+            color: #ffffff; 
+            box-shadow: 0 4px 0 0 #343a40; 
+        }
+        #btn-sell-desktop:active:not(:disabled), #btn-sell-mobile:active:not(:disabled) { 
+            box-shadow: 0 2px 0 0 #343a40; transform: translateY(2px); 
+        }
+        #btn-sell-desktop:disabled, #btn-sell-mobile:disabled { 
+            opacity: 0.5; cursor: not-allowed; 
+        }
+
+        .sentiment-bar { height: 6px; background-color: var(--red); border-radius: 3px; overflow: hidden; }
+        .sentiment-bar-inner { height: 100%; transition: width 0.3s ease-out; }
+        
+        input[type="number"]::-webkit-outer-spin-button, 
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; background-color: transparent; border: none; padding: 0; }
+        input[type="number"]:focus { outline: none; box-shadow: none; ring: 0; }
+
+        .chart-container { 
+            position: relative; width: 100%; height: 100%; 
+            border: 1px solid var(--border-color); border-radius: 8px; 
+            overflow: hidden; background-color: var(--card-bg); 
+        }
+
+        /* Kiểu cho Toast */
+        .toast-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem; /* 8px */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+            max-width: 300px;
+            background-color: #2b2d35; /* Màu nền tối */
+            color: var(--text-light);
+        }
+        .toast-item.success {
+            border: 1px solid var(--green);
+        }
+        .toast-item.error {
+            border: 1px solid var(--red);
+        }
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            color: white;
+            flex-shrink: 0;
+        }
+        .toast-icon.success { background-color: var(--green); }
+        .toast-icon.error { background-color: var(--red); }
+        
+        @keyframes toastIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toastOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* ==============================================
+        CSS CHO MODAL LỊCH SỬ (GIỐNG MINES)
+        ==============================================
+        */
+        .modal-overlay-history {
+            z-index: 50;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        .loader-history { 
+            border: 4px solid #f3f3f340; 
+            border-top: 4px solid var(--yellow-accent); 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
+        }
+        
+        #history-panel-container::-webkit-scrollbar {
+            display: none;
+        }
+        #history-panel-container {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+        .modal-overlay.hidden {
+            display: none;
+        }
+        .modal-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem; /* 8px */ 
+            width: 100%;
+            max-width: 380px; /* 380px */
+            margin: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .loader { 
+            border: 4px solid var(--border-color); 
+            border-top: 4px solid var(--yellow-accent); 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 1s linear infinite; 
+            display: inline-block;
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        /* ==============================================
+        [KẾT THÚC] CSS MODAL LỊCH SỬ
+        ==============================================
+        */
+        
+        
+        .timer-waiting {
+            color: #a0a0e0;
+            font-size: 1.75rem; 
+        }
+        .timer-betting {
+             color: var(--text-primary);
+             font-size: 2.25rem; 
+        }
+
+        @media (max-width: 767px) {
+            body { overflow: hidden; }
+            main { overflow: hidden; }
+            .timer-waiting-mobile {
+                color: #a0a0e0; 
+                font-size: 1.0rem; 
+                padding: 0.25rem 0.5rem; 
+            }
+            .timer-betting-mobile {
+                 color: var(--text-primary); 
+                 font-size: 1.125rem; 
+                 padding: 0.125rem 0.5rem; 
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col items-end gap-2">
+    </div>
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <div class="flex items-center gap-2">
+            <a href="http://coinwit.net/trade.html" class="text-xl text-gray-300 w-10 text-center hover:text-white transition-colors">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+
+            <div id="coin-header" class="text-left md:hidden">
+                <p id="profile-username-header" class="text-sm font-medium text-gray-400">Đang tải...</p>
+                <p id="profile-balance-header" class="text-lg font-bold text-white">...</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-4">
+            <a href="index" class="md:hidden text-xl text-gray-300 w-10 text-center">
+                <i class="fa-solid fa-home"></i>
+            </a>
+            <button id="bo-history-btn-mobile-header" class="md:hidden text-xl text-gray-300 w-10 text-center">
+                <i class="fa-solid fa-book"></i>
+            </button>
+            <a href="deposit" class="md:hidden text-sm font-bold w-10 text-center text-[var(--yellow-accent)]">NẠP</a>
+        </div>
+    </header>
+    <div class="h-[calc(100vh-61px-216px)] md:h-[calc(100vh-61px)] md:flex overflow-hidden">
+        <main class="h-full md:flex-1 p-4 flex flex-col overflow-hidden">
+            <div class="flex md:hidden items-end justify-between mb-3">
+                <div class="flex items-end gap-2">
+                    <p id="coin-price" class="text-3xl font-bold text-gray-400">...</p>
+                    <p id="coin-change" class="text-lg font-medium text-gray-400">...</p>
+                </div>
+            </div>
+
+            <div class="chart-container flex-1 relative">
+                <canvas id="bo-chart"></canvas>
+            </div>
+        </main>
+
+        <aside class="hidden md:block w-72 lg:w-80 bg-[var(--card-bg)] border-l border-[var(--border-color)] p-3 pt-0 h-full">
+        <div class="flex flex-col gap-3 h-full overflow-y-auto sidebar-scroll"> 
+
+                <div class="p-3 rounded-xl border" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-400">Xin chào, <span id="profile-username" class="font-bold text-white">...</span></p>
+                        <p id="profile-balance" class="text-lg text-white font-bold">...</p>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <a href="index" class="block w-full text-left p-3 rounded-lg bg-[#2b2d35] hover:bg-[#374151] transition-colors font-medium text-sm">
+                            <i class="fa-solid fa-home mr-2 w-5 text-center text-gray-400"></i> TRANG CHỦ
+                        </a>
+                        
+                        <button id="bo-history-btn-desktop" class="w-full text-left p-3 rounded-lg bg-[#2b2d35] hover:bg-[#374151] transition-colors font-medium text-sm">
+                            <i class="fa-solid fa-book mr-2 w-5 text-center text-gray-400"></i> LỊCH SỬ GIAO DỊCH
+                        </button>
+                        <a href="#" id="currency-toggle-btn-desktop" class="block w-full text-left p-3 rounded-lg bg-[#2b2d35] hover:bg-[#374151] transition-colors font-medium text-sm">
+                            <i class="fa-solid fa-exchange-alt mr-2 w-5 text-center text-gray-400"></i> 
+                            <span>ĐỔI (USDT)</span>
+                        </a>
+                        
+                        <a href="deposit" class="block w-full text-left p-3 rounded-lg bg-[var(--yellow-accent)] text-black font-bold hover:bg-yellow-500 transition-colors text-sm">
+                            <i class="fa-solid fa-wallet mr-2 w-5 text-center"></i> NẠP TIỀN
+                        </a>
+                        </div>
+                </div>
+
+                <div class="flex items-end justify-between">
+                    <div class="flex items-end gap-2">
+                        <p id="coin-price-desktop" class="text-2xl font-bold text-gray-400">...</p>
+                        <p id="coin-change-desktop" class="text-md font-medium text-gray-400">...</p>
+                    </div>
+                </div>
+
+                <div class="text-center rounded-xl py-2" style="background-color: var(--bg-glass-panel); border: 1px solid var(--border-glass); border-top: 2px solid var(--yellow-accent); backdrop-filter: blur(10px);">
+                    <p id="timer-status-desktop" class="text-xs font-medium text-gray-400 mb-1">ĐANG CHỜ...</p>
+                    <div class="text-4xl font-bold text-white timer-betting" id="timer-desktop">--:--</div>
+                </div>
+
+                <div class="flex items-center h-12 rounded-xl bg-[var(--bg-dark-primary)] border border-[var(--bg-dark-tertiary)] transition-colors">
+                    <button class="mod-btn w-10 text-lg rounded-l-xl" onclick="adjustBet(-1, false, 'desktop')">-</button>
+                    <input type="number" id="bet-amount-desktop" value="1" step="1" class="w-full h-full text-center bg-transparent text-[var(--yellow-primary)] font-bold text-lg p-0">
+                    <button class="mod-btn w-10 text-lg" onclick="adjustBet(1, false, 'desktop')">+</button>
+                    <button id="currency-toggle-btn-bet-desktop" class="mod-btn w-20 text-sm rounded-r-xl" onclick="toggleCurrency()">USDT</button>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-2">
+                    <button class="btn-preset">+10,000</button>
+                    <button class="btn-preset">+50,000</button>
+                    <button class="btn-preset">+100,000</button>
+                    <button class="btn-preset">+200,000</button>
+                    <button class="btn-preset">+500,000</button>
+                    <button class="btn-preset">All</button>
+                </div>
+                
+                <div class="flex flex-col gap-1.5">
+                    <div class="flex justify-between text-xs font-medium">
+                        <span id="sentiment-buy-desktop" class="text-yellow-400">...%</span>
+                        <span id="sentiment-sell-desktop" class="text-gray-400">...%</span>
+                    </div>
+                    <div class="sentiment-bar bg-gray-600"> 
+                        <div id="sentiment-bar-inner-desktop" class="sentiment-bar-inner bg-yellow-400" style="width: 50%;"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-auto">
+                    <button class="w-full btn-trade text-lg" id="btn-buy-desktop" onclick="placeTrade('Mua', 'desktop')">
+                        <i class="fa-solid fa-arrow-up text-xl mr-2"></i> Mua
+                    </button>
+                    <button class="w-full btn-trade text-lg" id="btn-sell-desktop" onclick="placeTrade('Bán', 'desktop')">
+                        <i class="fa-solid fa-arrow-down text-xl mr-2"></i> Bán
+                    </button>
+                </div>
+
+            </div>
+        </aside>
+    </div>
+
+    <footer class="trade-panel-sticky md:hidden border-t" style="background-color: var(--bg-glass-panel); border-color: var(--border-glass); backdrop-filter: blur(10px);">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-1.5 text-xs text-yellow-400 font-bold">
+                <i class="fa-solid fa-arrow-up"></i>
+                <span id="sentiment-buy-mobile">...%</span>
+            </div>
+            
+            <div class="bg-gray-900 border border-gray-700 rounded-md px-2 py-0.5 text-lg font-bold text-white shadow-lg timer-betting-mobile" id="timer-mobile">--:--</div>
+
+            <div class="flex items-center gap-1.5 text-xs text-gray-400 font-bold">
+                <span id="sentiment-sell-mobile">...%</span>
+                <i class="fa-solid fa-arrow-down"></i>
+            </div>
+        </div>
+        
+        <div class="sentiment-bar bg-gray-600 mb-3">
+            <div id="sentiment-bar-inner-mobile" class="sentiment-bar-inner bg-yellow-400" style="width: 50%;"></div>
+        </div>
+        
+        <div class="flex items-center h-12 rounded-xl bg-[var(--bg-dark-primary)] border border-[var(--bg-dark-tertiary)] transition-colors mb-2">
+            <button class="mod-btn w-10 text-lg rounded-l-xl" onclick="adjustBet(-1, false, 'mobile')">-</button>
+            <input type="number" id="bet-amount-mobile" value="1" step="1" class="w-full h-full text-center bg-transparent text-[var(--yellow-primary)] font-bold text-lg p-0">
+            <button class="mod-btn w-10 text-lg" onclick="adjustBet(1, false, 'mobile')">+</button>
+            <button id="currency-toggle-btn-bet-mobile" class="mod-btn w-20 text-sm rounded-r-xl" onclick="toggleCurrency()">USDT</button>
+        </div>
+
+        <div class="grid grid-cols-6 gap-2 mb-3">
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">+10K</button>
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">+50K</button>
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">+100K</button>
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">+200K</button>
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">+500K</button>
+            <button class="btn-preset" style="font-size: 0.75rem; padding: 0.5rem 0.25rem;">All</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <button class="w-full btn-trade text-lg" id="btn-buy-mobile" onclick="placeTrade('Mua', 'mobile')">
+                <i class="fa-solid fa-arrow-up text-xl mr-2"></i> Mua
+            </button>
+            <button class="w-full btn-trade text-lg" id="btn-sell-mobile" onclick="placeTrade('Bán', 'mobile')">
+                <i class="fa-solid fa-arrow-down text-xl mr-2"></i> Bán
+            </button>
+        </div>
+    </footer>
+    
+    <div id="my-history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay-history">
+        <div class="absolute inset-0"></div>
+        <div class="relative w-full max-w-lg rounded-lg shadow-xl flex flex-col modal-card" style="max-height: 80vh;">
+            <div class="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
+                <h3 class="text-lg font-bold text-white">Lịch sử cược của tôi (Giao dịch BO)</h3>
+                <button id="my-history-close-btn" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fas fa-times fa-lg"></i>
+                </button>
+            </div>
+            <div id="history-panel-container" class="overflow-y-auto p-4 space-y-2">
+                <div id="history-loading" class="text-center text-gray-400">
+                    <div class="loader-history inline-block"></div>
+                    <span class="ml-2">Đang tải lịch sử...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // === 1. CẤU HÌNH CƠ BẢN ===
+        let userBalanceUSDT = 0;
+        let localBalance = 0;
+        let exchangeRate = 27000; 
+        let userId = null; 
+        let socket = null; 
+        
+        let currentCoinSymbol = 'BTC';
+        let mainChartInstance = null; 
+        
+        let currentRoundId = 0;
+
+        // [SỬA] Biến lưu kết quả bẻ cầu và trạng thái
+        let riggedResult = null;
+        let isFakingChart = false;
+        
+        // [SỬA] Biến cho logic "Giật Từ Từ"
+        let isRetracting = false;      // Cờ báo đang trong 3s giật
+        let lastFakePrice = 0;      // Lưu giá trị bẻ cầu cuối cùng
+        let realPriceTarget = 0;    // Lưu giá thật từ Binance
+        
+        const colorGreen = '#22c55e';
+        const colorRed = '#ef4444';
+        const colorGrid = 'rgba(255, 255, 255, 0.1)';
+        const colorText = 'rgba(255, 255, 255, 0.7)';
+        const colorMaFast = colorGreen;
+        const colorMaSlow = colorRed;
+        
+        const quickBetAmounts = {
+            VND: [10000, 50000, 100000, 200000, 500000],
+            USDT: [1, 5, 10, 20, 50]
+        };
+        // [MỚI] Text cho nút mobile (ngắn gọn)
+        const quickBetTexts = {
+            VND: ["+10K", "+50K", "+100K", "+200K", "+500K", "All"],
+            USDT: ["+1", "+5", "+10", "+20", "+50", "All"]
+        };
+
+        const stepAmounts = {
+            VND: 1000, // [SỬA] Giá trị này sẽ bị GHI ĐÈ
+            USDT: 0.1 
+        };
+
+        // ==============================================
+        // DOM Elements cho Modal Lịch sử (Giống Mines)
+        // ==============================================
+        const boHistoryBtn = document.getElementById('bo-history-btn'); // Nút header (HIỆN ĐÃ BỊ XÓA)
+        const boHistoryBtnDesktop = document.getElementById('bo-history-btn-desktop'); // [THÊM] Nút sidebar
+        
+        // [MỚI] Thêm nút Lịch sử trên header mobile
+        const boHistoryBtnMobileHeader = document.getElementById('bo-history-btn-mobile-header'); 
+        
+        const myHistoryModal = document.getElementById('my-history-modal'); // Modal
+        const myHistoryCloseBtn = document.getElementById('my-history-close-btn'); // Nút đóng
+        const historyPanelContainer = document.getElementById('history-panel-container'); // Content
+        const historyLoading = document.getElementById('history-loading'); // Loading
+        // ==============================================
+
+
+        // === 2. CÁC HÀM GIAO DIỆN (UI) ===
+        
+        function showToast(message, type = "success") {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toastId = `toast-${Date.now()}`;
+            const toast = document.createElement('div');
+            toast.id = toastId;
+            toast.className = `toast-item ${type}`;
+            
+            const iconClass = (type === 'success') ? 'fa-check' : 'fa-exclamation';
+            const iconType = (type === 'success') ? 'success' : 'error';
+            
+            toast.innerHTML = `
+                <div class="toast-icon ${iconType}">
+                    <i class="fa-solid ${iconClass} fa-xs"></i>
+                </div>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                const el = document.getElementById(toastId);
+                if (el) {
+                    el.remove();
+                }
+            }, 3000);
+        }
+
+        function toggleTradeButtons(enabled) {
+            const buttons = [
+                'btn-buy-desktop', 'btn-sell-desktop',
+                'btn-buy-mobile', 'btn-sell-mobile'
+            ];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.disabled = !enabled;
+                    if (!enabled) {
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    } else {
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            });
+        }
+        
+        function updateBalanceDisplay() {
+            const currency = window.globalCurrency || 'USDT';
+            
+            if (currency === 'VND') {
+                localBalance = userBalanceUSDT * exchangeRate;
+            } else {
+                localBalance = userBalanceUSDT;
+            }
+            
+            // [SỬA] Cập nhật số dư ở cả 2 nơi
+            const balanceEl = document.getElementById('profile-balance');
+            if (balanceEl) {
+                balanceEl.textContent = window.formatCurrency(userBalanceUSDT);
+            }
+            const balanceHeaderEl = document.getElementById('profile-balance-header');
+            if (balanceHeaderEl) {
+                balanceHeaderEl.textContent = window.formatCurrency(userBalanceUSDT);
+            }
+        }
+        
+        // [SỬA] Cập nhật hàm này để xử lý cả preset-button di động
+        function updateBetInputs() {
+            const currency = window.globalCurrency || 'USDT';
+            const amounts = quickBetAmounts[currency];
+            // [SỬA] Tính step VND động
+            stepAmounts.VND = Math.max(1000, (stepAmounts.USDT * exchangeRate).toFixed(0)); // Min 1000 VND
+            const step = stepAmounts[currency];
+            
+            // 1. Cập nhật Desktop
+            const desktopPresetButtons = document.querySelectorAll('aside .btn-preset');
+            desktopPresetButtons.forEach((button, index) => {
+                if (index < amounts.length) { 
+                    const amount = amounts[index];
+                    if (currency === 'VND') {
+                        button.textContent = `+${amount.toLocaleString('vi-VN')}`;
+                    } else {
+                        button.textContent = `+${amount}`;
+                    }
+                    button.onclick = () => adjustBet(amount, true, 'desktop');
+                } else if (button.textContent.toLowerCase().includes('all')) {
+                    button.onclick = () => setBetMax('desktop');
+                }
+            });
+
+            // 2. [PHỤC HỒI] Cập nhật Mobile
+            const mobilePresetButtons = document.querySelectorAll('footer .btn-preset');
+            const mobileTexts = quickBetTexts[currency];
+
+            mobilePresetButtons.forEach((button, index) => {
+                if (index < mobileTexts.length) {
+                    button.textContent = mobileTexts[index];
+                    if (mobileTexts[index].toLowerCase() === 'all') {
+                        button.onclick = () => setBetMax('mobile');
+                    } else {
+                        const amount = amounts[index];
+                        button.onclick = () => adjustBet(amount, true, 'mobile');
+                    }
+                }
+            });
+            
+            // 3. Cập nhật Input Steps (KHÔNG đổi giá trị)
+            ['desktop', 'mobile'].forEach(targetId => {
+                const input = document.getElementById(`bet-amount-${targetId}`);
+                if (input) {
+                    input.step = step;
+                    
+                    // Chỉ cập nhật nếu giá trị hiện tại < step mới
+                    let currentValue = parseFloat(input.value) || 0;
+                    if (currentValue < step) {
+                        input.value = step.toFixed(currency === 'VND' ? 0 : 2);
+                    }
+                }
+                const btnMinus = input.previousElementSibling;
+                const btnPlus = input.nextElementSibling;
+                
+                if(btnMinus) btnMinus.onclick = () => adjustBet(-step, false, targetId);
+                if(btnPlus) btnPlus.onclick = () => adjustBet(step, false, targetId);
+            });
+        }
+        
+        async function toggleCurrency() {
+            try {
+                // [SỬA] Lấy giá trị input hiện tại TRƯỚC khi đổi
+                const oldInputVal = parseFloat(document.getElementById('bet-amount-desktop').value) || 0;
+                const oldCurrency = window.globalCurrency;
+                const oldRate = window.globalExchangeRate;
+
+                const newCurrency = (oldCurrency === 'USDT') ? 'VND' : 'USDT';
+                localStorage.setItem('selectedCurrency', newCurrency);
+                await window.initCurrency(); // Tải tỷ giá mới
+                
+                const newRate = window.globalExchangeRate;
+
+                // [SỬA] Cập nhật nút trong sidebar
+                const btnSidebar = document.getElementById('currency-toggle-btn-desktop');
+                if (btnSidebar) btnSidebar.querySelector('span').textContent = (newCurrency === 'USDT' ? 'Đổi (VND)' : 'Đổi (USDT)');
+
+                // [MỚI] Cập nhật text cho các nút mới
+                const btnText = (newCurrency === 'USDT' ? 'USDT' : 'VND');
+                const btnDesktop = document.getElementById('currency-toggle-btn-bet-desktop');
+                if (btnDesktop) btnDesktop.textContent = btnText;
+                const btnMobile = document.getElementById('currency-toggle-btn-bet-mobile');
+                if (btnMobile) btnMobile.textContent = btnText;
+                
+                // Cập nhật số dư
+                updateBalanceDisplay(); 
+                // Cập nhật các nút
+                updateBetInputs(); 
+                
+                // [SỬA] Tự động quy đổi giá trị trong input
+                let newBetVal = 0;
+                if (newCurrency === 'VND') {
+                    // Từ USDT -> VND
+                    newBetVal = (oldInputVal * newRate).toFixed(0);
+                } else {
+                    // Từ VND -> USDT
+                    newBetVal = (oldInputVal / oldRate).toFixed(2);
+                }
+                
+                const step = stepAmounts[newCurrency];
+                if (newBetVal < step) newBetVal = step;
+
+                ['desktop', 'mobile'].forEach(id => {
+                    document.getElementById(`bet-amount-${id}`).value = newBetVal;
+                });
+
+            } catch (e) { }
+        }
+        
+        function adjustBet(amount, isPreset, targetId) {
+            const currency = window.globalCurrency || 'USDT';
+            // [SỬA] Tính step VND động
+            const step = stepAmounts[currency];
+            
+            const targetIds = targetId ? [targetId] : ['desktop', 'mobile'];
+            
+            targetIds.forEach(id => {
+                const betInput = document.getElementById(`bet-amount-${id}`);
+                if (!betInput) return;
+            
+                let currentVal = parseFloat(betInput.value) || 0;
+                
+                let newVal = 0;
+                if(isPreset) {
+                    newVal = currentVal + amount; // Luôn cộng dồn
+                } else {
+                    newVal = currentVal + amount; // Dấu +/- đã có sẵn
+                }
+                
+                if (newVal < step) newVal = step;
+                
+                betInput.value = parseFloat(newVal.toFixed(currency === 'VND' ? 0 : 2));
+            });
+        }
+
+
+        function setBetMax(targetId) {
+            const currency = window.globalCurrency || 'USDT';
+            // [SỬA] Tính step VND động
+            const step = stepAmounts[currency];
+            updateBalanceDisplay(); 
+            
+            let max = localBalance;
+            if (max < step) max = step; 
+            
+            const maxAmount = parseFloat(max.toFixed(currency === 'VND' ? 0 : 2));
+            
+            const targetIds = targetId ? [targetId] : ['desktop', 'mobile'];
+            targetIds.forEach(id => {
+                const betInput = document.getElementById(`bet-amount-${id}`);
+                betInput.value = maxAmount;
+            });
+        }
+
+        function placeTrade(direction, targetId) {
+            if (!socket || !userId) {
+                showToast("Lỗi: Mất kết nối. Vui lòng tải lại trang.", "error");
+                return;
+            }
+            
+            const currency = window.globalCurrency || 'USDT';
+            // [SỬA] Tính step VND động
+            const step = stepAmounts[currency];
+
+            const betInput = document.getElementById(`bet-amount-${targetId}`);
+            if (!betInput) return;
+            
+            const betAmount = parseFloat(betInput.value);
+            
+            if (isNaN(betAmount) || betAmount < step) {
+                // [SỬA] Cập nhật message
+                showToast(`Số tiền cược tối thiểu là ${step.toLocaleString('vi-VN')}.`, "error");
+                return;
+            }
+            if (betAmount > localBalance) {
+                 showToast("Số dư không đủ!", "error");
+                 return;
+            }
+            
+            let betAmountUSDT = 0;
+            if (currency === 'VND') {
+                betAmountUSDT = betAmount / exchangeRate;
+            } else {
+                betAmountUSDT = betAmount;
+            }
+            
+            const betType = (direction === 'Mua') ? 'BO_MUA' : 'BO_BAN';
+            
+            // [SỬA] Gửi kèm Symbol
+            socket.emit('bo_place_bet', { 
+                user_id: userId, 
+                amount: betAmountUSDT, 
+                type: betType,
+                symbol: currentCoinSymbol 
+            });
+        }
+        
+        function updateSentiment() {
+            let buyPercent = 50; 
+            if (mainChartInstance) {
+                try {
+                    const maData = mainChartInstance.data.datasets[1].data; 
+                    if (maData.length >= 2) {
+                        const lastMA = maData[maData.length - 1].y;
+                        const secondLastMA = maData[maData.length - 2].y;
+                        
+                        if (lastMA > secondLastMA) {
+                            buyPercent = Math.floor(Math.random() * 20) + 60; 
+                        } else if (lastMA < secondLastMA) {
+                            buyPercent = Math.floor(Math.random() * 20) + 20; 
+                        } else {
+                            buyPercent = Math.floor(Math.random() * 10) + 45; 
+                        }
+                    }
+                } catch(e) { 
+                    buyPercent = 50;
+                }
+            }
+            
+            const sellPercent = 100 - buyPercent;
+            
+            ['desktop', 'mobile'].forEach(id => {
+                const elBuy = document.getElementById(`sentiment-buy-${id}`);
+                const elSell = document.getElementById(`sentiment-sell-${id}`);
+                const elBar = document.getElementById(`sentiment-bar-inner-${id}`);
+                
+                if(elBuy) elBuy.textContent = `${buyPercent}%`;
+                if(elSell) elSell.textContent = `${sellPercent}%`;
+                
+                // [SỬA] Cả mobile và desktop đều dùng màu Vàng / Xám
+                if(elBar) {
+                    if (buyPercent >= 50) {
+                        elBar.style.backgroundColor = 'var(--yellow-accent)';
+                    } else {
+                        // [SỬA] Đổi màu nền khi < 50%
+                        elBar.style.backgroundColor = 'var(--bg-dark-tertiary)'; 
+                    }
+                    elBar.style.width = `${buyPercent}%`;
+                }
+            });
+        }
+
+
+        // === 4. HÀM TÍNH TOÁN MA (Giữ nguyên) ===
+        function calculateSMA(data, period) {
+            let smaData = [];
+            if (data.length < period) return smaData; 
+            let sum = 0;
+            for (let i = 0; i < period; i++) {
+                sum += data[i].c; 
+            }
+            smaData.push({ x: data[period - 1].x, y: sum / period });
+            for (let i = period; i < data.length; i++) {
+                sum -= data[i - period].c; 
+                sum += data[i].c;           
+                smaData.push({ x: data[i].x, y: sum / period });
+            }
+            return smaData;
+        }
+
+        // === 5. LOGIC DỮ LIỆU THẬT & BIỂU ĐỒ ===
+
+        async function getHistoricalData(symbol) {
+            const binanceSymbol = symbol.toUpperCase() + 'USDT';
+            const interval = '1m';
+            const limit = 100;
+
+            try {
+                const data = await window.fetchAPI(`/api/market/klines?symbol=${binanceSymbol}&interval=${interval}&limit=${limit}`);
+                
+                const candleData = data.map(d => ({
+                    x: d.time * 1000, o: d.open, h: d.high, l: d.low, c: d.close
+                }));
+
+                const volumeData = data.map(d => ({
+                    x: d.time * 1000, y: d.volume,
+                    color: d.close >= d.open ? colorGreen : colorRed
+                }));
+
+                return { candleData, volumeData };
+
+            } catch (error) {
+                return { candleData: [], volumeData: [] };
+            }
+        }
+
+        // [SỬA LỖI] HÀM CẬP NHẬT BIỂU ĐỒ (V5)
+        function updateChartWithRealtimeData(kline) {
+            if (!mainChartInstance) return;
+
+            const candleDataset = mainChartInstance.data.datasets[0];
+            const volumeDataset = mainChartInstance.data.datasets[3];
+            
+            const newCandle = {
+                x: kline.t, o: parseFloat(kline.o), h: parseFloat(kline.h), l: parseFloat(kline.l), c: parseFloat(kline.c)
+            };
+            const newVolume = {
+                x: kline.t, y: parseFloat(kline.v),
+                color: newCandle.c >= newCandle.o ? colorGreen : colorRed
+            };
+            const currentPrice = newCandle.c;
+            let lastCandle = candleDataset.data[candleDataset.data.length - 1];
+
+            if (newCandle.x === lastCandle.x) {
+                // CẬP NHẬT NẾN HIỆN TẠI
+                
+                // [SỬA] Nếu đang Faking (bẻ) HOẶC đang Retracting (giật về)
+                // -> KHÔNG cho giá thật ghi đè.
+                if (isFakingChart || isRetracting) {
+                    return; // Bỏ qua
+                }
+                
+                candleDataset.data[candleDataset.data.length - 1] = newCandle;
+                volumeDataset.data[volumeDataset.data.length - 1] = newVolume;
+            } else {
+                // NẾN MỚI (TIMESTAMP MỚI)
+    
+				// [FIX LỖI RACE CONDITION]
+				// Nếu nến mới đến, và nến trước đó vừa bị bẻ (isFakingChart), 
+				// ta phải ép giá nến TRƯỚC VỀ giá bẻ cuối cùng (lastFakePrice) trước khi thêm nến mới.
+				if (isFakingChart && lastFakePrice > 0) {
+					// Ghi đè lên nến cuối cùng của dataset, nến này sẽ trở thành nến đã đóng
+					updateCandlePrice(lastFakePrice, true); // updatePreviousCandle = true
+					isFakingChart = false;
+				} 
+				// [KẾT THÚC FIX LỖI RACE CONDITION]
+				
+				// Logic Rút Nến (chỉ xảy ra nếu đang retracting)
+				if (isRetracting) {
+					// Nến mới đến sẽ dừng Rút Nến ngay lập tức
+					isRetracting = false;
+					// isFakingChart đã được xử lý ở trên
+					updateCandlePrice(realPriceTarget, true); // Ép nến cũ (đã bị bẻ) về giá thật để kết thúc
+					lastFakePrice = 0;
+				}
+				
+				candleDataset.data.push(newCandle);
+				volumeDataset.data.push(newVolume);
+
+                const scale = mainChartInstance.scales.x;
+                if (candleDataset.data.length < 2) return; 
+                
+                // [SỬA] Logic tự động cuộn (pan)
+                const isAtEdge = scale.max >= (lastCandle.x - 60000); // Gần mép
+                const isMobile = window.innerWidth < 768;
+                
+                if (isAtEdge) {
+                    const candleRange = isMobile ? 30 : 100;
+                    scale.options.min = newCandle.x - ((candleRange - 1) * 60000);
+                    scale.options.max = newCandle.x + (5 * 60000); // 5 min padding
+                }
+            }
+
+            const updatedCandleData = candleDataset.data;
+            mainChartInstance.data.datasets[1].data = calculateSMA(updatedCandleData, 10);
+            mainChartInstance.data.datasets[2].data = calculateSMA(updatedCandleData, 20);
+
+            const ann = mainChartInstance.options.plugins.annotation.annotations.line1;
+            const isUp = currentPrice >= lastCandle.c; 
+
+            ann.value = currentPrice;
+            ann.borderColor = isUp ? colorGreen : colorRed;
+            ann.label.backgroundColor = isUp ? colorGreen : colorRed;
+            ann.label.content = currentPrice.toFixed(2);
+
+            updatePriceUI(currentPrice, isUp);
+
+            mainChartInstance.update('none');
+        }
+
+
+        function updatePriceUI(price, isUp) {
+            const priceStr = price.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: (price < 1 ? 4 : 2)
+            });
+            
+            ['coin-price', 'coin-price-desktop'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.textContent = priceStr;
+                    el.className = isUp ? 'text-3xl font-bold text-green-500' : 'text-3xl font-bold text-red-500';
+                    if(id.includes('desktop')) el.classList.replace('text-3xl', 'text-2xl');
+                }
+            });
+
+            ['coin-change', 'coin-change-desktop'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.className = isUp ? 'text-lg font-medium text-green-500' : 'text-lg font-medium text-red-500';
+                    el.textContent = isUp ? '+0.45%' : '-0.21%'; 
+                }
+            });
+        }
+
+        // [SỬA] HÀM KHỞI TẠO BIỂU ĐỒ (V5)
+        async function initChart(symbol) {
+            const ctx = document.getElementById('bo-chart');
+            if (!ctx) return;
+            
+            const { candleData, volumeData } = await getHistoricalData(symbol);
+            
+            if (candleData.length === 0) {
+                // [SỬA] Cập nhật header đã thay đổi
+                const headerEl = document.getElementById('profile-username-header');
+                if (headerEl) {
+                    headerEl.textContent = `Lỗi tải ${symbol}`;
+                    headerEl.classList.add('text-red-500');
+                }
+                return;
+            }
+            const currentPrice = candleData[candleData.length - 1].c;
+            const sma10Data = calculateSMA(candleData, 10); 
+            const sma20Data = calculateSMA(candleData, 20); 
+            
+            // [SỬA] Tính toán zoom mặc định
+            const isMobile = window.innerWidth < 768;
+            const lastCandleTime = candleData[candleData.length - 1].x;
+            // Tải 100 nến, mobile hiển thị 30 nến, desktop 100 nến
+            const mobileMinTime = candleData[candleData.length - 30]?.x || candleData[0].x;
+            const desktopMinTime = candleData[0].x;
+            
+            mainChartInstance = new Chart(ctx, {
+                type: 'candlestick',
+                data: {
+                    datasets: [
+                        {
+                            type: 'candlestick', label: 'Giá', data: candleData,
+                            yAxisID: 'y', 
+                            color: { up: colorGreen, down: colorRed, unchanged: '#9ca3af' },
+                            borderColor: { up: colorGreen, down: colorRed, unchanged: '#9ca3af' },
+                            wickColor: { up: colorGreen, down: colorRed, unchanged: '#9ca3af' }
+                        },
+                        {
+                            type: 'line', label: 'MA 10', data: sma10Data,
+                            yAxisID: 'y', borderColor: colorMaFast,
+                            borderWidth: 2, pointRadius: 0,
+                        },
+                        {
+                            type: 'line', label: 'MA 20', data: sma20Data,
+                            yAxisID: 'y', borderColor: colorMaSlow,
+                            borderWidth: 2, pointRadius: 0,
+                        },
+                        {
+                            type: 'bar', label: 'Volume', data: volumeData,
+                            yAxisID: 'volume', 
+                            backgroundColor: (ctx) => ctx.raw?.color || colorGreen,
+                            barPercentage: 0.8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false, 
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'minute', displayFormats: { minute: 'HH:mm' } },
+                            grid: { color: colorGrid, drawBorder: false },
+                            ticks: { color: colorText, maxRotation: 0, autoSkip: true },
+                            min: isMobile ? mobileMinTime : desktopMinTime, // [SỬA] Zoom mobile
+                            max: lastCandleTime + (5 * 60000) // [SỬA] 5 min padding
+                        },
+                        y: { 
+                            type: 'linear', position: 'right', stack: 'mainStack', stackWeight: 2, // <-- SỬA: 3 -> 2
+                            grid: { color: colorGrid, drawBorder: false },
+                            ticks: { 
+                                color: colorText, 
+                                callback: val => val.toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: (val < 1 ? 4 : 2)
+                                })
+                            },
+                            border: { display: false }
+                        },
+                        volume: { 
+                            type: 'linear', position: 'right', stack: 'mainStack', stackWeight: 1, // <-- SỬA: Đảm bảo volume (1)
+                            grid: { display: false }, ticks: { display: false }, 
+                            border: { display: false }, offset: false
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index', intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.dataset.type === 'bar') return '';
+                                    if (context.dataset.type === 'line') {
+                                        return ` ${context.dataset.label}: ${context.raw.y.toFixed(2)}`;
+                                    }
+                                    const r = context.raw;
+                                    return `O:${r.o.toFixed(1)} H:${r.h.toFixed(1)} L:${r.l.toFixed(1)} C:${r.c.toFixed(1)}`;
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                line1: { 
+                                    type: 'line', scaleID: 'y', value: currentPrice,
+                                    borderColor: colorGreen, borderWidth: 1, borderDash: [4, 4],
+                                    label: { 
+                                        enabled: true, content: currentPrice.toFixed(2), 
+                                        position: 'end', backgroundColor: colorGreen, color: 'white' 
+                                    }
+                                }
+                            }
+                        },
+                        zoom: {
+                            pan: { 
+                                enabled: true, // [SỬA] Bật pan
+                                mode: 'x',
+                                onPanComplete: function({chart}) {
+                                    // [SỬA] Logic chặn pan về tương lai
+                                    try {
+                                        const candleData = chart.data.datasets[0].data;
+                                        if (!candleData || candleData.length === 0) return;
+                                        const lastCandleTime = candleData[candleData.length - 1].x;
+                                        const maxAllowed = lastCandleTime + (5 * 60000); // 5 min padding
+                                        if (chart.scales.x.max > maxAllowed) {
+                                            chart.scales.x.max = maxAllowed;
+                                        }
+                                    } catch (e) {}
+                                }
+                            },
+                            zoom: { 
+                                wheel: { enabled: true },
+                                pinch: { enabled: true }, // [SỬA] Bật pinch
+                                mode: 'x',
+                                onZoomComplete: function({chart}) {
+                                    // [SỬA] Logic chặn zoom về tương lai
+                                    try {
+                                        const candleData = chart.data.datasets[0].data;
+                                        if (!candleData || candleData.length === 0) return;
+                                        const lastCandleTime = candleData[candleData.length - 1].x;
+                                        const maxAllowed = lastCandleTime + (5 * 60000); // 5 min padding
+                                        if (chart.scales.x.max > maxAllowed) {
+                                            chart.scales.x.max = maxAllowed;
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            updatePriceUI(currentPrice, true);
+        }
+
+        // [SỬA LỖI] HÀM WEBSOCKET (V5)
+        function startWebSocket(symbol) {
+            const websocketSymbol = (symbol.toUpperCase() + 'USDT').toLowerCase();
+            const interval = '1m';
+            const socket = new WebSocket(`wss://stream.binance.com:9443/ws/${websocketSymbol}@kline_${interval}`);
+
+            socket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                const kline = message.k;
+                if (!kline) return;
+
+                // [SỬA] Luôn luôn cập nhật giá thật
+                realPriceTarget = parseFloat(kline.c);
+
+                // [SỬA] Luôn gửi dữ liệu đến updateChart.
+                // Hàm updateChart sẽ tự quyết định có ghi đè hay không.
+                updateChartWithRealtimeData(kline);
+            };
+            socket.onerror = (error) => { };
+            socket.onclose = () => {
+                setTimeout(() => startWebSocket(symbol), 3000); 
+            };
+        }
+        
+        // [SỬA] HÀM GHI ĐÈ GIÁ NẾN (Thêm cờ updatePreviousCandle)
+        function updateCandlePrice(newPrice, updatePreviousCandle = false) {
+            try {
+                if (!mainChartInstance || newPrice === 0) return;
+                
+                const candleDataset = mainChartInstance.data.datasets[0];
+                let candleToUpdate = candleDataset.data[candleDataset.data.length - 1];
+
+                // [MỚI] Nếu cờ là true, ta cập nhật nến TRƯỚC ĐÓ (nến đã bẻ)
+                if (updatePreviousCandle && candleDataset.data.length > 1) {
+                    candleToUpdate = candleDataset.data[candleDataset.data.length - 2];
+                }
+
+                candleToUpdate.c = newPrice; // Cập nhật giá đóng cửa
+                
+                const ann = mainChartInstance.options.plugins.annotation.annotations.line1;
+                // [SỬA] Chỉ cập nhật đường line nếu đang cập nhật nến HIỆN TẠI
+                if (!updatePreviousCandle) {
+                    ann.value = newPrice;
+                    ann.label.content = newPrice.toFixed(2);
+                
+                    if (newPrice >= candleToUpdate.o) { // So sánh với giá MỞ CỬA của nến
+                        ann.borderColor = colorGreen;
+                        ann.label.backgroundColor = colorGreen;
+                    } else {
+                        ann.borderColor = colorRed;
+                        ann.label.backgroundColor = colorRed;
+                    }
+                }
+                mainChartInstance.update('none');
+            } catch (e) {
+            }
+        }
+
+
+        // [SỬA LẠI HOÀN TOÀN LOGIC TÍNH TOÁN TARGET VÀ JITTER]
+function calculateRiggedTick(result, timeLeft) {
+    if (!mainChartInstance) return 0;
+    
+    try {
+        const candleDataset = mainChartInstance.data.datasets[0];
+        let lastCandle = candleDataset.data[candleDataset.data.length - 1];
+        
+        const openPrice = lastCandle.o;
+        const currentPrice = realPriceTarget || lastCandle.c; 
+        
+        let targetPrice;
+        
+        if (result === 'BO_MUA') {
+            // Mục tiêu là phải LỚN HƠN openPrice
+            let baseTarget = openPrice * 1.0001; 
+            if (currentPrice > baseTarget) {
+                targetPrice = currentPrice * 1.00005; // Nudge cao hơn nữa
+            } else {
+                targetPrice = baseTarget; // Buộc phải lên baseTarget
+            }
+        } else { // BO_BAN
+            // Mục tiêu là phải NHỎ HƠN openPrice
+            let baseTarget = openPrice * 0.9999;
+            if (currentPrice < baseTarget) {
+                targetPrice = currentPrice * 0.99995; // Nudge thấp hơn nữa
+            } else {
+                targetPrice = baseTarget; // Buộc phải xuống baseTarget
+            }
+        }
+
+        // 2. Logic "Giật" (Tick)
+        if (timeLeft <= 2) { 
+            // ÉP GIÁ VỀ MỤC TIÊU CUỐI
+            return targetPrice;
+        } 
+        
+        // Di chuyển nến "giật" dần về mục tiêu
+        else {
+            const progress = (5 - timeLeft) / 3.0; 
+            let jitteryPrice = currentPrice + (targetPrice - currentPrice) * progress;
+            const noise = (Math.random() - 0.5) * (openPrice * 0.00005);
+            return jitteryPrice + noise;
+        }
+        
+    } catch (e) {
+        return 0; 
+    }
+}
+        
+        async function loadUserProfile() {
+            try {
+                const profile = await window.fetchAPI('/api/user/profile');
+                userBalanceUSDT = profile.balance || 0;
+                userId = profile.id; 
+                
+                // [SỬA] Cập nhật cả sidebar và header
+                document.getElementById('profile-username').textContent = profile.username || 'User';
+                const usernameHeader = document.getElementById('profile-username-header');
+                if (usernameHeader) usernameHeader.textContent = profile.username || 'User';
+
+                updateBalanceDisplay();
+                updateBetInputs(); // [MỚI] Gọi ở đây để khởi tạo giá trị
+            } catch (error) {
+                document.getElementById('profile-username').textContent = 'Lỗi';
+                document.getElementById('profile-balance').textContent = '...';
+                
+                // [SỬA] Cập nhật header khi lỗi
+                const usernameHeader = document.getElementById('profile-username-header');
+                if (usernameHeader) usernameHeader.textContent = 'Lỗi';
+                const balanceHeader = document.getElementById('profile-balance-header');
+                if (balanceHeader) balanceHeader.textContent = '...';
+            }
+        }
+        
+        async function loadExchangeRate() {
+             try {
+                const data = await window.fetchAPI('/api/wallet/exchange-rate');
+                exchangeRate = data.rate || 27000;
+                window.globalExchangeRate = exchangeRate; 
+            } catch (error) {
+                exchangeRate = 27000; 
+                window.globalExchangeRate = exchangeRate;
+            }
+        }
+        
+        function decodeJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) { return null; }
+        }
+        
+        // ==============================================
+        // HÀM TẢI LỊCH SỬ (GIỐNG MINES)
+        // ==============================================
+        async function loadBoHistory() {
+            historyPanelContainer.innerHTML = ''; 
+            historyLoading.classList.remove('hidden'); 
+            historyPanelContainer.appendChild(historyLoading); 
+            
+            try {
+                const historyData = await window.fetchAPI('/api/game/bo-history');
+                
+                historyLoading.classList.add('hidden'); 
+                historyPanelContainer.innerHTML = ''; 
+
+                if (historyData.length === 0) {
+                    historyPanelContainer.innerHTML = '<p class="text-center text-gray-400">Bạn chưa có lịch sử cược nào cho game này.</p>'; 
+                    return;
+                }
+
+                historyData.forEach(bet => {
+                    historyPanelContainer.appendChild(createBoHistoryRow(bet)); 
+                });
+
+            } catch (error) {
+                historyPanelContainer.innerHTML = `<p class="text-center text-red-400">Lỗi: ${error.message}</p>`; 
+            }
+        }
+
+        // ==============================================
+        // HÀM TẠO HÀNG LỊCH SỬ (ĐÃ SỬA THEO YÊU CẦU)
+        // ==============================================
+        function createBoHistoryRow(bet) {
+            const row = document.createElement('div');
+            row.className = 'bg-[var(--dark-bg)] p-3 rounded-lg flex items-center gap-3 border border-[var(--border-color)]';
+            
+            let statusColorClass = 'text-gray-400';
+            let payoutText = 'Đang chờ';
+            let payoutColorClass = 'text-white';
+            let iconClass = 'fa-solid fa-clock'; // PENDING
+
+            // Logic for WIN
+            if (bet.status === 'WIN') {
+                statusColorClass = 'text-green-400'; 
+                payoutText = `+${bet.payout.toFixed(2)} USDT`; 
+                payoutColorClass = 'text-green-400'; 
+                iconClass = (bet.betType === 'BO_MUA') ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down';
+            } 
+            // Logic for LOSE
+            else if (bet.status === 'LOSE') {
+                statusColorClass = 'text-red-400'; 
+                payoutText = `${bet.payout.toFixed(2)} USDT`; 
+                payoutColorClass = 'text-red-400'; 
+                iconClass = (bet.betType === 'BO_MUA') ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down';
+            }
+            
+            const betTime = new Date(bet.placedAt).toLocaleString('vi-VN');
+            
+            const resultText = bet.resultNumber ? `(KQ: ${bet.resultNumber})` : bet.status;
+
+            // [SỬA] Logic tạo văn bản cược (Đã sửa theo yêu cầu)
+            const betAmountFormatted = window.formatCurrency(bet.betAmount); // Đã bao gồm USDT/VND
+            const betTypeText = (bet.betType === 'BO_MUA') ? 'vào Mua' : 'vào Bán';
+            // [KẾT THÚC SỬA]
+
+            row.innerHTML = `
+                <div class="w-10 h-10 rounded-full flex items-center justify-center ${statusColorClass} bg-[var(--border-color)] text-xl flex-shrink-0">
+                    <i class="${iconClass}"></i>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-semibold text-white truncate">Cược ${betAmountFormatted} ${betTypeText}</p>
+                    <p class="text-xs text-gray-400">${betTime}</p>
+                </div>
+                <div class="text-right flex-shrink-0">
+                    <p class="text-sm font-bold ${payoutColorClass} truncate">${payoutText}</p>
+                    <p class="text-xs ${statusColorClass}">${resultText}</p>
+                </div>`;
+            return row;
+        }
+        // ==============================================
+
+        function connectSocket(userId) {
+            const serverUrl = window.location.origin; 
+            socket = io(serverUrl, { query: { user_id: userId } });
+            
+            socket.on('connect', () => { });
+            socket.on('disconnect', () => { });
+            
+            socket.on('bo_bet_response', (data) => {
+                if (data.success) {
+                    showToast("Đặt lệnh thành công!", "success"); 
+                    userBalanceUSDT = data.newBalance;
+                    updateBalanceDisplay();
+                    
+                    // [SỬA] Thêm cược đang chờ vào đầu danh sách lịch sử
+                    if (data.bet) {
+                        const emptyMsg = historyPanelContainer.querySelector('p');
+                        if (emptyMsg && emptyMsg.textContent.includes('chưa có')) {
+                            historyPanelContainer.innerHTML = '';
+                        }
+                        const newRow = createBoHistoryRow(data.bet);
+                        historyPanelContainer.prepend(newRow);
+                    }
+                    
+                } else {
+                    showToast(data.message, "error"); 
+                }
+            });
+            
+            socket.on('user_data_update', (data) => {
+                if (data.balance !== undefined) { 
+                    userBalanceUSDT = parseFloat(data.balance); 
+                    updateBalanceDisplay();
+                }
+                
+                if (data.lastPayout) {
+                    const betType = data.lastPayout.betType || "";
+                    if (betType.startsWith('BO_')) {
+                        if (data.lastPayout.type === 'WIN') {
+                            showToast(`Thắng! +${data.lastPayout.amount.toFixed(2)} USDT`, "success");
+                        } else if (data.lastPayout.type === 'LOSE') {
+                            showToast(`Thua. -${data.lastPayout.amount.toFixed(2)} USDT`, "error");
+                        }
+                    }
+                }
+            });
+            
+            // [SỬA LỖI] HÀM LẮNG NGHE VÒNG MỚI (V5)
+            socket.on('bo_game_update', (data) => {
+                if (data.round_id !== currentRoundId) {
+                    currentRoundId = data.round_id;
+                    toggleTradeButtons(true); 
+                    updateSentiment();
+                    
+                    // [SỬA] Logic reset mới
+                    riggedResult = null;   // Reset kết quả
+                    
+                    // QUAN TRỌNG: Kiểm tra xem nến CÓ BỊ BẺ ở vòng trước không
+                    if (lastFakePrice > 0) {
+                        // Kích hoạt 'Giật Từ Từ'
+                        isRetracting = true;
+                        // Vẫn bật 'Faking' để chặn Binance ghi đè
+                        isFakingChart = true; 
+                    } else {
+                        // Nến trước là nến thật, không cần làm gì
+                        isRetracting = false;
+                        isFakingChart = false;
+                    }
+                    
+                    // KHÔNG reset lastFakePrice ở đây, ta cần nó cho logic 'isRetracting'
+                }
+            });
+            
+            // [SỬA] HÀM LẮNG NGHE THỜI GIAN (V5)
+            socket.on('bo_time_update', (data) => {
+                const timerDesktop = document.getElementById('timer-desktop');
+                const timerMobile = document.getElementById('timer-mobile');
+                const timerStatusDesktop = document.getElementById('timer-status-desktop');
+
+                if (data.status === 'OPEN') {
+                    const timeLeft = data.time_left;
+
+                    // [MỚI] LOGIC GIẬT VỀ TỪ TỪ (RETRACTION)
+                    if (isRetracting) {
+                        const retractionDuration = 3; // Giật trong 3 giây (30, 29, 28)
+                        const endRetractionTime = 30 - retractionDuration; // Sẽ dừng ở 27s
+
+                        if (timeLeft <= endRetractionTime || !lastFakePrice || !realPriceTarget) {
+                            isRetracting = false;
+                            isFakingChart = false;
+                            updateCandlePrice(realPriceTarget, true); // Cập nhật nến TRƯỚC ĐÓ về giá thật
+                            lastFakePrice = 0;
+                        } else {
+                            // (30 - 30) = 0
+                            // (30 - 29) = 1
+                            // (30 - 28) = 2
+                            const tickStep = 30 - timeLeft; // Bước 0, 1, 2
+                            const progress = (tickStep + 1) / retractionDuration; // (1/3, 2/3, 3/3)
+                            
+                            // Tính giá giật
+                            let newPrice = lastFakePrice + (realPriceTarget - lastFakePrice) * progress;
+                            
+                            updateCandlePrice(newPrice, true); // Cập nhật nến TRƯỚC ĐÓ
+                        }
+                    }
+
+                    if (timerDesktop) {
+                        timerDesktop.textContent = `${timeLeft}s`;
+                        timerDesktop.classList.add('timer-betting');
+                        timerDesktop.classList.remove('timer-waiting');
+                    }
+                    if (timerMobile) {
+                        timerMobile.textContent = `${timeLeft}s`;
+                        timerMobile.classList.add('timer-betting-mobile');
+                        timerMobile.classList.remove('timer-waiting-mobile');
+                    }
+                    if (timerStatusDesktop) {
+                        timerStatusDesktop.textContent = 'THỜI GIAN CƯỢC';
+                    }
+                    
+                } else {
+                    // [SỬA] Đây là khối 'WAITING'
+                    const waitTimeLeft = data.time_left;
+
+                    if (timerDesktop) {
+                        timerDesktop.textContent = `Chờ ${waitTimeLeft}s`; 
+                        timerDesktop.classList.remove('timer-betting');
+                        timerDesktop.classList.add('timer-waiting');
+                    }
+                    if (timerMobile) {
+                        timerMobile.textContent = `Chờ ${waitTimeLeft}s`;
+                        timerMobile.classList.remove('timer-betting-mobile');
+                        timerMobile.classList.add('timer-waiting-mobile');
+                    }
+                    
+                    // [SỬA] Kích hoạt bẻ cầu 5 giây cuối (Giữ nguyên)
+                    if (waitTimeLeft <= 5 && riggedResult) {
+                        if (!isFakingChart) {
+                            isFakingChart = true; // Chỉ chạy 1 lần
+                        }
+                        
+                        // Tính toán và "Giật" (Tick) nến
+                        const newPrice = calculateRiggedTick(riggedResult, waitTimeLeft);
+                        lastFakePrice = newPrice; // [QUAN TRỌN] Lưu giá bẻ cuối cùng
+                        updateCandlePrice(newPrice);
+                        
+                    } else if (isFakingChart && riggedResult) {
+                         // [SỬA] Chỉ reset nếu đang bẻ cầu
+                         isFakingChart = false;
+                    }
+                    
+                    if (timerStatusDesktop) {
+                        timerStatusDesktop.textContent = 'ĐANG CHỜ KẾT QUẢ';
+                    }
+                }
+            });
+
+
+            socket.on('bo_game_closed', (data) => {
+                toggleTradeButtons(false);
+            });
+            
+            socket.on('bo_game_result_public', (data) => {
+            });
+            
+            // [SỬA] Lắng nghe tín hiệu bẻ cầu từ server
+            socket.on('bo_game_prepare_result', (data) => {
+                riggedResult = data.riggedResult; // 'BO_MUA' or 'BO_BAN'
+                isFakingChart = false; // Reset cờ, chờ 5 giây cuối
+                lastFakePrice = 0; // Reset giá bẻ
+            });
+        }
+
+
+        // === 5. KHỞI CHẠY KHI LOAD TRANG (ĐÃ THAY ĐỔI) ===
+        document.addEventListener('DOMContentLoaded', async () => {
+            
+            const token = window.checkLogin();
+            if (!token) return; 
+
+            await window.initCurrency();
+            
+            await loadExchangeRate();
+            await loadUserProfile(); // [SỬA] Hàm này giờ sẽ gọi updateBetInputs
+            
+            if (userId) {
+                connectSocket(userId);
+            } else {
+            }
+            
+            const toggleBtn = document.getElementById('currency-toggle-btn-desktop');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggleCurrency();
+                });
+                const btnText = (window.globalCurrency === 'USDT' ? 'Đổi (VND)' : 'Đổi (USDT)');
+                toggleBtn.querySelector('span').textContent = btnText;
+            }
+
+            // [MỚI] Cập nhật text nút tiền tệ khi tải
+            const btnText = (window.globalCurrency === 'USDT' ? 'USDT' : 'VND');
+            const btnDesktop = document.getElementById('currency-toggle-btn-bet-desktop');
+            if (btnDesktop) btnDesktop.textContent = btnText;
+            const btnMobile = document.getElementById('currency-toggle-btn-bet-mobile');
+            if (btnMobile) btnMobile.textContent = btnText;
+            
+            // ==============================================
+            // GÁN SỰ KIỆN CHO CÁC NÚT LỊCH SỬ
+            // ==============================================
+            if (myHistoryModal && myHistoryCloseBtn) {
+                
+                // [THÊM] Gán sự kiện cho nút sidebar
+                if (boHistoryBtnDesktop) {
+                    boHistoryBtnDesktop.addEventListener('click', () => {
+                        myHistoryModal.classList.remove('hidden');
+                        loadBoHistory(); 
+                    });
+                }
+
+                // [MỚI] Gán sự kiện cho nút header mobile
+                if (boHistoryBtnMobileHeader) {
+                    boHistoryBtnMobileHeader.addEventListener('click', () => {
+                        myHistoryModal.classList.remove('hidden');
+                        loadBoHistory();
+                    });
+                }
+
+                // Gán sự kiện cho nút đóng
+                myHistoryCloseBtn.addEventListener('click', () => {
+                    myHistoryModal.classList.add('hidden');
+                });
+                
+                // Gán sự kiện đóng khi click bên ngoài
+                myHistoryModal.addEventListener('click', (e) => {
+                     if (e.target.id === 'my-history-modal') {
+                        myHistoryModal.classList.add('hidden');
+                     }
+                });
+            } else {
+            }
+            // ==============================================
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            let coinSymbol = (urlParams.get('coin') || 'BTC').toUpperCase();
+            
+            currentCoinSymbol = coinSymbol; 
+
+            const coinInfo = {
+                'BTC': 'Bitcoin', 'ETH': 'Ethereum', 'SOL': 'Solana',
+                'DOGE': 'Dogecoin', 'BNB': 'Binance Coin', 'XRP': 'Ripple',
+                'ADA': 'Cardano', 'AVAX': 'Avalanche', 'LINK': 'Chainlink', 'SHIB': 'Shiba Inu'
+            };
+            const fullName = coinInfo[coinSymbol] || coinSymbol;
+            
+            await initChart(coinSymbol); 
+            startWebSocket(coinSymbol);
+            
+            updateSentiment();
+
+        });
+    </script>
+</body>
+</html>

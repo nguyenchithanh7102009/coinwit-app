@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hình đại diện | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: #e0e0e0;
+            padding-bottom: 90px; /* Chỗ trống cho nút xác nhận */
+            padding-top: 120px; /* Chỗ trống cho 2 header */
+        }
+        /* Tùy chỉnh thanh cuộn */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: var(--yellow-accent); border-radius: 10px; }
+        
+        .avatar-option {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .avatar-option:hover {
+            transform: scale(1.05);
+        }
+        .avatar-option.selected {
+            border-color: var(--yellow-accent);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <header class="fixed top-0 z-50 w-full bg-[#1a1b20] shadow-lg border-b border-gray-800">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between gap-4">
+                <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                        <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+                    </div>
+                    <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+                </a>
+                <div class="flex items-center gap-2">
+                    <button class="p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <i class="fas fa-download h-5 w-5"></i>
+                    </button>
+                    <button class="relative p-2 rounded-full text-gray-300 hover:text-white hover:bg-white/10 transition-colors">
+                        <i class="fas fa-bell h-5 w-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="fixed top-[61px] z-40 w-full bg-[#18191d] border-b border-[#2c2d32] shadow-md">
+        <div class="container mx-auto px-4 py-3 flex items-center">
+            <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Chọn Hình đại diện</h1>
+            <div class="w-10 h-10"></div>
+        </div>
+    </div>
+
+    <!-- 
+      MAIN CONTENT
+    -->
+    <main class="container mx-auto p-4">
+        
+        <!-- NÂNG CẤP: Đổi thành 5 cột -->
+        <div id="avatar-grid" class="grid grid-cols-5 gap-3">
+            <!-- Avatars sẽ được load ở đây bằng JS -->
+        </div>
+
+    </main>
+    
+    <!-- Nút xác nhận cố định -->
+    <div class="fixed bottom-0 left-0 right-0 z-30 p-4 bg-gradient-to-t from-[#0a0a0e] via-[#0a0a0e] to-transparent">
+        <button id="confirm-avatar-btn" disabled
+                class="w-full py-3 rounded-lg font-bold text-black text-lg bg-gradient-to-br from-yellow-400 to-yellow-600 hover:from-yellow-500 transition duration-200 shadow-lg shadow-yellow-500/30 disabled:opacity-50 disabled:cursor-not-allowed">
+            Xác nhận
+        </button>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        let selectedAvatarUrl = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = checkLogin();
+            if (!token) return;
+
+            // SỬA LỖI: Chuyển sang dùng RoboHash để đảm bảo ảnh tải được
+            // Tạo 40 avatar độc đáo theo 4 chủ đề
+            const avatarList = [];
+            
+            // 10 Robot (Công nghệ)
+            for (let i = 0; i < 10; i++) {
+                avatarList.push(`https://robohash.org/set1-tech-${i}-${Math.random()}.png?size=100x100&set=set1`);
+            }
+            // 10 Quái vật (Anime/Fantasy)
+            for (let i = 0; i < 10; i++) {
+                avatarList.push(`https://robohash.org/set2-anime-${i}-${Math.random()}.png?size=100x100&set=set2`);
+            }
+            // 10 Robot (Hacker/Công nghệ)
+            for (let i = 0; i < 10; i++) {
+                avatarList.push(`https://robohash.org/set3-hacker-${i}-${Math.random()}.png?size=100x100&set=set3`);
+            }
+            // 10 Đầu người (Anime/Hacker)
+             for (let i = 0; i < 10; i++) {
+                avatarList.push(`https://robohash.org/set5-human-${i}-${Math.random()}.png?size=100x100&set=set5`);
+            }
+
+            loadAvatars(avatarList);
+        });
+
+        function loadAvatars(avatarList) {
+            const grid = document.getElementById('avatar-grid');
+            const confirmBtn = document.getElementById('confirm-avatar-btn');
+            grid.innerHTML = ''; // Xóa avatar cũ
+
+            avatarList.forEach(avatarUrl => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'avatar-option aspect-square rounded-full border-4 border-transparent p-1 cursor-pointer';
+                
+                const imgElement = document.createElement('img');
+                imgElement.src = avatarUrl;
+                imgElement.alt = 'Avatar';
+                imgElement.className = 'w-full h-full object-cover rounded-full bg-gray-700';
+                
+                // Giữ lại fallback cho chắc chắn
+                imgElement.onerror = (e) => { 
+                    e.target.src = `https://placehold.co/100x100/1a1b20/a0a0a0?text=L%E1%BB%97i`; 
+                    e.target.alt = 'Lỗi tải ảnh';
+                };
+                
+                optionDiv.appendChild(imgElement);
+
+                optionDiv.addEventListener('click', () => {
+                    document.querySelectorAll('.avatar-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    optionDiv.classList.add('selected');
+                    selectedAvatarUrl = avatarUrl;
+                    confirmBtn.disabled = false;
+                });
+                
+                grid.appendChild(optionDiv);
+            });
+
+            confirmBtn.addEventListener('click', handleAvatarSelection);
+        }
+
+        function handleAvatarSelection() {
+            if (!selectedAvatarUrl) {
+                // Không dùng alert
+                return;
+            }
+            
+            // NÂNG CẤP: Kích hoạt lưu trữ (đã bỏ comment)
+            localStorage.setItem('userAvatarUrl', selectedAvatarUrl); 
+            
+            // Thông báo (tạm thời, có thể thay bằng modal)
+            
+            window.history.back();
+        }
+
+    </script> 
+</body>
+</html>

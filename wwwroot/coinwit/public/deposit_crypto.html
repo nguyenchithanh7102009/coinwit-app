@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nạp Crypto | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+        }
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+        }
+        .header-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .footer-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: sticky;
+            top: 61px; /* Chiều cao của header chính */
+            z-index: 30;
+            background-color: var(--dark-bg);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        .form-input {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-input:focus-within {
+            border-color: var(--yellow-accent);
+            box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.3);
+        }
+        .nav-item {
+            color: var(--text-secondary);
+        }
+        .nav-item.active,
+        .nav-item.highlight {
+            color: var(--yellow-accent);
+        }
+        /* Loading Spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--yellow-accent);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Cải tiến Dropdown */
+        .custom-dropdown-btn {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: left;
+            transition: border-color 0.2s;
+        }
+        .custom-dropdown-btn:hover {
+            border-color: #4b5563; /* gray-600 */
+        }
+        .custom-dropdown-list {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .dropdown-item {
+            padding: 1rem;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .dropdown-item:hover, .dropdown-item.active {
+            background-color: #3b82f6; /* Blue-500 for selection highlight */
+            color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Header chính -->
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="text-2xl font-bold" style="color: var(--yellow-accent);">
+            CoinWit
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <a href="placeholder">
+                <i class="fa-regular fa-bell text-xl text-gray-300"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Sub-header (Tiêu đề trang) -->
+    <div class="sub-header-sticky flex items-center px-4 py-3 border-b border-gray-800">
+        <a href="deposit" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fa-solid fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Nạp Crypto</h1>
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <!-- Nội dung chính -->
+    <main class="flex-grow p-4 space-y-6">
+        
+        <!-- Custom Dropdown chọn loại tiền tệ/mạng - ĐÃ LÀM ĐẸP HƠN -->
+        <div id="network-dropdown">
+            <label for="network-select" class="text-sm font-medium text-gray-400 flex items-center gap-2 mb-2">
+                <i class="fas fa-coins text-lg" style="color: var(--yellow-accent);"></i>
+                <span>Loại tiền tệ/Mạng lưới</span>
+            </label>
+            
+            <!-- Nút hiển thị giá trị được chọn -->
+            <button id="network-dropdown-button" onclick="toggleDropdown()"
+                    class="custom-dropdown-btn w-full p-4 flex justify-between items-center font-semibold text-white">
+                <span id="selected-network-display">USDT (TRC20 - TRON)</span>
+                <i class="fas fa-chevron-down text-xs transition-transform duration-200" id="dropdown-arrow"></i>
+            </button>
+
+            <!-- Danh sách tùy chỉnh (Dropdown List) -->
+            <div id="network-list-container" class="custom-dropdown-list mt-2 absolute w-auto min-w-[calc(100%-2rem)] z-20 hidden">
+                <!-- Danh sách mục sẽ được chèn bởi JS -->
+            </div>
+        </div>
+
+        <!-- Vùng hiển thị khi đang tải -->
+        <div id="loading-section" class="card p-6 text-center hidden">
+            <div class="spinner mx-auto"></div>
+            <p class="mt-3 text-gray-400">Đang tải địa chỉ ví...</p>
+        </div>
+
+        <!-- Vùng hiển thị sau khi tải xong -->
+        <div id="content-section" class="space-y-6">
+            <div class="card p-4 space-y-3">
+                <label class="text-sm font-medium text-gray-400 block"><span id="network-label">TRC20</span> address</label>
+                <div class="form-input flex items-center p-3">
+                    <span id="deposit-address" class="flex-grow text-white text-sm break-all font-mono">...</span>
+                    <button class="ml-3 px-3 py-1 5 text-sm font-medium rounded-md bg-gray-600 active:bg-gray-500" onclick="copyAddress()">
+                        <i class="fas fa-copy text-white"></i>
+                    </button>
+                </div>
+                <div id="warning-message" class="mt-2 p-3 rounded-lg text-xs text-yellow-300 bg-yellow-900/30 border border-yellow-700/50">
+                    Vui lòng đảm bảo chuỗi là **TRC20** khi chuyển, nếu không tiền sẽ bị mất và không thể lấy lại được.
+                </div>
+            </div>
+            
+            <div class="card text-center p-6 space-y-3">
+                 <label class="text-sm font-medium text-gray-400 block">Mã QR địa chỉ nạp tiền</label>
+                 <div class="bg-white p-2 rounded-lg inline-block border-4 border-gray-700 shadow-lg">
+                    <img id="qr-code-image" src="https://placehold.co/200x200/ffffff/000000?text=QR+Code" alt="Mã QR Nạp USDT" class="w-48 h-48">
+                 </div>
+            </div>
+        </div>
+        
+    </main>
+
+    <!-- Footer (Thanh điều hướng) -->
+    <footer class="h-[70px] flex justify-around items-center footer-sticky">
+        <a href="index" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-house text-xl"></i>
+            <span class="text-xs font-medium">Trang Chủ</span>
+        </a>
+        <a href="placeholder" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-rectangle-ad text-xl"></i>
+            <span class="text-xs font-medium">Hoạt động</span>
+        </a>
+        <a href="placeholder" class="nav-item highlight flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-arrow-right-arrow-left text-xl"></i>
+            <span class="text-xs font-medium">Giao dịch</span>
+        </a>
+        <a href="service_new" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-headset text-xl"></i>
+            <span class="text-xs font-medium">Trò chuyện</span>
+        </a>
+        <a href="placeholder" class="nav-item flex flex-col items-center gap-1 text-center">
+            <i class="fa-solid fa-user text-xl"></i>
+            <span class="text-xs font-medium">Của tôi</span>
+        </a>
+    </footer>
+
+    <!-- <script src="main.js"></script> -->
+    <script>
+        // --- CẤU HÌNH VÍ MOCK ---
+        const MOCK_WALLETS = {
+            "TRC20": {
+                label: "USDT (TRC20 - TRON)",
+                address: "TTs3zuruCNkWYq24dbgRZWMW6Vd6pcLRrX",
+                prefix: "tron:",
+                warning: "TRC20 - TRON. Chỉ gửi USDT trên mạng TRON.",
+                min_vndc: "1,000 VNDC"
+            },
+            "ERC20": {
+                label: "USDT (ERC20 - Ethereum)",
+                address: "0xcD95e5429c43336934eD79a2838F5f7737703420",
+                prefix: "ethereum:",
+                warning: "ERC20 - Ethereum. Chỉ gửi USDT trên mạng Ethereum.",
+                min_vndc: "200,000 VNDC"
+            },
+            "BEP20": {
+                label: "USDT (BEP20 - BNB Smart Chain)",
+                address: "0xcD95e5429c43336934eD79a2838F5f7737703420",
+                prefix: "binance:",
+                warning: "BEP20 - BNB Smart Chain. Chỉ gửi USDT trên mạng BNB Smart Chain.",
+                min_vndc: "20,000 VNDC"
+            },
+            "POLYGON": {
+                label: "USDT (POLYGON)",
+                address: "0xcD95e5429c43336934eD79a2838F5f7737703420",
+                prefix: "polygon:",
+                warning: "POLYGON. Chỉ gửi USDT trên mạng Polygon.",
+                min_vndc: "20,000 VNDC"
+            },
+            "SOLANA": {
+                label: "USDT (SOLANA)",
+                address: "0xcD95e5429c43336934eD79a2838F5f7737703420",
+                prefix: "solana:",
+                warning: "SOLANA. Chỉ gửi USDT trên mạng Solana.",
+                min_vndc: "20,000 VNDC"
+            },
+            "ARBITRUM": {
+                label: "USDT (ARBITRUM ONE)",
+                address: "0xcD95e5429c43336934eD79a2838F5f7737703420",
+                prefix: "arbitrum:",
+                warning: "ARBITRUM ONE. Chỉ gửi USDT trên mạng Arbitrum One.",
+                min_vndc: "20,000 VNDC"
+            }
+        };
+
+        let currentNetwork = "TRC20"; // Mạng mặc định
+
+        // --- API HELPERS ---
+        const API_BASE_URL = 'http://coinwit.net/api'; 
+
+        function checkAuth() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                return false;
+            }
+            return true;
+        }
+
+        async function fetchWithAuth(endpoint, options = {}) {
+            // Mock API cho endpoint lấy địa chỉ ví
+            if (endpoint === 'user/deposit-address') {
+                await new Promise(resolve => setTimeout(resolve, 500)); 
+                return { 
+                    address: MOCK_WALLETS[currentNetwork].address 
+                };
+            }
+            
+            // Logic Auth/Fetch thông thường (giữ nguyên)
+            const token = localStorage.getItem('authToken');
+            if (!token) { /* ... auth error handling ... */ throw new Error('Chưa đăng nhập'); }
+            const defaultHeaders = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+            const config = { ...options, headers: { ...defaultHeaders, ...options.headers } };
+            const response = await fetch(`${API_BASE_URL}/${endpoint}`, config);
+            if (response.status === 401 || response.status === 403) { /* ... redirect ... */ throw new Error('Phiên đăng nhập hết hạn'); }
+            if (!response.ok) { /* ... error handling ... */ throw new Error('Lỗi không xác định từ server'); }
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) { return response.json(); }
+            return null;
+        }
+
+        function copyToClipboard(textToCopy, message) {
+            const textArea = document.createElement("textarea");
+            textArea.value = textToCopy;
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (!successful) {
+                    throw new Error('Copy không thành công');
+                }
+                if (message) {
+                    // Hiển thị thông báo đơn giản, tránh phụ thuộc thư viện ngoài
+                    console.log(message);
+                }
+            } catch (err) {
+                console.error('Lỗi sao chép:', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // --- LOGIC CUSTOM DROPDOWN ---
+
+        function toggleDropdown() {
+            const listContainer = document.getElementById('network-list-container');
+            const arrow = document.getElementById('dropdown-arrow');
+
+            listContainer.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        function selectNetwork(networkKey, label) {
+            currentNetwork = networkKey;
+            document.getElementById('selected-network-display').textContent = label;
+            document.getElementById('network-list-container').classList.add('hidden');
+            document.getElementById('dropdown-arrow').classList.remove('rotate-180');
+            updateDepositDetails();
+        }
+
+        function renderNetworkList() {
+            const listContainer = document.getElementById('network-list-container');
+            listContainer.innerHTML = ''; // Xóa danh sách cũ
+            
+            Object.keys(MOCK_WALLETS).forEach(key => {
+                const info = MOCK_WALLETS[key];
+                const item = document.createElement('div');
+                item.className = 'dropdown-item';
+                if (key === currentNetwork) {
+                    item.classList.add('active');
+                }
+                item.textContent = info.label;
+                item.onclick = () => selectNetwork(key, info.label);
+                listContainer.appendChild(item);
+            });
+            
+             // Đảm bảo listContainer có chiều rộng bằng nút
+            const buttonWidth = document.getElementById('network-dropdown-button').offsetWidth;
+            listContainer.style.width = `${buttonWidth}px`;
+        }
+
+        // --- LOGIC CẬP NHẬT GIAO DIỆN CHÍNH ---
+
+        async function updateDepositDetails() {
+            const network = currentNetwork;
+            const loadingSection = document.getElementById('loading-section');
+            const contentSection = document.getElementById('content-section');
+            const addressEl = document.getElementById('deposit-address');
+            const qrImgEl = document.getElementById('qr-code-image');
+            const networkLabelEl = document.getElementById('network-label');
+            const warningMessageEl = document.getElementById('warning-message');
+            
+            // Xóa active class cũ và thêm active class mới
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                if (item.textContent === MOCK_WALLETS[network].label) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+
+            // 1. Hiển thị loading (tùy chọn)
+            contentSection.style.opacity = '0.5';
+            loadingSection.classList.remove('hidden');
+
+            try {
+                // 2. Gọi API (Mock) để lấy địa chỉ cho mạng mới
+                const data = await fetchWithAuth('user/deposit-address');
+                const walletInfo = MOCK_WALLETS[network];
+
+                if (data && data.address) {
+                    const depositAddress = walletInfo.address; // Lấy địa chỉ cụ thể từ MOCK_WALLETS
+                    
+                    // 3. Cập nhật các phần tử giao diện
+                    addressEl.textContent = depositAddress;
+                    networkLabelEl.textContent = network;
+                    
+                    // Cảnh báo: Sử dụng cảnh báo Mock đã định nghĩa
+                    warningMessageEl.innerHTML = `${walletInfo.warning} Tối thiểu: ${walletInfo.min_vndc}.`;
+
+                    // Tạo QR code (thêm prefix cho QR data)
+                    const qrData = `${walletInfo.prefix || ''}${depositAddress}`; 
+                    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
+                    qrImgEl.src = qrUrl;
+
+                } else {
+                    throw new Error('Không nhận được địa chỉ ví');
+                }
+            } catch (error) {
+                // Hiển thị lỗi ngay tại khu vực cảnh báo
+                warningMessageEl.innerHTML = `<span class="text-red-400">Lỗi: Không thể tải địa chỉ ví. Vui lòng thử lại.</span>`;
+            } finally {
+                 // 4. Ẩn loading
+                contentSection.style.opacity = '1';
+                loadingSection.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!checkAuth()) {
+                return;
+            }
+            
+            // Khởi tạo Custom Dropdown
+            renderNetworkList();
+            
+            // Xóa loading mặc định
+            document.getElementById('loading-section').classList.add('hidden');
+            document.getElementById('content-section').classList.remove('hidden');
+
+            // Lần đầu tải trang, load địa chỉ TRC20 mặc định
+            await updateDepositDetails();
+        });
+
+        function copyAddress() {
+            const address = document.getElementById('deposit-address').textContent;
+            copyToClipboard(address, 'Đã sao chép địa chỉ ví thành công!');
+        }
+    </script>
+</body>
+</html>

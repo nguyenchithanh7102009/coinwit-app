@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <system.webServer>
+    
+    <rewrite>
+      <rules>
+        <rule name="NodeJSProxy" stopProcessing="true">
+          <match url="(.*)" />
+          <conditions>
+            <add input="{CACHE_URL}" pattern="^(https?://)" />
+          </conditions>
+          <action type="Rewrite" url="http://127.0.0.1:3000/{R:1}" />
+        </rule>
+      </rules>
+    </rewrite>
+    
+  </system.webServer>
+</configuration>

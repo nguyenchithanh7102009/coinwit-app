@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang xét duyệt | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --dark-input: #333333;
+            --text-primary: #ffffff;
+        }
+        
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .accent-color { color: var(--yellow-accent); }
+        .accent-bg { background-color: var(--yellow-accent); }
+    </style>
+</head>
+<body class="bg-dark-bg">
+    
+    <header class="flex items-center p-4 border-b border-[var(--border-color)] bg-[var(--card-bg)] shadow-lg sticky top-0 z-10">
+        <a href="#" onclick="window.history.back()" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-semibold text-white flex-grow text-center ml-2">Xác minh tên thật</h1>
+        <div class="w-10 h-10"></div>
+    </header>
+
+    <!-- Stepper (Tiến trình) - Bước 1, 2 hoàn thành, Bước 3 đang hoạt động -->
+    <div class="flex justify-between items-start p-4 bg-dark-bg max-w-md mx-auto">
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <i class="fas fa-check text-sm"></i>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Thông tin</p>
+        </div>
+        <div class="flex-1 h-px accent-bg mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <i class="fas fa-check text-sm"></i>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Tải giấy tờ</p>
+        </div>
+        <div class="flex-1 h-px accent-bg mt-3 relative"></div>
+        <div class="step text-center relative flex-1">
+            <div class="w-6 h-6 rounded-full accent-bg text-black flex items-center justify-center mx-auto z-10 relative">
+                <span class="font-bold">3</span>
+            </div>
+            <p class="text-xs mt-1 font-medium accent-color">Xét duyệt</p>
+        </div>
+    </div>
+
+    <main class="p-4 text-center mt-12">
+        <i class="fas fa-hourglass-half text-6xl accent-color mb-6"></i>
+        <h1 class="text-2xl font-bold text-white mb-2">Đang chờ xét duyệt</h1>
+        <p class="text-gray-400 text-sm">Hệ thống sẽ xử lý và phản hồi trong vòng 24 giờ.</p>
+
+        <!-- Hộp review thông tin đã đổi sang card-bg -->
+        <div class="bg-[var(--card-bg)] p-4 rounded-lg text-left space-y-3 mt-8 max-w-sm mx-auto border border-[var(--border-color)]">
+            <div>
+                <span class="text-sm text-gray-400">Họ Tên:</span>
+                <p id="review-name" class="font-semibold text-white">N/A</p>
+            </div>
+            <div>
+                <span class="text-sm text-gray-400">Số:</span>
+                <p id="review-id" class="font-semibold text-white">N/A</p>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // --- LOGIC KIỂM TRA BƯỚC 1/BƯỚC 2 ---
+        function checkPreviousSteps() {
+            // Kiểm tra xem URL có chứa thông tin cần thiết từ Bước 2 (sau khi submit) không
+            const urlParams = new URLSearchParams(window.location.search);
+            const name = urlParams.get('name');
+            const id = urlParams.get('id');
+
+            // Nếu thiếu một trong hai thông tin Họ Tên hoặc Số ID trên URL
+            if (!name || !id) {
+                // Kiểm tra xem thông tin từ Bước 1 có còn trong sessionStorage không (dành cho trường hợp mất URL params)
+                const fullNameSession = sessionStorage.getItem('kycFullName');
+                const idNumberSession = sessionStorage.getItem('kycIdNumber');
+                
+                if (!fullNameSession || !idNumberSession) {
+                    // Nếu cả URL và sessionStorage đều thiếu, điều hướng về Bước 1
+                    alert('Quy trình KYC chưa hoàn tất. Vui lòng bắt đầu từ bước Thông tin.');
+                    window.location.href = 'login'; 
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Kiểm tra bước trước khi hiển thị dữ liệu
+            if (checkPreviousSteps()) {
+                displayReviewData();
+            }
+        });
+        
+        function displayReviewData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const name = urlParams.get('name');
+            const id = urlParams.get('id');
+            
+            // Xóa thông tin khỏi sessionStorage sau khi đã dùng để review
+            sessionStorage.removeItem('kycFullName');
+            sessionStorage.removeItem('kycIdNumber');
+
+            if (name) {
+                document.getElementById('review-name').textContent = decodeURIComponent(name).toUpperCase();
+            }
+            if (id) {
+                document.getElementById('review-id').textContent = decodeURIComponent(id);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt | CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0a0a0e;
+            color: #e0e0e0;
+        }
+        :root {
+            --yellow-accent: #facc15; /* yellow-400 */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+        }
+        .header-sticky {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .footer-sticky {
+            position: sticky;
+            bottom: 0;
+            z-index: 40;
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        .sub-header-sticky {
+            position: sticky;
+            top: 61px; /* Chiều cao của header chính */
+            z-index: 30;
+            background-color: var(--dark-bg);
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+        }
+        .nav-item { color: #a0a0a0; } /* Sửa lại màu xám */
+        .nav-item.active, .nav-item.highlight { color: var(--yellow-accent); }
+        
+        /* [THÊM MỚI] CSS cho Modal */
+        .modal {
+            display: none; /* Ẩn mặc định */
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            /* [SỬA LỖI] Xóa 'display: flex;' bị xung đột ở đây */
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+        }
+        .modal.is-open {
+            display: flex;
+        }
+        .modal-content {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem; /* 24px */
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <header class="h-[61px] flex items-center justify-between px-4 header-sticky">
+        <a href="index" class="flex items-center gap-2 text-2xl font-bold" style="color: var(--yellow-accent);">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #facc15 0%, #f59e0b 100%); box-shadow: 0 4px 15px rgba(250, 204, 21, 0.4);">
+                <img src="ghost-logo.svg" alt="CoinWit Ghost Logo" class="w-8 h-8">
+            </div>
+            <span class="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">CoinWit</span>
+        </a>
+        <div class="flex items-center space-x-4">
+            <a href="placeholder" class="flex items-center gap-1 5 text-sm bg-gray-700/80 px-3 py-1 5 rounded-full text-white">
+                <i class="fa-solid fa-download text-xs"></i>
+                <span class="font-medium">Tải App</span>
+            </a>
+            <!-- [SỬA] Cập nhật link chuông thông báo cho đúng -->
+            <a href="notifications" class="relative text-gray-400 hover:text-white">
+                <i class="fas fa-bell text-xl"></i>
+                 <!-- ID này dùng để JS cập nhật số lượng -->
+                <span id="notification-badge" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center" style="display: none;">0</span>
+            </a>
+        </div>
+    </header>
+
+    <div class="sub-header-sticky flex items-center px-4 py-3 border-b border-gray-800">
+        <a href="profile" class="flex items-center justify-center w-10 h-10 -ml-2 rounded-full text-white hover:bg-white/10 transition duration-200">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <h1 class="text-lg font-bold text-white text-center flex-grow ml-2">Cài đặt</h1>
+        <div class="w-10 h-10"></div>
+    </div>
+
+    <main class="flex-grow p-4 space-y-4">
+
+        <div class="card overflow-hidden divide-y divide-[var(--border-color)]">
+            
+            <a href="personal_center" class="flex items-center justify-between p-4 transition-colors hover:bg-gray-800/60">
+                <span class="text-base font-medium text-white">Trung tâm cá nhân</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            
+            <a href="placeholder" class="flex items-center justify-between p-4 transition-colors hover:bg-gray-800/60">
+                <span class="text-base font-medium text-white">Nhận xét</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            
+            <!-- [SỬA LỖI 1] Đổi link từ placeholder.html sang notifications.html -->
+            <a href="notifications" class="flex items-center justify-between p-4 transition-colors hover:bg-gray-800/60">
+                <span class="text-base font-medium text-white">Thông báo</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+            
+            <a href="help" class="flex items-center justify-between p-4 transition-colors hover:bg-gray-800/60">
+                <span class="text-base font-medium text-white">Trợ giúp</span>
+                <i class="fas fa-chevron-right text-gray-500"></i>
+            </a>
+        </div>
+
+        <div class="mt-8">
+            <!-- [SỬA LỖI 2] Bỏ onclick và thay bằng id để JS xử lý -->
+            <button id="logout-btn"
+                    class="w-full py-3 rounded-lg font-bold text-white text-base bg-red-600 hover:bg-red-700 transition duration-200 shadow-lg shadow-red-800/50">
+                Đăng xuất
+            </button>
+        </div>
+    </main>
+
+    <!-- [THÊM MỚI] Modal Xác nhận Đăng xuất (Thay thế confirm()) -->
+    <div id="logout-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-white mb-4">Xác nhận Đăng xuất</h3>
+            <p class="text-gray-300 mb-6">Bạn có chắc chắn muốn đăng xuất khỏi tài khoản này không?</p>
+            <div class="flex justify-end gap-3">
+                <button id="modal-cancel-logout" class="px-5 py-2 rounded-lg font-medium text-gray-300 transition-colors" style="background-color: var(--border-color);">Hủy bỏ</button>
+                <button id="modal-confirm-logout" class="px-5 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-colors">Đăng xuất</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="main.js"></script>
+    <script>
+        // [SỬA LỖI 2] Cập nhật JavaScript để dùng Modal
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLogin(); // Yêu cầu đăng nhập để xem trang này
+
+            const modal = document.getElementById('logout-confirm-modal');
+            const confirmBtn = document.getElementById('modal-confirm-logout');
+            const cancelBtn = document.getElementById('modal-cancel-logout');
+            const logoutBtn = document.getElementById('logout-btn');
+
+            // 1. Mở modal khi bấm nút "Đăng xuất"
+            logoutBtn.onclick = () => {
+                modal.style.display = 'flex';
+            };
+
+            // 2. Đóng modal khi bấm "Hủy bỏ" hoặc bấm ra ngoài
+            cancelBtn.onclick = () => {
+                modal.style.display = 'none';
+            };
+            modal.onclick = (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            };
+
+            // 3. Xử lý logic đăng xuất khi bấm "Đăng xuất" trong modal
+            confirmBtn.onclick = () => {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('lastUsername');
+                window.location.href = 'login'; 
+                // Không cần đóng modal vì trang sẽ chuyển hướng
+            };
+            
+            // [THÊM] Khởi tạo chuông thông báo (nếu có)
+            if (typeof initializeUserSession === 'function') {
+                initializeUserSession();
+            }
+        });
+        
+        // [XÓA] Hàm handleLogout() cũ dùng confirm()
+        
+    </script>
+</body>
+</html>

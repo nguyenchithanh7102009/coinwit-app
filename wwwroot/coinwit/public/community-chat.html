@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cộng Đồng - CoinWit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="main.js"></script>
+    
+    <style>
+        :root {
+            /* Đồng bộ hoàn toàn với index.html */
+            --dark-bg: #0a0a0e;
+            --card-bg: #1a1b20;
+            --border-color: #2b2d35;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0; 
+            --yellow-accent: #facc15;
+            
+            /* Biến màu riêng cho chat, dựa trên màu chủ đạo */
+            --bubble-me-bg: #facc15;
+            --bubble-me-text: #0a0a0e;
+            --bubble-other-bg: #2b2d35;
+            --bubble-other-text: #ffffff;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            /* [FIX] Đảm bảo body không bao giờ cuộn */
+            overflow: hidden;
+            width: 100vw;
+            max-width: 100vw; /* Ngăn mở rộng ngang */
+        }
+        
+        /* Ngăn cuộn ngang toàn trang */
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* Hiển thị thanh cuộn */
+        #chat-messages {
+            -ms-overflow-style: auto;
+        }
+        
+        .chat-bubble {
+            max-width: 75%; /* [FIX] Chống vỡ layout, tự xuống dòng */
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            word-wrap: break-word; /* [FIX] Bắt buộc phải có */
+            white-space: pre-wrap; /* Cho phép xuống dòng */
+            overflow-wrap: break-word; /* Ngăn tràn ngang */
+        }
+        
+        .avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            flex-shrink: 0;
+            overflow: hidden; /* Hiển thị đúng avatar dạng ảnh, không tràn ra ngoài */
+        }
+        
+        .leader-badge {
+            background: linear-gradient(135deg, #facc15, #f59e0b);
+            color: #0a0a0e;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+            display: inline-block;
+        }
+        
+        /* Tin nhắn của tôi */
+        .chat-bubble.me {
+            background-color: var(--bubble-me-bg);
+            color: var(--bubble-me-text);
+            border-bottom-right-radius: 0.5rem;
+            align-self: flex-end;
+        }
+        
+        /* Tin nhắn của người khác */
+        .chat-bubble.other {
+            background-color: var(--bubble-other-bg);
+            color: var(--bubble-other-text);
+            border-bottom-left-radius: 0.5rem;
+            align-self: flex-start;
+        }
+        
+        .chat-bubble img {
+            max-width: 100%;
+            border-radius: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .input-chat {
+            background-color: var(--bubble-other-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 99px;
+            padding: 0.75rem 1.25rem;
+        }
+        .input-chat:focus {
+            outline: none;
+            border-color: var(--yellow-accent);
+        }
+        
+        .btn-icon {
+            background-color: var(--bubble-other-bg);
+            color: var(--text-secondary);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .btn-icon:hover {
+            background-color: var(--border-color);
+            color: var(--yellow-accent);
+        }
+        
+        .btn-send {
+            background-color: var(--yellow-accent);
+            color: var(--dark-bg);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .btn-send:hover {
+            filter: brightness(1.1);
+        }
+        
+        /* ======================================= */
+        /* [MỚI] NÂNG CẤP ĐỒ HỌC V5 (Chỉnh chu) */
+        /* ======================================= */
+        
+        body {
+            /* Nâng cấp nền "Nghiêm túc" */
+            background: radial-gradient(ellipse at center, #1a1b20 0%, var(--dark-bg) 70%);
+        }
+        
+        /* Header và Footer (Thanh nhập liệu) */
+        header, footer {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            backdrop-filter: blur(10px);
+            background-color: rgba(26, 27, 32, 0.75); /* 75% mờ */
+            border-width: 1px;
+        }
+
+        header {
+            position: sticky; /* Giữ header cố định */
+            top: 0;
+            z-index: 10;
+        }
+
+        footer {
+            position: sticky; /* Giữ thanh chat cố định */
+            bottom: 0;
+            z-index: 10;
+        }
+
+        /* Nền khu vực chat */
+        #chat-messages {
+            background: radial-gradient(ellipse at bottom, #111317 0%, var(--dark-bg) 70%);
+            padding-bottom: 70px; /* Add extra padding at the bottom */
+            overflow-x: hidden; /* Ngăn cuộn ngang */
+        }
+        
+        /* Bong bóng chat */
+        .chat-bubble {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            max-width: 85%; /* Giới hạn tối đa chiều rộng bong bóng */
+        }
+        
+        /* Tin nhắn của tôi (Vàng gradient) */
+        .chat-bubble.me {
+            background: linear-gradient(145deg, #fde047, var(--yellow-accent));
+            box-shadow: 0 4px 15px rgba(250, 204, 21, 0.15);
+            font-weight: 500;
+        }
+        
+        /* [NÂNG CẤP] Tin nhắn của người khác (Gradient tối) */
+        .chat-bubble.other {
+            background: linear-gradient(145deg, #32353f, var(--bubble-other-bg));
+        }
+        
+        /* [NÂNG CẤP] Avatar (Bỏ shadow/border cứng, dùng JS) */
+        .avatar {
+            border: 1px solid rgba(255, 255, 255, 0.05); /* Thêm viền siêu mỏng */
+            /* box-shadow sẽ được thêm tự động bằng JS */
+        }
+        
+        /* Ô nhập liệu */
+        .input-chat {
+            background-color: var(--dark-bg); /* Tối hơn 1 chút */
+            border-color: var(--border-color);
+            transition: all 0.2s ease;
+            max-width: 100%; /* Ngăn tràn ngang */
+        }
+        .input-chat:focus {
+            border-color: var(--yellow-accent);
+            box-shadow: 0 0 10px rgba(250, 204, 21, 0.2);
+        }
+        
+        /* Nút icon (Ảnh, Gửi) */
+        .btn-icon, .btn-send {
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-icon {
+            background-color: var(--dark-bg);
+            border: 1px solid var(--border-color);
+        }
+        .btn-icon:hover {
+            background-color: var(--border-color);
+            border-color: var(--yellow-accent);
+        }
+        .btn-send:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
+        }
+        
+        /* [MỚI] Thêm thanh cuộn đẹp */
+        #chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-messages::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+        #chat-messages::-webkit-scrollbar-thumb {
+            background-color: var(--border-color);
+            border-radius: 3px;
+        }
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background-color: #4a4d5e;
+        }
+        #chat-messages {
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-color) var(--dark-bg);
+        }
+        
+        /* [NÂNG CẤP] Animation cho tin nhắn mới (giống Messenger) */
+        .message-fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+    </style>
+</head>
+<body class="flex flex-col h-screen max-w-screen overflow-hidden">
+
+    <header class="flex-shrink-0 flex items-center justify-between p-4 border-b" style="background-color: var(--card-bg); border-color: var(--border-color);">
+        <a href="index" class="text-white">
+            <i class="fas fa-arrow-left text-xl"></i>
+        </a>
+        <div class="text-center">
+            <h1 class="text-lg font-bold text-white">Cộng Đồng</h1>
+            <p class="text-xs text-gray-400">
+                <span id="user-count">0</span> người đang hoạt động
+            </p>
+        </div>
+        <div class="w-6"></div>
+    </header>
+
+    <main id="chat-messages" class="flex-grow overflow-y-auto p-4 space-y-4 pb-20 overflow-x-hidden">
+        </main>
+
+    <footer class="flex-shrink-0 flex items-center p-4 overflow-hidden" style="background-color: var(--card-bg);">
+        <button id="upload-btn" class="btn-icon mr-2 flex-shrink-0">
+            <i class="fas fa-image text-xl"></i>
+        </button>
+        <input type="file" id="image-input" hidden accept="image/*">
+        
+        <input type="text" id="message-input" placeholder="Nhập tin nhắn..." class="input-chat w-full block">
+        
+        <button id="send-btn" class="btn-send ml-2 flex-shrink-0">
+            <i class="fas fa-paper-plane text-xl"></i>
+        </button>
+    </footer>
+
+<script>
+    // ==========================================================
+    // KHU VỰC CHAT THẬT (REAL-TIME V5 - NÂNG CẤP ĐỒ HỌC)
+    // ==========================================================
+    
+    // --- DOM Elements ---
+    const chatMessagesEl = document.getElementById('chat-messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const uploadBtn = document.getElementById('upload-btn');
+    const imageInput = document.getElementById('image-input');
+    const userCountEl = document.getElementById('user-count');
+    
+    let MY_USER_ID = null;
+    let MY_USERNAME = 'Bạn';
+    let MY_AVATAR_URL = null;
+    let socket = null;
+
+    // Giới hạn kích thước ảnh tải lên (MB)
+    const MAX_IMAGE_SIZE_MB = 2; // chỉnh nếu backend cho phép lớn hơn
+    const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+    
+    // === Các hàm Helper (Giữ nguyên) ===
+    const avatarColors = [
+        '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
+        '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+        '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
+        '#ec4899', '#f43f5e'
+    ];
+    
+    function getAvatar(username, isLeader = false) {
+        if (isLeader) return '👑';
+        const emojis = ['😎', '🤑', '💰', '🎰', '🎲', '🔥', '💎', '⭐', '🚀', '💸', '🎯', '👊', '😈', '🤩', '🥳', '😤'];
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return emojis[Math.abs(hash) % emojis.length];
+    }
+    
+    function getAvatarColor(username) {
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = username.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return avatarColors[Math.abs(hash) % avatarColors.length];
+    }
+
+    function scrollToBottom(force = false) {
+        // Always scroll to bottom with a small delay to ensure DOM is updated
+        setTimeout(() => {
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+        }, 50);
+    }
+    
+    function escapeHTML(str) {
+        return str.replace(/[&<>"']/g, function(m) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+        });
+    }
+
+    /**
+     * [FIX 1] Thêm hàm jwt_decode (vì main.js không cung cấp)
+     */
+    function jwt_decode(token) {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            console.error('Lỗi giải mã token:', e);
+            return null;
+        }
+    }
+
+    /**
+     * Tạo element avatar, ưu tiên dùng avatar URL thực nếu có
+     */
+    function buildAvatarElement(msg, isMe) {
+        const avatarEl = document.createElement('div');
+        avatarEl.className = 'avatar';
+
+        const avatarUrl = msg.avatar || (isMe ? MY_AVATAR_URL : null);
+        if (avatarUrl) {
+            avatarEl.style.backgroundColor = 'transparent';
+            avatarEl.style.boxShadow = '0 0 12px rgba(0,0,0,0.4)';
+
+            const img = document.createElement('img');
+            img.src = avatarUrl;
+            img.alt = msg.username || '';
+            img.className = 'w-full h-full object-cover';
+            avatarEl.appendChild(img);
+        } else {
+            const color = getAvatarColor(msg.username);
+            avatarEl.style.backgroundColor = color;
+            avatarEl.style.boxShadow = `0 0 12px ${color}40`;
+            avatarEl.textContent = getAvatar(msg.username, msg.isLeader);
+        }
+        return avatarEl;
+    }
+
+    /**
+     * Hàm chính để thêm tin nhắn vào giao diện
+     */
+    function addMessageToUI(msg, isNew) {
+        const ts = msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now();
+        const key = msg.id ? `${msg.id}-${ts}` : `tmp-${ts}`;
+        if (document.getElementById(`chat-msg-${key}`)) {
+            return;
+        }
+
+        const isMe = (String(msg.userId) === String(MY_USER_ID));
+        
+        const messageWrapper = document.createElement('div');
+        // [FIX] 'w-full' là bắt buộc để bong bóng chat căn lề đúng
+        messageWrapper.className = `flex ${isMe ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 w-full`;
+        messageWrapper.id = `chat-msg-${key}`;
+        
+        // [NÂNG CẤP] Thêm class animation nếu là tin nhắn mới
+        if (isNew) {
+            messageWrapper.classList.add('message-fade-in');
+        }
+
+        // Avatar cho cả tôi và người khác (ưu tiên avatar thật nếu có)
+        const avatarEl = buildAvatarElement(msg, isMe);
+        messageWrapper.appendChild(avatarEl);
+        
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full max-w-[85%]`;
+        const messageBubble = document.createElement('div');
+        messageBubble.className = `chat-bubble ${isMe ? 'me' : 'other'} w-full break-words`;
+        if (!isMe) {
+            const headerEl = document.createElement('div');
+            headerEl.className = 'flex items-center mb-1';
+            const usernameEl = document.createElement('span');
+            usernameEl.className = 'font-bold text-sm';
+            usernameEl.style.color = 'var(--yellow-accent)';
+            usernameEl.textContent = msg.username;
+            headerEl.appendChild(usernameEl);
+            if (msg.isLeader) {
+                const badgeEl = document.createElement('span');
+                badgeEl.className = 'leader-badge';
+                badgeEl.textContent = 'LEADER';
+                headerEl.appendChild(badgeEl);
+            }
+            messageBubble.appendChild(headerEl);
+        }
+        if (msg.isImage) {
+            const img = document.createElement('img');
+            img.src = msg.message;
+            img.className = 'rounded-lg max-w-full max-h-[250px] object-contain';
+            img.onload = () => {
+                if (isNew) scrollToBottom();
+            };
+            messageBubble.appendChild(img);
+        } else {
+            // [SỬA LỖI HIỂN THỊ] Chỉ dùng <pre> cho tin nhắn của NGƯỜI KHÁC
+            if (isMe) {
+                const textEl = document.createElement('div');
+                textEl.textContent = msg.message; // Tin của mình dùng div
+                textEl.className = 'break-words'; // Ngăn tràn ngang
+                messageBubble.appendChild(textEl);
+            } else {
+                const textEl = document.createElement('div');
+                textEl.innerHTML = `<pre style="font-family: inherit; font-size: inherit; white-space: pre-wrap; word-wrap: break-word;">${escapeHTML(msg.message)}</pre>`;
+                textEl.className = 'break-words'; // Ngăn tràn ngang
+                messageBubble.appendChild(textEl);
+            }
+        }
+        const timeEl = document.createElement('div');
+        timeEl.className = `text-xs mt-1 ${isMe ? 'text-gray-800' : 'text-gray-400'} opacity-75`;
+        timeEl.textContent = new Date(msg.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        contentWrapper.appendChild(messageBubble);
+        contentWrapper.appendChild(timeEl);
+        messageWrapper.appendChild(contentWrapper);
+        chatMessagesEl.appendChild(messageWrapper);
+        if (isNew) {
+            scrollToBottom();
+        }
+    }
+
+    /**
+     * Gửi tin nhắn văn bản
+     */
+    function handleSend() {
+        const messageText = messageInput.value.trim();
+        // Không gửi nếu rỗng hoặc chưa kết nối socket
+        if (messageText === '') {
+            return;
+        }
+        if (!socket || !socket.connected) {
+            try { if (socket) socket.connect(); } catch (e) {}
+            alert('Không kết nối được tới máy chủ chat. Vui lòng thử lại sau.');
+            return;
+        }
+        socket.emit('chat_message_send', {
+            message: messageText,
+            isImage: false
+        });
+        messageInput.value = '';
+    }
+    
+    /**
+     * Tải ảnh lên và gửi
+     */
+    async function handleUpload(event) {
+        const file = event.target.files[0];
+        if (!file || !socket) return;
+
+        // Chặn file quá lớn từ phía client trước khi gửi (tránh lỗi 413 Payload Too Large)
+        if (file.size > MAX_IMAGE_SIZE_BYTES) {
+            alert(`Ảnh quá lớn. Vui lòng chọn ảnh nhỏ hơn ${MAX_IMAGE_SIZE_MB}MB.`);
+            imageInput.value = '';
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('chatImage', file);
+        try {
+            // Không dùng fetchAPI vì nó luôn set Content-Type: application/json
+            // Gửi trực tiếp với fetch + header Authorization nếu có token
+            const token = typeof window.getToken === 'function' ? window.getToken() : null;
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+            const response = await fetch('/api/chat/upload', {
+                method: 'POST',
+                headers,
+                body: formData
+            });
+
+            if (response.status === 413) {
+                // 413 Payload Too Large từ backend
+                throw new Error(`Ảnh vượt quá dung lượng cho phép (>${MAX_IMAGE_SIZE_MB}MB).`);
+            }
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Lỗi không xác định từ server.');
+            }
+
+            if (data.imageUrl) {
+                socket.emit('chat_message_send', {
+                    message: data.imageUrl,
+                    isImage: true
+                });
+            } else {
+                throw new Error('Không nhận được URL ảnh từ server.');
+            }
+        } catch (error) {
+            alert(`Lỗi tải ảnh: ${error.message}`);
+        }
+        imageInput.value = '';
+    }
+
+    /**
+     * Tải lịch sử chat từ server
+     */
+    async function loadChatHistory() {
+        try {
+            // [FIX] Gọi hàm qua window.fetchAPI (từ main.js)
+            const history = await window.fetchAPI('/api/chat/global-history?limit=200');
+            chatMessagesEl.innerHTML = '';
+            if (history.length === 0) {
+                 addMessageToUI({
+                    username: 'KingPredict',
+                    message: '👑 Chào mừng ae! Hãy là người đầu tiên bắt đầu cuộc trò chuyện.',
+                    timestamp: new Date().toISOString(), isImage: false, isLeader: true
+                }, false);
+                return;
+            }
+            history.forEach(msg => {
+                addMessageToUI(msg, false);
+            });
+            scrollToBottom(true);
+        } catch (error) {
+            chatMessagesEl.innerHTML = `<div class="text-center text-red-400">Lỗi tải lịch sử chat: ${error.message}</div>`;
+        }
+    }
+
+    /**
+     * Kết nối Socket.IO và lấy thông tin user
+     */
+    async function initializeChat() {
+        // [FIX] Kiểm tra sự tồn tại của các hàm từ main.js
+        if (typeof window.getToken !== 'function' || typeof window.fetchAPI !== 'function') {
+            chatMessagesEl.innerHTML = '<div class="text-center text-red-400">Lỗi: Không tải được tệp lệnh chính (main.js). Vui lòng làm mới trang (F5).</div>';
+            return;
+        }
+
+        // 1. Kiểm tra đăng nhập và lấy thông tin
+        // [FIX] Gọi hàm qua window.getToken
+        const token = window.getToken();
+        if (!token) {
+            chatMessagesEl.innerHTML = '<div class="text-center text-yellow-400">Vui lòng <a href="login" class="underline">đăng nhập</a> để tham gia chat.</div>';
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            uploadBtn.disabled = true;
+            return;
+        }
+        
+        try {
+            // [FIX] Giờ hàm jwt_decode (định nghĩa ở trên) đã tồn tại
+            const payload = jwt_decode(token);
+            if (!payload) {
+                throw new Error("Token không hợp lệ hoặc bị hỏng.");
+            }
+            MY_USER_ID = payload.userId;
+            
+            // [FIX] Gọi hàm qua window.fetchAPI
+            const profile = await window.fetchAPI('/user/profile');
+            MY_USERNAME = profile.username;
+            const savedAvatar = localStorage.getItem('userAvatarUrl');
+            MY_AVATAR_URL = savedAvatar || profile.avatar || null;
+        } catch (e) {
+            console.error("Lỗi xác thực hoặc tải profile:", e);
+            chatMessagesEl.innerHTML = `<div class="text-center text-red-400">Lỗi xác thực. Vui lòng đăng nhập lại. ${e.message}</div>`;
+            return;
+        }
+        
+        // Thêm thông báo đang tải...
+        chatMessagesEl.innerHTML = '<div class="text-center text-gray-500 text-sm">Đang tải lịch sử trò chuyện...</div>';
+
+        // 2. Tải lịch sử chat
+        await loadChatHistory();
+
+        // 3. Kết nối Socket (hàm io() là global từ CDN, nên ok)
+        socket = io(window.location.origin, {
+            query: { user_id: MY_USER_ID }
+        });
+
+        // 4. Lắng nghe các sự kiện từ server
+        socket.on('connect', () => {
+            messageInput.disabled = false;
+            sendBtn.disabled = false;
+            uploadBtn.disabled = false;
+        });
+        socket.on('connect_error', () => {
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            uploadBtn.disabled = true;
+        });
+        
+        // Nếu kết nối socket thất bại (server tắt, sai cổng, ...), hiển thị thông báo rõ ràng
+        socket.io.on('error', (err) => {
+            console.error('Lỗi kết nối Socket.IO:', err);
+            chatMessagesEl.innerHTML = '<div class="text-center text-red-400">Không kết nối được tới máy chủ chat. Vui lòng thử lại sau hoặc liên hệ admin.</div>';
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            uploadBtn.disabled = true;
+        });
+        socket.io.on('reconnect_error', () => {
+            chatMessagesEl.innerHTML = '<div class="text-center text-red-400">Không kết nối được tới máy chủ chat. Vui lòng thử lại sau hoặc liên hệ admin.</div>';
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+            uploadBtn.disabled = true;
+        });
+
+        socket.on('chat_user_count', (count) => {
+            userCountEl.textContent = count;
+        });
+        socket.on('chat_message_broadcast', (msg) => {
+            addMessageToUI(msg, true);
+        });
+        socket.on('chat_message_ack', () => {});
+        socket.on('chat_error', (errorMessage) => {
+            alert(errorMessage);
+        });
+
+        // 5. Gán sự kiện cho các nút
+        sendBtn.addEventListener('click', handleSend);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+            }
+        });
+        uploadBtn.addEventListener('click', () => { imageInput.click(); });
+        imageInput.addEventListener('change', handleUpload);
+    }
+    
+    // === KHỞI CHẠY ===
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeChat);
+    } else {
+        initializeChat();
+    }
+</script>
+</body>
+</html>
